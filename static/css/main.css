@@ -1,0 +1,34 @@
+/* Base Styles */
+:root {
+    --primary-color: #10a1fa;
+    --secondary-color: #A069FF;
+    --background-dark: #0D1A2C;
+    --background-gradient: linear-gradient(135deg, #0D1A2C 0%, #09398E 50%, #A109F8 100%);
+    --text-light: #ffffff;
+    --border-light: rgba(16, 161, 250, 0.3);
+}
+
+body {
+    background: var(--background-dark);
+    font-family: monospace, 'JetBrains Mono';
+    margin: 0;
+    padding: 0;
+    color: var(--text-light);
+}
+
+/* Shared Components */
+.modal-base {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    backdrop-filter: blur(10px);
+}
+
+.btn-base {
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}

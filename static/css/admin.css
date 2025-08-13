@@ -1,0 +1,207 @@
+/* Admin Dashboard Styles */
+:root {
+    --admin-primary: #A069FF;
+    --admin-secondary: #10a1fa;
+    --admin-dark: #0D1A2C;
+    --admin-light: #ffffff;
+    --admin-success: #4CAF50;
+    --admin-warning: #FFC107;
+    --admin-danger: #FF5252;
+}
+
+body {
+    background: var(--admin-dark);
+    font-family: monospace, 'JetBrains Mono';
+    margin: 0;
+    padding: 0;
+    color: var(--admin-light);
+}
+
+/* Header Styles */
+header {
+    background: linear-gradient(135deg, #0D1A2C 0%, #09398E 50%, #A109F8 100%);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--admin-secondary);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-left i {
+    font-size: 2rem;
+    color: var(--admin-secondary);
+}
+
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.admin-role {
+    background: rgba(160, 105, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--admin-primary);
+    font-size: 0.9rem;
+}
+
+/* Layout */
+.admin-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    min-height: calc(100vh - 70px);
+}
+
+/* Sidebar */
+.admin-sidebar {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2rem 0;
+    border-right: 1px solid rgba(160, 105, 255, 0.2);
+}
+
+.nav-section {
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+}
+
+.nav-section h3 {
+    color: var(--admin-primary);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    padding-left: 1rem;
+}
+
+.nav-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-section li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    margin: 0.2rem 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-section li:hover {
+    background: rgba(160, 105, 255, 0.1);
+}
+
+.nav-section li.active {
+    background: rgba(160, 105, 255, 0.2);
+    border-left: 3px solid var(--admin-primary);
+}
+
+/* Content Area */
+.admin-content {
+    padding: 2rem;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.action-btn {
+    background: rgba(160, 105, 255, 0.1);
+    border: 1px solid var(--admin-primary);
+    color: var(--admin-light);
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    background: rgba(160, 105, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border: 1px solid rgba(160, 105, 255, 0.2);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    color: var(--admin-primary);
+}
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+    margin: 0.5rem 0;
+}
+
+.stat-change {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.stat-change.positive { color: var(--admin-success); }
+.stat-change.negative { color: var(--admin-danger); }
+.stat-change.neutral { color: var(--admin-warning); }
+
+/* Data Grid */
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.data-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(160, 105, 255, 0.2);
+}
+
+.data-card h3 {
+    margin: 0 0 1.5rem 0;
+    color: var(--admin-primary);
+}
