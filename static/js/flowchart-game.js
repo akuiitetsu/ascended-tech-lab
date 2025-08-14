@@ -2,282 +2,443 @@ class FlowByteGame {
     constructor() {
         this.currentDifficulty = null;
         this.currentLevel = null;
-        this.currentTool = 'select';
+        this.currentTool = 'arrow';
         this.nodes = [];
         this.connections = [];
         this.selectedNode = null;
         this.connectionSource = null;
         this.nodeCounter = 0;
         this.gameContainer = null;
+        this.mistakeCount = 0;
+        this.container = null;
+        this.initialized = false;
         
         this.difficulties = {
             easy: {
                 name: 'Easy',
                 description: 'Basic flowchart construction with guided instructions',
                 levels: [
-                    { name: 'Simple Start-End Flow', objective: 'Create a basic start-to-end flowchart' },
-                    { name: 'Decision Making', objective: 'Add decision nodes to your flowchart' },
-                    { name: 'Input-Output Flow', objective: 'Create flowchart with input/output operations' },
-                    { name: 'Process Chain', objective: 'Build a multi-step process flowchart' },
-                    { name: 'Complete Workflow', objective: 'Combine all elements into complex flowchart' }
+                    { 
+                        name: 'Simple Start-End Flow', 
+                        objective: 'Create a basic start-to-end flowchart',
+                        scenario: "Sarah is opening her first coffee shop and needs a simple process flowchart for her opening day routine. Help her create a basic flow that shows how she starts and ends her day."
+                    },
+                    { 
+                        name: 'Decision Making', 
+                        objective: 'Add decision nodes to your flowchart',
+                        scenario: "Sarah needs to add decision points to her coffee shop process. Help her create a flowchart that includes decisions like checking inventory and customer preferences."
+                    },
+                    { 
+                        name: 'Input-Output Flow', 
+                        objective: 'Create flowchart with input/output operations',
+                        scenario: "Sarah wants to track customer orders and receipts. Create a flowchart that shows input/output operations for her coffee shop system."
+                    },
+                    { 
+                        name: 'Process Chain', 
+                        objective: 'Build a multi-step process flowchart',
+                        scenario: "Sarah's coffee shop now has multiple processes running together. Help her create a comprehensive workflow that connects all operations."
+                    },
+                    { 
+                        name: 'Complete Workflow', 
+                        objective: 'Combine all elements into complex flowchart',
+                        scenario: "Sarah wants a master flowchart that includes all aspects of her coffee shop operations. Create a complete workflow that demonstrates advanced flowchart design."
+                    }
                 ]
             },
             hard: {
                 name: 'Hard',
                 description: 'Advanced flowchart design with complex logic patterns',
                 levels: [
-                    { name: 'Nested Decisions', objective: 'Create flowchart with multiple decision branches' },
-                    { name: 'Loop Structures', objective: 'Design flowcharts with iterative processes' },
-                    { name: 'Error Handling', objective: 'Build flowcharts with exception handling' },
-                    { name: 'Parallel Processing', objective: 'Design concurrent workflow patterns' },
-                    { name: 'System Architecture', objective: 'Create comprehensive system flowchart' }
+                    { 
+                        name: 'Nested Decisions', 
+                        objective: 'Create flowchart with multiple decision branches',
+                        scenario: "Sarah's coffee shop now has complex decision trees for different customer types, payment methods, and seasonal menus. Design a flowchart with nested decision logic."
+                    },
+                    { 
+                        name: 'Loop Structures', 
+                        objective: 'Design flowcharts with iterative processes',
+                        scenario: "Sarah needs to implement quality control loops and inventory checking cycles. Create a flowchart that demonstrates iterative processes and loop structures."
+                    },
+                    { 
+                        name: 'Error Handling', 
+                        objective: 'Build flowcharts with exception handling',
+                        scenario: "Sarah wants to handle various error scenarios like payment failures, out-of-stock items, and equipment malfunctions. Design a robust flowchart with error handling."
+                    },
+                    { 
+                        name: 'Parallel Processing', 
+                        objective: 'Design concurrent workflow patterns',
+                        scenario: "Sarah's coffee shop now has multiple staff members working simultaneously on different tasks. Create a flowchart that shows parallel processing workflows."
+                    },
+                    { 
+                        name: 'System Architecture', 
+                        objective: 'Create comprehensive system flowchart',
+                        scenario: "Sarah is expanding to multiple locations and needs a master system architecture flowchart that governs all operations across her coffee shop chain."
+                    }
                 ]
             }
         };
     }
 
-    init() {
-        this.showRoomSelection();
+    init(container = null) {
+        console.log('🎮 FlowByteGame.init() called');
+        console.log('Container provided:', container ? 'YES' : 'NO');
+        console.log('Container type:', container ? container.constructor.name : 'N/A');
+        
+        this.container = container || document;
+        
+        // Ensure we have a valid container
+        if (!this.container) {
+            console.error('❌ No valid container provided to FlowByteGame.init()');
+            return;
+        }
+        
+        console.log('📦 Using container:', this.container === document ? 'document' : 'provided element');
+        
+        // Check for required elements with better error reporting
+        const checkForElements = () => {
+            const difficultyScreen = this.container.querySelector('#difficulty-screen');
+            const levelScreen = this.container.querySelector('#level-screen');
+            const gameScreen = this.container.querySelector('#game-screen');
+            
+            const elementStatus = {
+                difficultyScreen: !!difficultyScreen,
+                levelScreen: !!levelScreen,
+                gameScreen: !!gameScreen
+            };
+            
+            console.log('🔍 Element check results:', elementStatus);
+            
+            if (!difficultyScreen) console.log('❌ Missing #difficulty-screen');
+            if (!levelScreen) console.log('❌ Missing #level-screen');  
+            if (!gameScreen) console.log('❌ Missing #game-screen');
+            
+            return difficultyScreen && levelScreen && gameScreen;
+        };
+        
+        // Wait for DOM elements with timeout
+        const maxRetries = 50; // 5 seconds max wait
+        let retries = 0;
+        
+        const initWhenReady = () => {
+            const elementsReady = checkForElements();
+            
+            if (!elementsReady && retries < maxRetries) {
+                retries++;
+                console.log(`⏳ Waiting for DOM elements... attempt ${retries}/${maxRetries}`);
+                setTimeout(initWhenReady, 100);
+                return;
+            }
+            
+            if (!elementsReady) {
+                console.error('❌ Failed to find required DOM elements after maximum retries');
+                console.log('🔍 Container content preview:', this.container.innerHTML.substring(0, 500) + '...');
+                return;
+            }
+            
+            try {
+                console.log('✅ All required elements found, setting up event listeners...');
+                this.setupEventListeners();
+                
+                console.log('✅ Event listeners set up, showing difficulty screen...');
+                this.showRoomSelection();
+                
+                this.initialized = true;
+                console.log('🎉 FlowByteGame initialized successfully!');
+            } catch (error) {
+                console.error('❌ Error during FlowByteGame initialization:', error);
+            }
+        };
+        
+        // Start the initialization process
+        console.log('🚀 Starting initialization process...');
+        initWhenReady();
+    }
+
+    setupEventListeners() {
+        console.log('🎛️ Setting up FlowByte event listeners...');
+        const container = this.container;
+        
+        try {
+            // Difficulty selection buttons
+            const easyBtn = container.querySelector('#easy-difficulty-btn');
+            const hardBtn = container.querySelector('#hard-difficulty-btn');
+            
+            console.log('🔘 Button check:', {
+                easyBtn: !!easyBtn,
+                hardBtn: !!hardBtn
+            });
+            
+            if (easyBtn && hardBtn) {
+                // Clean setup for difficulty buttons
+                const newEasyBtn = easyBtn.cloneNode(true);
+                const newHardBtn = hardBtn.cloneNode(true);
+                
+                easyBtn.parentNode.replaceChild(newEasyBtn, easyBtn);
+                hardBtn.parentNode.replaceChild(newHardBtn, hardBtn);
+                
+                newEasyBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('🟢 Easy difficulty selected');
+                    this.selectDifficulty('easy');
+                });
+                
+                newHardBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('🔴 Hard difficulty selected');
+                    this.selectDifficulty('hard');
+                });
+                
+                console.log('✅ Difficulty buttons setup complete');
+            } else {
+                console.warn('⚠️ Difficulty buttons not found:', { easyBtn: !!easyBtn, hardBtn: !!hardBtn });
+            }
+            
+            // Navigation buttons
+            const backToDifficultyBtn = container.querySelector('#back-to-difficulty-btn');
+            if (backToDifficultyBtn) {
+                backToDifficultyBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.showRoomSelection();
+                });
+                console.log('✅ Back to difficulty button setup');
+            }
+            
+            const backToLevelsBtn = container.querySelector('#back-to-levels-btn');
+            if (backToLevelsBtn) {
+                // Create a new button to ensure clean event handling
+                const newBackToLevelsBtn = backToLevelsBtn.cloneNode(true);
+                backToLevelsBtn.parentNode.replaceChild(newBackToLevelsBtn, backToLevelsBtn);
+                
+                newBackToLevelsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Navigating back to level selection');
+                    this.showLevelSelection();
+                });
+                console.log('✅ Back to levels button setup');
+            }
+            
+            // Game action buttons
+            this.setupGameActionButtons(container);
+            this.setupNodeCreationButtons(container);
+            this.setupToolButtons(container);
+            
+            console.log('✅ All FlowByte event listeners setup complete');
+            
+        } catch (error) {
+            console.error('❌ Error setting up event listeners:', error);
+        }
+    }
+
+    setupGameActionButtons(container) {
+        const buttons = [
+            { id: '#complete-level-btn', handler: () => this.completeLevel() },
+            { id: '#abort-mission-btn', handler: () => this.abortMission() },
+            { id: '#get-hint-btn', handler: () => this.getHint() },
+            { id: '#reset-canvas-btn', handler: () => this.resetCanvas() }
+        ];
+        
+        buttons.forEach(({ id, handler }) => {
+            const btn = container.querySelector(id);
+            if (btn) {
+                btn.addEventListener('click', handler);
+            }
+        });
+    }
+
+    setupNodeCreationButtons(container) {
+        const nodeButtons = [
+            { id: '#add-oval-btn', type: 'oval' },
+            { id: '#add-rectangle-btn', type: 'rectangle' },
+            { id: '#add-diamond-btn', type: 'diamond' },
+            { id: '#add-parallelogram-btn', type: 'parallelogram' }
+        ];
+        
+        nodeButtons.forEach(({ id, type }) => {
+            const btn = container.querySelector(id);
+            if (btn) {
+                btn.addEventListener('click', () => this.addNode(type));
+            }
+        });
+    }
+
+    setupToolButtons(container) {
+        const toolButtons = [
+            { id: '#arrow-tool-btn', tool: 'arrow' },
+            { id: '#delete-tool-btn', tool: 'delete' }
+        ];
+        
+        toolButtons.forEach(({ id, tool }) => {
+            const btn = container.querySelector(id);
+            if (btn) {
+                btn.addEventListener('click', () => this.selectTool(tool));
+            }
+        });
+    }
+
+    showScreen(screenId) {
+        console.log('📺 FlowByte showScreen:', screenId);
+        const container = this.container;
+        
+        if (!container) {
+            console.error('❌ No container available for showScreen');
+            return;
+        }
+        
+        // Hide all screens
+        const screens = ['difficulty-screen', 'level-screen', 'game-screen'];
+        screens.forEach(id => {
+            const screen = container.querySelector(`#${id}`);
+            if (screen) {
+                screen.classList.add('hidden');
+                screen.style.display = 'none';
+                console.log(`🙈 Hidden screen: ${id}`);
+            }
+        });
+        
+        // Show target screen
+        const targetScreen = container.querySelector(`#${screenId}`);
+        if (targetScreen) {
+            targetScreen.classList.remove('hidden');
+            const displayType = screenId === 'difficulty-screen' ? 'flex' : 'block';
+            targetScreen.style.display = displayType;
+            
+            // Force visibility for difficulty screen
+            if (screenId === 'difficulty-screen') {
+                targetScreen.style.position = 'relative';
+                targetScreen.style.width = '100%';
+                targetScreen.style.height = '100vh';
+                targetScreen.style.zIndex = '100';
+            }
+            
+            console.log(`👁️ Showing screen: ${screenId} (display: ${displayType})`);
+            console.log('Screen element details:', {
+                id: targetScreen.id,
+                className: targetScreen.className,
+                display: targetScreen.style.display,
+                visibility: targetScreen.style.visibility,
+                position: targetScreen.style.position,
+                zIndex: targetScreen.style.zIndex
+            });
+            
+            // Double-check that the screen is actually visible
+            setTimeout(() => {
+                const rect = targetScreen.getBoundingClientRect();
+                console.log('Screen bounding rect:', {
+                    width: rect.width,
+                    height: rect.height,
+                    top: rect.top,
+                    left: rect.left
+                });
+                
+                if (rect.width === 0 || rect.height === 0) {
+                    console.warn('⚠️ Screen may not be visible - zero dimensions detected');
+                }
+            }, 50);
+            
+        } else {
+            console.error(`❌ Screen ${screenId} not found in container`);
+            console.log('Available screens:', 
+                Array.from(container.querySelectorAll('[id*="screen"]')).map(el => el.id)
+            );
+        }
     }
 
     showRoomSelection() {
-        document.body.innerHTML = `
-            <div class="flowbyte-container">
-                <div class="room-header">
-                    <h1>FLOWBYTE</h1>
-                    <p>Flowchart Construction Lab</p>
-                </div>
-                <div class="difficulty-selection">
-                    <h2>Select Difficulty Level</h2>
-                    <div class="difficulty-cards">
-                        <div class="difficulty-card easy" onclick="flowByteGame.selectDifficulty('easy')">
-                            <h3>Easy</h3>
-                            <p>Basic flowchart construction with guided instructions</p>
-                            <div class="level-count">5 Levels</div>
-                        </div>
-                        <div class="difficulty-card hard" onclick="flowByteGame.selectDifficulty('hard')">
-                            <h3>Hard</h3>
-                            <p>Advanced flowchart design with complex logic patterns</p>
-                            <div class="level-count">5 Levels</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <style>
-                .flowbyte-container { max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; }
-                .room-header { text-align: center; margin-bottom: 40px; }
-                .room-header h1 { font-size: 3em; color: #2c5aa0; margin: 0; }
-                .room-header p { font-size: 1.2em; color: #666; margin: 10px 0; }
-                .difficulty-selection h2 { text-align: center; margin-bottom: 30px; color: #333; }
-                .difficulty-cards { display: flex; gap: 30px; justify-content: center; }
-                .difficulty-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; width: 250px; text-align: center; }
-                .difficulty-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-                .difficulty-card.easy { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-                .difficulty-card.hard { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-                .difficulty-card h3 { margin: 0 0 15px 0; font-size: 1.5em; }
-                .difficulty-card p { margin: 0 0 20px 0; opacity: 0.9; }
-                .level-count { background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; display: inline-block; }
-            </style>
-        `;
+        console.log('🏠 Showing difficulty selection...');
+        this.showScreen('difficulty-screen');
     }
 
     selectDifficulty(difficulty) {
+        console.log('Difficulty selected:', difficulty);
         this.currentDifficulty = difficulty;
         this.showLevelSelection();
     }
 
     showLevelSelection() {
-        const difficultyData = this.difficulties[this.currentDifficulty];
+        console.log('Showing level selection for difficulty:', this.currentDifficulty);
         
-        document.body.innerHTML = `
-            <div class="flowbyte-container">
-                <div class="level-header">
-                    <button class="back-btn" onclick="flowByteGame.showRoomSelection()">← Back to Difficulty</button>
-                    <h1>FLOWBYTE - ${difficultyData.name}</h1>
-                    <p>${difficultyData.description}</p>
+        if (!this.currentDifficulty) {
+            console.error('No difficulty selected');
+            return;
+        }
+        
+        const difficultyData = this.difficulties[this.currentDifficulty];
+        const container = this.container;
+        
+        // Update header
+        const titleElement = container.querySelector('#difficulty-title');
+        const descElement = container.querySelector('#difficulty-description');
+        
+        if (titleElement) titleElement.textContent = `FLOWBYTE - ${difficultyData.name}`;
+        if (descElement) descElement.textContent = difficultyData.description;
+        
+        // Populate level grid
+        const levelGrid = container.querySelector('#level-grid');
+        if (levelGrid) {
+            levelGrid.innerHTML = difficultyData.levels.map((level, index) => `
+                <div class="level-card" data-level="${index + 1}">
+                    <div class="level-number">${index + 1}</div>
+                    <h3>${level.name}</h3>
+                    <p>${level.objective}</p>
                 </div>
-                <div class="level-selection">
-                    <h2>Select Level</h2>
-                    <div class="level-grid">
-                        ${difficultyData.levels.map((level, index) => `
-                            <div class="level-card" onclick="flowByteGame.startLevel(${index + 1})">
-                                <div class="level-number">${index + 1}</div>
-                                <h3>${level.name}</h3>
-                                <p>${level.objective}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-            <style>
-                .flowbyte-container { max-width: 1000px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; }
-                .level-header { text-align: center; margin-bottom: 40px; position: relative; }
-                .back-btn { position: absolute; left: 0; top: 0; background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-                .back-btn:hover { background: #5a6268; }
-                .level-header h1 { font-size: 2.5em; color: #2c5aa0; margin: 0; }
-                .level-header p { font-size: 1.1em; color: #666; margin: 10px 0; }
-                .level-selection h2 { text-align: center; margin-bottom: 30px; color: #333; }
-                .level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-                .level-card { background: white; border: 2px solid #e9ecef; padding: 25px; border-radius: 10px; cursor: pointer; transition: all 0.3s; text-align: center; }
-                .level-card:hover { border-color: #007bff; transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-                .level-number { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; margin: 0 auto 15px; }
-                .level-card h3 { margin: 0 0 10px 0; color: #333; }
-                .level-card p { margin: 0; color: #666; font-size: 0.9em; }
-            </style>
-        `;
+            `).join('');
+            
+            // Add click handlers to level cards
+            levelGrid.querySelectorAll('.level-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const level = parseInt(card.dataset.level);
+                    console.log('Level selected:', level);
+                    this.startLevel(level);
+                });
+            });
+        }
+        
+        this.showScreen('level-screen');
     }
 
     startLevel(levelNumber) {
+        console.log('Starting level:', levelNumber);
         this.currentLevel = levelNumber;
+        this.mistakeCount = 0;
         this.initGame();
     }
 
     initGame() {
+        console.log('Initializing game interface...');
         const difficultyData = this.difficulties[this.currentDifficulty];
         const levelData = difficultyData.levels[this.currentLevel - 1];
+        const container = this.container;
         
-        document.body.innerHTML = `
-            <div class="game-interface">
-                <div class="game-header">
-                    <button class="back-btn" onclick="flowByteGame.showLevelSelection()">← Back to Levels</button>
-                    <div class="level-info">
-                        <h2>${difficultyData.name} - Level ${this.currentLevel}</h2>
-                        <p><strong>Objective:</strong> ${levelData.objective}</p>
-                    </div>
-                    <div class="game-controls">
-                        <button class="reset-btn" onclick="flowByteGame.resetCanvas()">Reset Canvas</button>
-                        <button class="export-btn" onclick="flowByteGame.exportFlowchart()">Export</button>
-                    </div>
-                </div>
-                
-                <div class="game-content">
-                    <div class="toolbar">
-                        <h3>Tools</h3>
-                        <div class="tool-group">
-                            <button class="tool-btn active" data-tool="select" onclick="flowByteGame.selectTool('select')">
-                                <span>📋</span> Select
-                            </button>
-                            <button class="tool-btn" data-tool="arrow" onclick="flowByteGame.selectTool('arrow')">
-                                <span>🔗</span> Connect
-                            </button>
-                            <button class="tool-btn" data-tool="delete" onclick="flowByteGame.selectTool('delete')">
-                                <span>🗑️</span> Delete
-                            </button>
-                        </div>
-                        
-                        <h3>Node Types</h3>
-                        <div class="node-types">
-                            <button class="node-btn" onclick="flowByteGame.addNode('oval')">
-                                <div class="node-preview oval"></div>
-                                Start/End
-                            </button>
-                            <button class="node-btn" onclick="flowByteGame.addNode('rectangle')">
-                                <div class="node-preview rectangle"></div>
-                                Process
-                            </button>
-                            <button class="node-btn" onclick="flowByteGame.addNode('diamond')">
-                                <div class="node-preview diamond"></div>
-                                Decision
-                            </button>
-                            <button class="node-btn" onclick="flowByteGame.addNode('parallelogram')">
-                                <div class="node-preview parallelogram"></div>
-                                Input/Output
-                            </button>
-                        </div>
-                        
-                        <div class="status-panel">
-                            <h3>Status</h3>
-                            <div class="status-item">Nodes: <span id="node-count">0</span></div>
-                            <div class="status-item">Connections: <span id="connection-count">0</span></div>
-                            <div class="status-item">Tool: <span id="current-tool">Select</span></div>
-                        </div>
-                    </div>
-                    
-                    <div class="canvas-area">
-                        <div id="flowchart-canvas" class="flowchart-canvas">
-                            <svg id="connection-svg" class="connection-svg"></svg>
-                        </div>
-                        <div class="canvas-info">
-                            <p>Click on node types to add them to the canvas. Use tools to connect, select, or delete nodes.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <style>
-                * { box-sizing: border-box; }
-                body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; }
-                
-                .game-interface { display: flex; flex-direction: column; height: 100vh; }
-                
-                .game-header { background: white; padding: 15px 20px; border-bottom: 2px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
-                .back-btn, .reset-btn, .export-btn { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-left: 10px; }
-                .back-btn:hover, .reset-btn:hover, .export-btn:hover { background: #5a6268; }
-                .level-info h2 { margin: 0; color: #2c5aa0; }
-                .level-info p { margin: 5px 0 0 0; color: #666; }
-                
-                .game-content { display: flex; flex: 1; }
-                
-                .toolbar { width: 250px; background: white; border-right: 2px solid #e9ecef; padding: 20px; overflow-y: auto; }
-                .toolbar h3 { margin: 0 0 15px 0; color: #333; border-bottom: 1px solid #e9ecef; padding-bottom: 5px; }
-                
-                .tool-group { margin-bottom: 30px; }
-                .tool-btn { display: block; width: 100%; background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin-bottom: 5px; border-radius: 5px; cursor: pointer; text-align: left; transition: all 0.3s; }
-                .tool-btn:hover, .tool-btn.active { background: #007bff; color: white; }
-                .tool-btn span { margin-right: 8px; }
-                
-                .node-types { margin-bottom: 30px; }
-                .node-btn { display: flex; align-items: center; width: 100%; background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin-bottom: 8px; border-radius: 5px; cursor: pointer; transition: all 0.3s; }
-                .node-btn:hover { background: #e9ecef; }
-                
-                .node-preview { width: 20px; height: 20px; margin-right: 10px; border: 2px solid #333; }
-                .node-preview.oval { border-radius: 50%; background: linear-gradient(135deg, #28a745, #20c997); }
-                .node-preview.rectangle { border-radius: 3px; background: linear-gradient(135deg, #007bff, #6610f2); }
-                .node-preview.diamond { transform: rotate(45deg); background: linear-gradient(135deg, #fd7e14, #e83e8c); }
-                .node-preview.parallelogram { transform: skew(-20deg); background: linear-gradient(135deg, #6f42c1, #e83e8c); }
-                
-                .status-panel { background: #f8f9fa; padding: 15px; border-radius: 5px; }
-                .status-item { margin-bottom: 5px; font-size: 0.9em; }
-                
-                .canvas-area { flex: 1; display: flex; flex-direction: column; }
-                .flowchart-canvas { flex: 1; position: relative; background: linear-gradient(0deg, transparent 24%, rgba(255,255,255,.05) 25%, rgba(255,255,255,.05) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.05) 75%, rgba(255,255,255,.05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255,255,255,.05) 25%, rgba(255,255,255,.05) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.05) 75%, rgba(255,255,255,.05) 76%, transparent 77%, transparent); background-size: 50px 50px; overflow: hidden; cursor: crosshair; }
-                
-                .connection-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-                .connection-svg line { pointer-events: all; }
-                
-                .canvas-info { background: #e9ecef; padding: 10px 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; }
-                
-                .flowchart-node { position: absolute; width: 120px; height: 60px; border: 2px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); transition: all 0.3s; z-index: 2; font-size: 12px; text-align: center; line-height: 1.2; }
-                .flowchart-node:hover { transform: scale(1.05); }
-                .flowchart-node.selected { border-color: #ffc107; box-shadow: 0 0 10px rgba(255,193,7,0.5); }
-                .flowchart-node.highlight-source { border-color: #28a745; box-shadow: 0 0 10px rgba(40,167,69,0.5); }
-                
-                .node-oval { border-radius: 50%; background: linear-gradient(135deg, #28a745, #20c997); }
-                .node-rectangle { border-radius: 8px; background: linear-gradient(135deg, #007bff, #6610f2); }
-                .node-diamond { transform: rotate(45deg); background: linear-gradient(135deg, #fd7e14, #e83e8c); border-radius: 8px; }
-                .node-parallelogram { transform: skew(-20deg); background: linear-gradient(135deg, #6f42c1, #e83e8c); border-radius: 8px; }
-                
-                .connection-line { stroke: #333; stroke-width: 2; fill: none; transition: stroke-width 0.3s; }
-                .connection-line:hover { stroke-width: 4; }
-                .connection-invisible { stroke: transparent; stroke-width: 10; fill: none; cursor: pointer; }
-                
-                .feedback-message { position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; animation: fadeInOut 3s ease-in-out; }
-                .feedback-message.error { background: #dc3545; }
-                
-                @keyframes fadeInOut {
-                    0% { opacity: 0; transform: translateX(100px); }
-                    10%, 90% { opacity: 1; transform: translateX(0); }
-                    100% { opacity: 0; transform: translateX(100px); }
-                }
-            </style>
-        `;
+        // Update game interface elements
+        const currentLevelDisplay = container.querySelector('#current-level-display');
+        const mistakeCount = container.querySelector('#mistake-count');
+        const levelObjective = container.querySelector('#level-objective');
+        const levelScenario = container.querySelector('#level-scenario');
         
-        this.gameContainer = document.getElementById('flowchart-canvas');
-        this.setupEventListeners();
-        this.updateStatus();
+        if (currentLevelDisplay) currentLevelDisplay.textContent = `${this.currentLevel}/5`;
+        if (mistakeCount) mistakeCount.textContent = this.mistakeCount;
+        if (levelObjective) levelObjective.textContent = levelData.objective;
+        if (levelScenario) levelScenario.textContent = levelData.scenario;
+        
+        // Initialize canvas
+        this.gameContainer = container.querySelector('#flowchart-canvas');
+        if (this.gameContainer) {
+            this.setupCanvasEventListeners();
+            // Initialize SVG if not present
+            if (!this.gameContainer.querySelector('#connection-svg')) {
+                this.gameContainer.innerHTML = '<svg id="connection-svg" class="connection-svg"></svg>';
+            }
+        }
+        
+        this.showScreen('game-screen');
+        console.log('Game interface initialized successfully');
     }
 
-    setupEventListeners() {
+    setupCanvasEventListeners() {
+        if (!this.gameContainer) return;
+        
         this.gameContainer.addEventListener('click', (e) => {
             if (e.target === this.gameContainer) {
                 this.handleCanvasClick(e);
@@ -287,20 +448,36 @@ class FlowByteGame {
 
     selectTool(tool) {
         this.currentTool = tool;
-        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+        console.log('Tool selected:', tool);
         
-        this.gameContainer.style.cursor = tool === 'delete' ? 'not-allowed' : 
-                                         tool === 'arrow' ? 'crosshair' : 'default';
+        // Update tool buttons - remove active from all, add to selected
+        const container = this.container;
+        container.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        
+        if (tool === 'arrow') {
+            const arrowBtn = container.querySelector('#arrow-tool-btn');
+            if (arrowBtn) arrowBtn.classList.add('active');
+        } else if (tool === 'delete') {
+            const deleteBtn = container.querySelector('#delete-tool-btn');
+            if (deleteBtn) deleteBtn.classList.add('active');
+        }
+        
+        if (this.gameContainer) {
+            this.gameContainer.style.cursor = tool === 'delete' ? 'not-allowed' : 
+                                             tool === 'arrow' ? 'crosshair' : 'default';
+        }
         
         if (tool !== 'arrow') {
             this.clearConnectionSource();
         }
-        
-        this.updateStatus();
     }
 
     addNode(type) {
+        if (!this.gameContainer) {
+            this.showFeedback('Canvas not ready. Please wait.', 'error');
+            return;
+        }
+        
         const canvas = this.gameContainer;
         const rect = canvas.getBoundingClientRect();
         const x = Math.random() * (rect.width - 120) + 60;
@@ -337,7 +514,6 @@ class FlowByteGame {
 
         this.gameContainer.appendChild(nodeElement);
         this.nodes.push(node);
-        this.updateStatus();
         this.showFeedback('Node added successfully!');
     }
 
@@ -404,7 +580,6 @@ class FlowByteGame {
 
         this.connections.push(connection);
         this.drawConnection(sourceNode, targetNode, connection.id);
-        this.updateStatus();
         this.showFeedback('Connection created!');
     }
 
@@ -455,7 +630,7 @@ class FlowByteGame {
         
         const arrowhead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
         arrowhead.setAttribute('points', `${targetX},${targetY} ${arrowX1},${arrowY1} ${arrowX2},${arrowY2}`);
-        arrowhead.setAttribute('fill', '#333');
+        arrowhead.setAttribute('fill', '#4CAF50');
         arrowhead.setAttribute('id', `arrow-${connectionId}`);
 
         svg.appendChild(line);
@@ -487,7 +662,6 @@ class FlowByteGame {
                 this.selectedNode = null;
             }
             
-            this.updateStatus();
             this.showFeedback('Node deleted!');
         }
     }
@@ -506,7 +680,6 @@ class FlowByteGame {
         if (confirm('Delete this connection?')) {
             this.connections = this.connections.filter(conn => conn.id !== connectionId);
             this.removeConnectionVisuals(connectionId);
-            this.updateStatus();
             this.showFeedback('Connection deleted!');
         }
     }
@@ -539,38 +712,70 @@ class FlowByteGame {
             this.nodeCounter = 0;
             
             this.gameContainer.innerHTML = '<svg id="connection-svg" class="connection-svg"></svg>';
-            this.updateStatus();
             this.showFeedback('Canvas reset!');
         }
     }
 
-    exportFlowchart() {
-        const flowchartData = {
-            nodes: this.nodes,
-            connections: this.connections,
-            difficulty: this.currentDifficulty,
-            level: this.currentLevel,
-            timestamp: new Date().toISOString()
-        };
+    completeLevel() {
+        if (this.nodes.length < 2) {
+            this.showFeedback('Add at least 2 nodes to complete the level!', 'error');
+            this.mistakeCount++;
+            this.updateMistakeCount();
+            return;
+        }
         
-        const dataStr = JSON.stringify(flowchartData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
+        this.showFeedback('Level completed successfully!');
         
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `flowchart-${this.currentDifficulty}-level${this.currentLevel}.json`;
-        link.click();
+        // Calculate progress
+        const progress = Math.round((this.currentLevel / 5) * 100);
+        const progressElement = this.container.querySelector('#learning-progress');
+        if (progressElement) {
+            progressElement.textContent = `${progress}%`;
+        }
         
-        URL.revokeObjectURL(url);
-        this.showFeedback('Flowchart exported!');
+        if (this.currentLevel < 5) {
+            setTimeout(() => {
+                this.startLevel(this.currentLevel + 1);
+            }, 2000);
+        } else {
+            setTimeout(() => {
+                if (window.commandCenter) {
+                    window.commandCenter.showCommandDashboard();
+                }
+            }, 2000);
+        }
     }
 
-    updateStatus() {
-        document.getElementById('node-count').textContent = this.nodes.length;
-        document.getElementById('connection-count').textContent = this.connections.length;
-        document.getElementById('current-tool').textContent = 
-            this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1);
+    abortMission() {
+        if (confirm('Are you sure you want to abort this mission? Your progress will be lost.')) {
+            // Check if we're in command center mode
+            if (window.commandCenter) {
+                window.commandCenter.showCommandDashboard();
+            } else {
+                // Fallback navigation
+                this.showRoomSelection();
+            }
+        }
+    }
+
+    getHint() {
+        const hints = [
+            "Start with a START node (oval shape) and end with an END node.",
+            "Connect nodes using the arrow tool - click source, then target.",
+            "Use process nodes (rectangles) for actions and operations.",
+            "Decision nodes (diamonds) should have two or more paths leading out.",
+            "Input/Output nodes (parallelograms) represent data flow."
+        ];
+        
+        const randomHint = hints[Math.floor(Math.random() * hints.length)];
+        this.showFeedback(`Hint: ${randomHint}`);
+    }
+
+    updateMistakeCount() {
+        const mistakeElement = this.container.querySelector('#mistake-count');
+        if (mistakeElement) {
+            mistakeElement.textContent = this.mistakeCount;
+        }
     }
 
     showFeedback(message, type = 'success') {
@@ -588,7 +793,10 @@ class FlowByteGame {
 
     handleCanvasClick(event) {
         if (this.selectedNode) {
-            document.getElementById(this.selectedNode.id).classList.remove('selected');
+            const selectedElement = this.container.querySelector(`#${this.selectedNode.id}`);
+            if (selectedElement) {
+                selectedElement.classList.remove('selected');
+            }
             this.selectedNode = null;
         }
         
@@ -599,8 +807,8 @@ class FlowByteGame {
     }
 }
 
-// Initialize the game
-const flowByteGame = new FlowByteGame();
-document.addEventListener('DOMContentLoaded', () => {
-    flowByteGame.init();
-});
+// Export the class for use by command center
+window.FlowByteGame = FlowByteGame;
+
+// Don't auto-initialize when loaded independently
+console.log('FlowByteGame class loaded and ready');

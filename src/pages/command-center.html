@@ -141,7 +141,15 @@
             
         </header>
 
-        <main id="gameDisplay">
+        <main id="gameDisplay" style="
+            position: absolute;
+            top: 120px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 120px);
+            overflow: hidden;
+            background: #1a1a2e;
+        ">
             <div class="loading-screen">
                 <i class="bi bi-cpu-fill"></i>
                 <span>Initializing Command Center...</span>

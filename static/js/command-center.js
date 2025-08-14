@@ -1,9 +1,13 @@
 class CommandCenter {
     constructor() {
+        // Core properties
         this.gameDisplay = document.getElementById('gameDisplay');
         this.currentRoom = null;
-        this.roomStates = {}; // Store room states for persistence
-        this.roomInstances = {}; // Store active room instances
+        this.roomStates = {};
+        this.roomInstances = {};
+        this.roomContainers = {};
+        
+        // Room progress data
         this.roomProgress = {
             'flowchart': { completion: 85, status: 'In Progress', lastPlayed: true },
             'networking': { completion: 45, status: 'In Progress', lastPlayed: false },
@@ -12,6 +16,32 @@ class CommandCenter {
             'programming': { completion: 15, status: 'In Progress', lastPlayed: false }
         };
         
+        // Room configuration
+        this.roomConfig = {
+            names: {
+                'flowchart': 'FLOWBYTE',
+                'networking': 'NETXUS', 
+                'ai-training': 'AITRIX',
+                'database': 'SCHEMAX',
+                'programming': 'CODEVANCE'
+            },
+            info: {
+                'flowchart': { name: 'FLOWBYTE', icon: 'bi-diagram-3', color: '#005FFB', description: 'Flowchart Logic' },
+                'networking': { name: 'NETXUS', icon: 'bi-hdd-network', color: '#00A949', description: 'Network Engineering' },
+                'ai-training': { name: 'AITRIX', icon: 'bi-robot', color: '#E08300', description: 'AI & Machine Learning' },
+                'database': { name: 'SCHEMAX', icon: 'bi-database', color: '#FF3600', description: 'Database Management' },
+                'programming': { name: 'CODEVANCE', icon: 'bi-code-slash', color: '#FF006D', description: 'Advanced Programming' }
+            }
+        };
+        
+        this.initialize();
+    }
+
+    // =============================================
+    // INITIALIZATION METHODS
+    // =============================================
+
+    initialize() {
         this.initializeModuleButtons();
         this.loadUserInfo();
         this.initializeRoomContainers();
@@ -29,46 +59,49 @@ class CommandCenter {
     }
 
     initializeRoomContainers() {
-        // Create hidden containers for each room to maintain state
-        this.roomContainers = {};
         const roomTypes = ['flowchart', 'networking', 'ai-training', 'database', 'programming'];
         
         roomTypes.forEach(roomType => {
-            const container = document.createElement('div');
-            container.id = `room-${roomType}`;
-            container.className = 'room-container hidden';
-            container.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.3s ease;
-                background: #1a1a2e;
-            `;
+            const container = this.createRoomContainer(roomType);
             this.gameDisplay.appendChild(container);
             this.roomContainers[roomType] = container;
         });
     }
 
+    createRoomContainer(roomType) {
+        const container = document.createElement('div');
+        container.id = `room-${roomType}`;
+        container.className = 'room-container hidden';
+        container.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            background: #1a1a2e;
+            z-index: 1;
+            overflow: auto;
+        `;
+        console.log(`📦 Created room container for: ${roomType}`);
+        return container;
+    }
+
+    // =============================================
+    // NAVIGATION METHODS
+    // =============================================
+
     async navigateToRoom(roomType) {
-        // Update navigation buttons
         this.updateNavigationButtons(roomType);
-        
-        // Show loading transition
         this.showLoadingTransition(roomType);
         
-        // Load room if not already loaded
         if (!this.roomInstances[roomType]) {
             await this.loadRoomInstance(roomType);
         }
         
-        // Switch to room with smooth transition
         this.switchToRoom(roomType);
-        
-        // Update room progress
         this.updateRoomProgress(roomType);
     }
 
@@ -82,20 +115,25 @@ class CommandCenter {
     }
 
     showLoadingTransition(roomType) {
-        const roomNames = {
-            'flowchart': 'FLOWBYTE',
-            'networking': 'NETXUS', 
-            'ai-training': 'AITRIX',
-            'database': 'SCHEMAX',
-            'programming': 'CODEVANCE'
-        };
+        const roomName = this.roomConfig.names[roomType] || 'Room';
+        const loadingOverlay = this.createLoadingOverlay(roomName);
+        
+        document.body.appendChild(loadingOverlay);
+        
+        setTimeout(() => {
+            if (loadingOverlay.parentNode) {
+                loadingOverlay.remove();
+            }
+        }, 800);
+    }
 
+    createLoadingOverlay(roomName) {
         const loadingOverlay = document.createElement('div');
         loadingOverlay.className = 'room-transition-overlay';
         loadingOverlay.innerHTML = `
             <div class="transition-content">
                 <div class="transition-spinner"></div>
-                <h3>Accessing ${roomNames[roomType]}...</h3>
+                <h3>Accessing ${roomName}...</h3>
                 <div class="transition-progress">
                     <div class="progress-bar-transition"></div>
                 </div>
@@ -115,16 +153,80 @@ class CommandCenter {
             color: white;
             backdrop-filter: blur(10px);
         `;
-
-        document.body.appendChild(loadingOverlay);
-
-        // Remove loading overlay after animation
-        setTimeout(() => {
-            if (loadingOverlay.parentNode) {
-                loadingOverlay.remove();
-            }
-        }, 800);
+        return loadingOverlay;
     }
+
+    switchToRoom(roomType) {
+        this.hideDashboard();
+        this.hideAllRooms();
+        this.showTargetRoom(roomType);
+    }
+
+    hideDashboard() {
+        const dashboard = this.gameDisplay.querySelector('.command-dashboard');
+        if (dashboard) {
+            dashboard.style.opacity = '0';
+            dashboard.style.visibility = 'hidden';
+        }
+    }
+
+    hideAllRooms() {
+        Object.keys(this.roomContainers).forEach(room => {
+            const container = this.roomContainers[room];
+            container.style.opacity = '0';
+            container.style.visibility = 'hidden';
+        });
+    }
+
+    showTargetRoom(roomType) {
+        const targetRoom = this.roomContainers[roomType];
+        console.log(`🎯 Showing target room: ${roomType}`);
+        console.log('Room container exists:', !!targetRoom);
+        
+        if (targetRoom) {
+            // Force display properties
+            targetRoom.classList.remove('hidden');
+            targetRoom.style.display = 'block';
+            
+            setTimeout(() => {
+                targetRoom.style.opacity = '1';
+                targetRoom.style.visibility = 'visible';
+                targetRoom.style.zIndex = '10';
+                this.currentRoom = roomType;
+                console.log(`✅ Room ${roomType} should now be visible`);
+                console.log('Room container styles:', {
+                    opacity: targetRoom.style.opacity,
+                    visibility: targetRoom.style.visibility,
+                    display: targetRoom.style.display,
+                    zIndex: targetRoom.style.zIndex
+                });
+            }, 100);
+        } else {
+            console.error(`❌ Target room container not found: ${roomType}`);
+        }
+    }
+
+    showCommandDashboard() {
+        this.hideAllRooms();
+        
+        let dashboard = this.gameDisplay.querySelector('.command-dashboard');
+        if (!dashboard) {
+            dashboard = this.createCommandDashboard();
+            this.gameDisplay.appendChild(dashboard);
+        }
+        
+        setTimeout(() => {
+            dashboard.style.opacity = '1';
+            dashboard.style.visibility = 'visible';
+            this.currentRoom = null;
+        }, 100);
+
+        this.updateNavigationButtons('');
+    }
+
+    // =============================================
+    // ROOM LOADING METHODS
+    // =============================================
 
     async loadRoomInstance(roomType) {
         if (roomType === 'flowchart') {
@@ -137,117 +239,285 @@ class CommandCenter {
     async loadFlowchartRoom() {
         const container = this.roomContainers['flowchart'];
         
-        // Load the flowchart game script if not already loaded
+        console.log('Loading FlowByte room...');
+        
+        // Load the game script first with correct path resolution
         if (!window.FlowByteGame) {
-            await this.loadScript('/static/js/flowchart-game.js');
-        }
-
-        // Initialize the flowchart game in its container
-        container.innerHTML = '';
-        
-        // Create a wrapper that the flowchart game can use
-        const gameWrapper = document.createElement('div');
-        gameWrapper.style.cssText = `
-            width: 100%;
-            height: 100%;
-            position: relative;
-        `;
-        container.appendChild(gameWrapper);
-
-        // Initialize flowchart game with custom container handling
-        if (window.FlowByteGame) {
-            this.roomInstances['flowchart'] = new FlowByteGame();
-            // Override the body.innerHTML setting to work within our container
-            this.setupFlowchartGameInContainer(gameWrapper);
-        }
-    }
-
-    setupFlowchartGameInContainer(container) {
-        const flowByteGame = this.roomInstances['flowchart'];
-        
-        // Override the showRoomSelection method to work within container
-        const originalShowRoomSelection = flowByteGame.showRoomSelection.bind(flowByteGame);
-        flowByteGame.showRoomSelection = () => {
-            container.innerHTML = `
-                <div class="flowbyte-container">
-                    <div class="room-header">
-                        <button class="back-to-command" onclick="window.commandCenter.showCommandDashboard()">
-                            ← Back to Command Center
-                        </button>
-                        <h1>FLOWBYTE</h1>
-                        <p>Flowchart Construction Lab</p>
-                    </div>
-                    <div class="difficulty-selection">
-                        <h2>Select Difficulty Level</h2>
-                        <div class="difficulty-cards">
-                            <div class="difficulty-card easy" onclick="window.commandCenter.roomInstances.flowchart.selectDifficulty('easy')">
-                                <h3>Easy</h3>
-                                <p>Basic flowchart construction with guided instructions</p>
-                                <div class="level-count">5 Levels</div>
-                            </div>
-                            <div class="difficulty-card hard" onclick="window.commandCenter.roomInstances.flowchart.selectDifficulty('hard')">
-                                <h3>Hard</h3>
-                                <p>Advanced flowchart design with complex logic patterns</p>
-                                <div class="level-count">5 Levels</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <style>
-                    .flowbyte-container { max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; color: white; }
-                    .room-header { text-align: center; margin-bottom: 40px; position: relative; }
-                    .back-to-command { position: absolute; left: 0; top: 0; background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-                    .back-to-command:hover { background: #5a6268; }
-                    .room-header h1 { font-size: 3em; color: #2c5aa0; margin: 0; }
-                    .room-header p { font-size: 1.2em; color: #ccc; margin: 10px 0; }
-                    .difficulty-selection h2 { text-align: center; margin-bottom: 30px; color: #fff; }
-                    .difficulty-cards { display: flex; gap: 30px; justify-content: center; }
-                    .difficulty-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; width: 250px; text-align: center; }
-                    .difficulty-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-                    .difficulty-card.easy { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-                    .difficulty-card.hard { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-                    .difficulty-card h3 { margin: 0 0 15px 0; font-size: 1.5em; }
-                    .difficulty-card p { margin: 0 0 20px 0; opacity: 0.9; }
-                    .level-count { background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; display: inline-block; }
-                </style>
-            `;
-        };
-
-        // Override other methods to work within container
-        const originalInitGame = flowByteGame.initGame.bind(flowByteGame);
-        flowByteGame.initGame = () => {
-            // Call original but modify the container target
-            const tempBody = document.body;
-            document.body = { innerHTML: '' };
-            
-            originalInitGame();
-            
-            // Move the content to our container
-            container.innerHTML = document.body.innerHTML;
-            document.body = tempBody;
-            
-            // Re-setup the game container reference
-            flowByteGame.gameContainer = container.querySelector('#flowchart-canvas');
-            if (flowByteGame.gameContainer) {
-                flowByteGame.setupEventListeners();
-                flowByteGame.updateStatus();
+            console.log('Loading FlowByte game script...');
+            try {
+                // Determine the correct script path based on current location
+                const currentPath = window.location.pathname;
+                let scriptPath;
+                
+                if (currentPath.includes('/src/pages/')) {
+                    // We're in a subfolder like /src/pages/command-center.html
+                    scriptPath = '../../static/js/flowchart-game.js';
+                } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                    // We're at the root
+                    scriptPath = './static/js/flowchart-game.js';
+                } else {
+                    // Default fallback
+                    scriptPath = '/static/js/flowchart-game.js';
+                }
+                
+                console.log('Attempting to load script from:', scriptPath);
+                await this.loadScript(scriptPath);
+                console.log('FlowByte game script loaded successfully');
+            } catch (error) {
+                console.error('Failed to load FlowByte game script:', error);
+                // Try alternative paths if the first one fails
+                console.log('Trying alternative script paths...');
+                const alternativePaths = [
+                    '/static/js/flowchart-game.js',
+                    '../static/js/flowchart-game.js',
+                    '../../static/js/flowchart-game.js',
+                    './static/js/flowchart-game.js'
+                ];
+                
+                let scriptLoaded = false;
+                for (const altPath of alternativePaths) {
+                    try {
+                        console.log(`Trying script path: ${altPath}`);
+                        await this.loadScript(altPath);
+                        console.log(`✓ Script loaded successfully from: ${altPath}`);
+                        scriptLoaded = true;
+                        break;
+                    } catch (altError) {
+                        console.log(`✗ Failed to load from: ${altPath}`);
+                    }
+                }
+                
+                if (!scriptLoaded) {
+                    console.error('All script loading attempts failed');
+                    this.createFlowchartFallback(container);
+                    return;
+                }
             }
-        };
+        }
 
-        // Start the game
-        flowByteGame.showRoomSelection();
+        try {
+            // Get the current page's base path for HTML loading
+            const currentPath = window.location.pathname;
+            let basePath;
+            
+            if (currentPath.includes('/src/pages/')) {
+                basePath = '../../';
+            } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                basePath = './';
+            } else {
+                basePath = '/';
+            }
+            
+            // Try multiple possible paths for the HTML file
+            const possiblePaths = [
+                `${basePath}src/rooms/flowchart-room.html`,
+                './src/rooms/flowchart-room.html',
+                '../src/rooms/flowchart-room.html',
+                '/src/rooms/flowchart-room.html',
+                '../../src/rooms/flowchart-room.html'
+            ];
+            
+            console.log('Current path:', currentPath);
+            console.log('Base path:', basePath);
+            console.log('Trying HTML paths:', possiblePaths);
+            
+            let htmlContent = null;
+            let loadedPath = null;
+            
+            for (const path of possiblePaths) {
+                try {
+                    console.log(`Attempting to fetch HTML from: ${path}`);
+                    const response = await fetch(path);
+                    console.log(`Response status for ${path}:`, response.status);
+                    
+                    if (response.ok) {
+                        htmlContent = await response.text();
+                        loadedPath = path;
+                        console.log(`✓ Successfully loaded HTML from: ${path}`);
+                        console.log('HTML content length:', htmlContent.length);
+                        break;
+                    } else {
+                        console.log(`✗ Failed to load from ${path}: HTTP ${response.status}`);
+                    }
+                } catch (e) {
+                    console.log(`✗ Network error loading from ${path}:`, e.message);
+                }
+            }
+            
+            if (!htmlContent) {
+                throw new Error('Could not load flowchart room HTML from any path. All attempts failed.');
+            }
+            
+            // Parse the HTML and extract content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const gameContainer = doc.getElementById('game-container');
+            
+            if (!gameContainer) {
+                console.error('HTML content does not contain #game-container');
+                console.log('Available elements:', Array.from(doc.querySelectorAll('[id]')).map(el => el.id));
+                throw new Error('Game container not found in HTML');
+            }
+            
+            console.log('✓ Found game container with content length:', gameContainer.innerHTML.length);
+            
+            // Extract and add styles
+            const styles = doc.querySelectorAll('style');
+            console.log(`Found ${styles.length} style elements`);
+            
+            styles.forEach((style, index) => {
+                const styleId = `flowchart-styles-${index}`;
+                if (!document.getElementById(styleId)) {
+                    const newStyle = document.createElement('style');
+                    newStyle.id = styleId;
+                    newStyle.setAttribute('data-room', 'flowchart');
+                    newStyle.textContent = style.textContent;
+                    document.head.appendChild(newStyle);
+                    console.log(`✓ Added style block ${index + 1}`);
+                } else {
+                    console.log(`Style block ${index + 1} already exists`);
+                }
+            });
+            
+            // Set the container content
+            container.innerHTML = gameContainer.innerHTML;
+            console.log('✓ Container content set, length:', container.innerHTML.length);
+            
+            // Verify the required elements are present
+            const difficultyScreen = container.querySelector('#difficulty-screen');
+            const levelScreen = container.querySelector('#level-screen');
+            const gameScreen = container.querySelector('#game-screen');
+            
+            console.log('Element verification:', {
+                difficultyScreen: !!difficultyScreen,
+                levelScreen: !!levelScreen,
+                gameScreen: !!gameScreen
+            });
+            
+            if (!difficultyScreen || !levelScreen || !gameScreen) {
+                throw new Error('Required game screens not found in loaded HTML');
+            }
+            
+            // Initialize the game
+            if (window.FlowByteGame) {
+                console.log('✓ FlowByteGame class available, initializing...');
+                this.roomInstances['flowchart'] = new FlowByteGame();
+                
+                // Setup integration after a short delay
+                setTimeout(() => {
+                    this.setupFlowchartGameIntegration();
+                }, 300);
+            } else {
+                throw new Error('FlowByteGame class not available after script load');
+            }
+            
+        } catch (error) {
+            console.error('✗ Error loading flowchart room:', error);
+            this.createFlowchartFallback(container);
+        }
     }
+
+    setupFlowchartGameIntegration() {
+        const flowByteGame = this.roomInstances['flowchart'];
+        const container = this.roomContainers['flowchart'];
+        
+        if (!flowByteGame || !container) {
+            console.error('✗ FlowByte game or container not available for integration');
+            return;
+        }
+        
+        console.log('Setting up FlowByte integration...');
+        console.log('Container innerHTML length:', container.innerHTML.length);
+        
+        try {
+            // Initialize the game with the container
+            flowByteGame.init(container);
+            
+            // Setup command center navigation
+            this.setupCommandCenterNavigation(container);
+            
+            console.log('✓ FlowByte integration completed successfully');
+            
+            // Ensure the difficulty screen is visible after initialization
+            setTimeout(() => {
+                const difficultyScreen = container.querySelector('#difficulty-screen');
+                if (difficultyScreen) {
+                    console.log('🔧 Ensuring difficulty screen visibility...');
+                    difficultyScreen.style.display = 'flex';
+                    difficultyScreen.classList.remove('hidden');
+                    console.log('Difficulty screen display:', difficultyScreen.style.display);
+                    console.log('Difficulty screen classes:', difficultyScreen.className);
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('✗ Error setting up FlowByte integration:', error);
+            this.createFlowchartFallback(container);
+        }
+    }
+
+    setupCommandCenterNavigation(container) {
+        // Wait a bit for the game to fully initialize
+        setTimeout(() => {
+            const backToCommandBtn = container.querySelector('#back-to-command-btn');
+            if (backToCommandBtn) {
+                // Create a new button to ensure clean event handling
+                const newBackBtn = backToCommandBtn.cloneNode(true);
+                backToCommandBtn.parentNode.replaceChild(newBackBtn, backToCommandBtn);
+                
+                // Add command center navigation
+                newBackBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Navigating back to command center dashboard');
+                    this.showCommandDashboard();
+                });
+                
+                console.log('Command center navigation setup complete');
+            } else {
+                console.warn('Back to command button not found');
+            }
+        }, 300);
+    }
+
+    // =============================================
+    // FALLBACK METHODS
+    // =============================================
+
+    createFlowchartFallback(container) {
+        console.log('Creating FlowByte fallback interface');
+        container.innerHTML = `
+            <div class="room-placeholder">
+                <button class="back-to-command" onclick="window.commandCenter.showCommandDashboard()">
+                    ← Back to Command Center
+                </button>
+                <div class="room-header" style="border-color: #005FFB;">
+                    <i class="bi bi-diagram-3" style="color: #005FFB;"></i>
+                    <h2>FLOWBYTE</h2>
+                </div>
+                <div class="room-description">
+                    <p>Flowchart Logic Training Room</p>
+                </div>
+                <div class="coming-soon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h3>Loading Error</h3>
+                    <p>Unable to load the FLOWBYTE room content. Please refresh the page and try again.</p>
+                    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Refresh Page
+                    </button>
+                </div>
+            </div>
+        `;
+        this.roomInstances['flowchart'] = { type: 'fallback' };
+    }
+
+    // =============================================
+    // PLACEHOLDER ROOM METHODS
+    // =============================================
 
     createPlaceholderRoom(roomType) {
         const container = this.roomContainers[roomType];
-        const roomInfo = {
-            'networking': { name: 'NETXUS', description: 'Dive deep into network protocols and infrastructure', icon: 'bi-hdd-network', color: '#00A949' },
-            'ai-training': { name: 'AITRIX', description: 'Train AI models and understand machine learning concepts', icon: 'bi-robot', color: '#E08300' },
-            'database': { name: 'SCHEMAX', description: 'Design and optimize database systems', icon: 'bi-database', color: '#FF3600' },
-            'programming': { name: 'CODEVANCE', description: 'Master programming concepts and algorithms', icon: 'bi-code-slash', color: '#FF006D' }
-        };
-
-        const room = roomInfo[roomType];
+        const room = this.roomConfig.info[roomType];
         
         container.innerHTML = `
             <div class="room-placeholder">
@@ -268,63 +538,12 @@ class CommandCenter {
                 </div>
             </div>
         `;
-
         this.roomInstances[roomType] = { type: 'placeholder', room: room };
     }
 
-    switchToRoom(roomType) {
-        // Hide command dashboard
-        const dashboard = this.gameDisplay.querySelector('.command-dashboard');
-        if (dashboard) {
-            dashboard.style.opacity = '0';
-            dashboard.style.visibility = 'hidden';
-        }
-
-        // Hide all other rooms
-        Object.keys(this.roomContainers).forEach(room => {
-            if (room !== roomType) {
-                const container = this.roomContainers[room];
-                container.style.opacity = '0';
-                container.style.visibility = 'hidden';
-            }
-        });
-
-        // Show target room with animation
-        const targetRoom = this.roomContainers[roomType];
-        setTimeout(() => {
-            targetRoom.style.opacity = '1';
-            targetRoom.style.visibility = 'visible';
-            this.currentRoom = roomType;
-        }, 100);
-    }
-
-    showCommandDashboard() {
-        // Hide all rooms
-        Object.keys(this.roomContainers).forEach(roomType => {
-            const container = this.roomContainers[roomType];
-            container.style.opacity = '0';
-            container.style.visibility = 'hidden';
-        });
-
-        // Create or show dashboard
-        let dashboard = this.gameDisplay.querySelector('.command-dashboard');
-        if (!dashboard) {
-            dashboard = this.createCommandDashboard();
-            this.gameDisplay.appendChild(dashboard);
-        }
-
-        // Show dashboard with animation
-        setTimeout(() => {
-            dashboard.style.opacity = '1';
-            dashboard.style.visibility = 'visible';
-            this.currentRoom = null;
-        }, 100);
-
-        // Update navigation buttons
-        document.querySelectorAll('.module-nav-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-    }
+    // =============================================
+    // DASHBOARD METHODS
+    // =============================================
 
     createCommandDashboard() {
         const dashboard = document.createElement('div');
@@ -340,7 +559,14 @@ class CommandCenter {
             overflow-y: auto;
         `;
 
-        dashboard.innerHTML = `
+        dashboard.innerHTML = this.generateDashboardHTML();
+        this.addDashboardStyles();
+        
+        return dashboard;
+    }
+
+    generateDashboardHTML() {
+        return `
             <div class="dashboard-header">
                 <h2><i class="bi bi-command"></i> Command Center Overview</h2>
                 <p>Monitor and access all training modules from this central hub</p>
@@ -379,23 +605,10 @@ class CommandCenter {
                 </div>
             </div>
         `;
-
-        // Add dashboard styles
-        this.addDashboardStyles();
-        
-        return dashboard;
     }
 
     createRoomCard(roomType) {
-        const roomInfo = {
-            'flowchart': { name: 'FLOWBYTE', icon: 'bi-diagram-3', color: '#005FFB', description: 'Flowchart Logic' },
-            'networking': { name: 'NETXUS', icon: 'bi-hdd-network', color: '#00A949', description: 'Network Engineering' },
-            'ai-training': { name: 'AITRIX', icon: 'bi-robot', color: '#E08300', description: 'AI & Machine Learning' },
-            'database': { name: 'SCHEMAX', icon: 'bi-database', color: '#FF3600', description: 'Database Management' },
-            'programming': { name: 'CODEVANCE', icon: 'bi-code-slash', color: '#FF006D', description: 'Advanced Programming' }
-        };
-
-        const room = roomInfo[roomType];
+        const room = this.roomConfig.info[roomType];
         const progress = this.roomProgress[roomType];
         
         return `
@@ -745,45 +958,85 @@ class CommandCenter {
         }
     }
 
+    // =============================================
+    // UTILITY METHODS
+    // =============================================
+
     updateRoomProgress(roomType) {
-        // Update last played status
         Object.keys(this.roomProgress).forEach(room => {
             this.roomProgress[room].lastPlayed = room === roomType;
         });
-        
-        // Save state
         this.saveRoomState(roomType);
     }
 
     saveRoomState(roomType) {
-        // Save current room state for persistence
         this.roomStates[roomType] = {
             lastAccessed: Date.now(),
             instance: this.roomInstances[roomType]
         };
         
-        // Save to localStorage for persistence across sessions
         localStorage.setItem('commandCenterRoomStates', JSON.stringify(this.roomStates));
         localStorage.setItem('commandCenterRoomProgress', JSON.stringify(this.roomProgress));
     }
 
     loadScript(src) {
         return new Promise((resolve, reject) => {
-            if (document.querySelector(`script[src="${src}"]`)) {
+            // Check if script is already loaded by checking for the FlowByteGame class
+            if (window.FlowByteGame) {
+                console.log('FlowByteGame class already available');
                 resolve();
                 return;
             }
             
+            // Check if script element already exists
+            const existingScript = document.querySelector(`script[src*="flowchart-game.js"]`);
+            if (existingScript) {
+                console.log('FlowByte script element already exists, waiting for class...');
+                // Wait a bit for the class to be available
+                let attempts = 0;
+                const checkClass = () => {
+                    if (window.FlowByteGame) {
+                        resolve();
+                    } else if (attempts < 10) {
+                        attempts++;
+                        setTimeout(checkClass, 100);
+                    } else {
+                        reject(new Error('Script loaded but FlowByteGame class not available'));
+                    }
+                };
+                checkClass();
+                return;
+            }
+            
+            console.log('Creating new script element for:', src);
             const script = document.createElement('script');
             script.src = src;
-            script.onload = resolve;
-            script.onerror = reject;
+            script.type = 'text/javascript';
+            
+            script.onload = () => {
+                console.log('✓ Script element loaded successfully:', src);
+                // Wait a moment for the class to be available
+                setTimeout(() => {
+                    if (window.FlowByteGame) {
+                        console.log('✓ FlowByteGame class is now available');
+                        resolve();
+                    } else {
+                        console.error('✗ FlowByteGame class not available after script load');
+                        reject(new Error('FlowByteGame class not found after script load'));
+                    }
+                }, 50);
+            };
+            
+            script.onerror = (error) => {
+                console.error('✗ Script failed to load:', src, error);
+                reject(new Error(`Failed to load script: ${src}`));
+            };
+            
             document.head.appendChild(script);
         });
     }
 
     loadUserInfo() {
-        // Load user information from localStorage
         const username = localStorage.getItem('currentUser');
         const email = localStorage.getItem('currentEmail');
         
@@ -791,18 +1044,16 @@ class CommandCenter {
             const profileUsername = document.getElementById('profileUsername');
             const profileEmail = document.getElementById('profileEmail');
             
-            if (profileUsername) {
-                profileUsername.textContent = username; 
-            }
-            
-            if (profileEmail) {
-                profileEmail.textContent = email || 'No email provided';
-            }
+            if (profileUsername) profileUsername.textContent = username; 
+            if (profileEmail) profileEmail.textContent = email || 'No email provided';
         }
     }
 }
 
-// Initialize when DOM is loaded
+// =============================================
+// INITIALIZATION
+// =============================================
+
 document.addEventListener('DOMContentLoaded', () => {
     window.commandCenter = new CommandCenter();
 });
