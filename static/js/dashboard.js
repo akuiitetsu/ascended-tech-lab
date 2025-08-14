@@ -51,7 +51,14 @@ function startGame() {
 }
 
 function goToDashboard() {
-    window.location.href = 'user-dashboard.html';
+    window.location.href = '/src/pages/dashboard/user-dashboard.html';
+}
+
+// Add new function for room navigation from dashboard
+function navigateToRoom(roomType) {
+    // Navigate to command center and then to specific room
+    sessionStorage.setItem('targetRoom', roomType);
+    window.location.href = '/src/pages/command-center.html';
 }
 
 function scrollBadges(direction) {
@@ -247,6 +254,7 @@ window.changePassword = changePassword;
 window.logout = logout;
 window.startGame = startGame;
 window.goToDashboard = goToDashboard;
+window.navigateToRoom = navigateToRoom;
 window.scrollBadges = scrollBadges;
 window.toggleBadgeFullscreen = toggleBadgeFullscreen;
 window.playCutscene = playCutscene;

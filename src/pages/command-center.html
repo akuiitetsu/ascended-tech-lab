@@ -144,8 +144,24 @@
         <main id="gameDisplay">
             <div class="loading-screen">
                 <i class="bi bi-cpu-fill"></i>
-                <span>Loading Room...</span>
+                <span>Initializing Command Center...</span>
             </div>
         </main>
+        
+        <script>
+            // Handle direct room navigation from dashboard
+            document.addEventListener('DOMContentLoaded', () => {
+                const targetRoom = sessionStorage.getItem('targetRoom');
+                if (targetRoom) {
+                    sessionStorage.removeItem('targetRoom');
+                    // Navigate to room after command center is loaded
+                    setTimeout(() => {
+                        if (window.commandCenter) {
+                            window.commandCenter.navigateToRoom(targetRoom);
+                        }
+                    }, 1000);
+                }
+            });
+        </script>
     </body>
 </html>
