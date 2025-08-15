@@ -575,13 +575,12 @@
         }
 
         .shape-preview {
-            width: 30px;
-            height: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1rem;
+            font-size: 1.5rem;
             color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2px;
         }
 
         .tool-btn span {
@@ -920,29 +919,39 @@
 
                 <nav class="shape-toolbar">
                     <button class="tool-btn" id="add-oval-btn">
-                        <div class="shape-preview shape-oval"></div>
+                        <div class="shape-preview">
+                            <i class="bi bi-circle"></i>
+                        </div>
                         <span>Oval<br>(Start/End)</span>
                     </button>
                     <button class="tool-btn" id="add-rectangle-btn">
-                        <div class="shape-preview shape-rectangle"></div>
+                        <div class="shape-preview">
+                            <i class="bi bi-square"></i>
+                        </div>
                         <span>Rectangle<br>(Process)</span>
                     </button>
                     <button class="tool-btn" id="add-diamond-btn">
-                        <div class="shape-preview shape-diamond-container">
-                            <div class="shape-diamond"></div>
+                        <div class="shape-preview">
+                            <i class="bi bi-diamond"></i>
                         </div>
                         <span>Diamond<br>(Decision)</span>
                     </button>
                     <button class="tool-btn" id="add-parallelogram-btn">
-                        <div class="shape-preview shape-parallelogram"></div>
+                        <div class="shape-preview">
+                            <i class="bi bi-box"></i>
+                        </div>
                         <span>Parallelogram<br>(Input/Output)</span>
                     </button>
                     <button class="tool-btn active" id="arrow-tool-btn">
-                        <div class="shape-preview shape-arrow">→</div>
+                        <div class="shape-preview">
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
                         <span>Arrow<br>(Connector)</span>
                     </button>
                     <button class="tool-btn" id="delete-tool-btn">
-                        <div class="shape-preview shape-delete">☒</div>
+                        <div class="shape-preview">
+                            <i class="bi bi-trash"></i>
+                        </div>
                         <span>Delete<br>(Remove)</span>
                     </button>
                 </nav>
