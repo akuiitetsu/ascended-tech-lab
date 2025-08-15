@@ -14,9 +14,7 @@ body {
 }
 
 main {
-    margin-top: 70px;
     padding: 30px;
-    min-height: calc(100vh - 70px);
 }
 
 .dashboard-container {
