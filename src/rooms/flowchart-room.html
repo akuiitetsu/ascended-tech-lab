@@ -83,6 +83,14 @@
             margin-bottom: 20px;
             display: flex;
             justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 80px;
+        }
+        
+        .difficulty-modal .flowchart-icon i {
+            font-size: 4rem;
+            color: #4CAF50;
         }
         
         .modal-title {
@@ -193,22 +201,26 @@
         }
         
         .back-btn {
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
+            position: static;
+            margin: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00FFFF;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: #00FFFF;
+            font-size: 1.5rem;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: background 0.3s ease;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .back-btn:hover {
-            background: #5a6268;
+            background: rgba(16, 161, 250, 0.2);
+            transform: scale(1.1);
         }
         
         .level-header h1 {
@@ -563,6 +575,14 @@
             justify-content: center;
         }
 
+        #add-oval-btn .shape-preview {
+            font-size: 18px;
+        }
+
+        #add-parallelogram-btn .shape-preview {
+            font-size: 15px;
+        }
+
         .tool-btn:hover {
             background-color: #495057;
             border-color: var(--text-light);
@@ -574,122 +594,52 @@
             color: white;
         }
 
-        .shape-preview {
-            font-size: 1.5rem;
-            color: var(--text-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 2px;
+        .tool-btn.placing {
+            background-color: var(--color-orange);
+            border-color: var(--color-orange);
+            color: white;
+            animation: pulse 2s infinite;
         }
 
-        .tool-btn span {
-            line-height: 1;
-            font-size: 0.55rem;
-            text-align: center;
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(252, 163, 17, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(252, 163, 17, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(252, 163, 17, 0); }
         }
 
-        /* Responsive Design Updates */
-        @media (max-width: 1200px) {
-            .lab-container {
-                height: calc(100vh - 100px);
-                padding: 10px;
-                gap: 10px;
-                align-items: stretch;
-            }
-            
-            .control-panel,
-            .canvas-area {
-                height: 100%;
-            }
+        .flowchart-node {
+            cursor: grab;
         }
 
-        @media (max-width: 992px) {
-            .lab-container {
-                flex-direction: column;
-                height: auto;
-                min-height: calc(100vh - 120px);
-                overflow-y: auto;
-                align-items: stretch;
-            }
-            
-            .control-panel {
-                width: 100%;
-                min-width: auto;
-                max-width: none;
-                flex-direction: row;
-                flex-wrap: wrap;
-                height: auto;
-                overflow-y: visible;
-                margin-bottom: 15px;
-                flex-shrink: 0;
-            }
-            
-            .canvas-area {
-                flex: 1;
-                min-height: 400px;
-                height: auto;
-            }
+        .flowchart-node.dragging {
+            cursor: grabbing;
+            z-index: 1000;
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
         }
 
-        @media (max-width: 768px) {
-            .lab-container {
-                height: auto;
-                min-height: calc(100vh - 80px);
-                padding: 8px;
-            }
-            
-            .control-panel {
-                flex-direction: column;
-                flex-wrap: nowrap;
-                margin-bottom: 10px;
-                height: auto;
-            }
-            
-            .canvas-area {
-                min-height: 350px;
-                height: auto;
-            }
+        .flowchart-node.selected {
+            border-color: #fca311;
+            box-shadow: 0 0 15px rgba(252, 163, 17, 0.5);
         }
 
-        /* Landscape orientation for tablets and mobile */
-        @media (max-width: 992px) and (orientation: landscape) {
-            .lab-container {
-                flex-direction: row;
-                height: calc(100vh - 80px);
-                align-items: stretch;
-            }
-            
-            .control-panel {
-                flex-direction: column;
-                flex-wrap: nowrap;
-                width: 280px;
-                min-width: 280px;
-                max-width: 280px;
-                margin-bottom: 0;
-                height: 100%;
-            }
-            
-            .canvas-area {
-                flex: 1;
-                height: 100%;
-            }
+        .flowchart-node.highlight-source {
+            border-color: #e63946;
+            box-shadow: 0 0 15px rgba(230, 57, 70, 0.5);
+            animation: highlight-pulse 1.5s infinite;
         }
 
-        /* High density displays */
-        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-            .flowchart-grid {
-                background-size: 20px 20px;
-            }
+        @keyframes highlight-pulse {
+            0%, 100% { border-color: #e63946; }
+            50% { border-color: #ff6b6b; }
         }
 
-        /* Ensure proper display hierarchy */
-        #game-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            background: #1a1a2e;
-            overflow: auto;
+        #flowchart-canvas {
+            cursor: default;
+        }
+
+        #flowchart-canvas.placement-mode {
+            cursor: crosshair;
         }
 
         /* Difficulty and Level Selection Styles */
@@ -811,16 +761,7 @@
         <div id="difficulty-screen" class="flowbyte-difficulty-screen">
             <div class="difficulty-modal">
                 <div class="flowchart-icon">
-                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="25" y="5" width="10" height="8" rx="4" fill="#4CAF50"/>
-                        <rect x="15" y="25" width="10" height="8" rx="4" fill="#4CAF50"/>
-                        <rect x="35" y="25" width="10" height="8" rx="4" fill="#4CAF50"/>
-                        <rect x="25" y="45" width="10" height="8" rx="4" fill="#4CAF50"/>
-                        <line x1="30" y1="13" x2="30" y2="25" stroke="#4CAF50" stroke-width="2"/>
-                        <line x1="30" y1="33" x2="30" y2="45" stroke="#4CAF50" stroke-width="2"/>
-                        <line x1="25" y1="29" x2="15" y2="29" stroke="#4CAF50" stroke-width="2"/>
-                        <line x1="35" y1="29" x2="45" y2="29" stroke="#4CAF50" stroke-width="2"/>
-                    </svg>
+                    <i class="bi bi-diagram-3"></i>
                 </div>
                 
                 <h1 class="modal-title">Flowchart Construction Lab</h1>
@@ -839,16 +780,14 @@
                     </button>
                 </div>
             </div>
-            
-            <button class="back-to-command-center" id="back-to-command-btn">
-                ← Back to Command Center
-            </button>
         </div>
 
         <!-- Level Selection Screen -->
         <div id="level-screen" class="flowbyte-room hidden">
             <div class="level-header">
-                <button class="back-btn" id="back-to-difficulty-btn">← Back to Difficulty</button>
+                <button class="back-btn" id="back-to-difficulty-btn">
+                    <i class="bi bi-arrow-left-circle"></i>
+                </button>
                 <h1 id="difficulty-title">FLOWBYTE</h1>
                 <p id="difficulty-description"></p>
             </div>
@@ -869,7 +808,6 @@
                         <path d="M12 2a4 4 0 0 1 4 4v2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4v2a4 4 0 1 1-8 0v-2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V6a4 4 0 0 1 4-4z"/>
                     </svg>
                     <h1>Flowchart Construction Lab</h1>
-                    <button class="back-to-levels" id="back-to-levels-btn">← Levels</button>
                 </header>
 
                 <section class="stats-panel">
@@ -920,7 +858,7 @@
                 <nav class="shape-toolbar">
                     <button class="tool-btn" id="add-oval-btn">
                         <div class="shape-preview">
-                            <i class="bi bi-circle"></i>
+                            ⬭
                         </div>
                         <span>Oval<br>(Start/End)</span>
                     </button>
@@ -938,7 +876,7 @@
                     </button>
                     <button class="tool-btn" id="add-parallelogram-btn">
                         <div class="shape-preview">
-                            <i class="bi bi-box"></i>
+                            ▱
                         </div>
                         <span>Parallelogram<br>(Input/Output)</span>
                     </button>
@@ -1216,6 +1154,69 @@
                         }
                     }
                 }, 1500); // Show loading for 1.5 seconds
+                
+            } catch (error) {
+                console.error('Failed to initialize FLOWBYTE:', error);
+                showError();
+            }
+        });
+        
+        // Error handling function
+        function showError() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const errorMessage = document.getElementById('error-message');
+            
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+            
+            if (errorMessage) {
+                errorMessage.style.display = 'block';
+            }
+        }
+        
+        // Global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Game Error:', event.error);
+            // Don't show error for minor issues, only critical ones
+            if (event.error && event.error.message.includes('FlowByteGame')) {
+                showError();
+            }
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled Promise Rejection:', event.reason);
+        });
+        
+        // Ensure game container takes full viewport
+        function adjustGameContainer() {
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                gameContainer.style.minHeight = window.innerHeight + 'px';
+            }
+        }
+        
+        // Adjust on resize
+        window.addEventListener('resize', adjustGameContainer);
+        
+        // Navigation helper functions (can be used by other parts of the system)
+        window.FlowByteNavigation = {
+            goToRoom: function(roomName) {
+                // This can be expanded to navigate to other rooms
+                console.log(`Navigating to ${roomName}`);
+                // Example: window.location.href = `../${roomName}/${roomName}-room.html`;
+            },
+            
+            goToMainMenu: function() {
+                // Navigate back to main menu
+                console.log('Navigating to main menu');
+                // Example: window.location.href = '../../../index.html';
+            }
+        };
+    </script>
+</body>
+</html>
                 
             } catch (error) {
                 console.error('Failed to initialize FLOWBYTE:', error);
