@@ -197,6 +197,11 @@
             </video>
             
             <div class="cutscene-controls">
+                <button class="skip-btn" onclick="skipCutscene()">
+                    <i class="bi bi-fast-forward"></i>
+                    Skip Intro
+                </button>
+                
                 <span class="skip-hint">
                     <i class="bi bi-keyboard"></i>
                     Press SPACE to skip
@@ -205,11 +210,6 @@
                 <div class="cutscene-progress">
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
-                
-                <button class="skip-btn" onclick="skipCutscene()">
-                    <i class="bi bi-fast-forward"></i>
-                    Skip Intro
-                </button>
             </div>
             
             <div class="cutscene-overlay" id="cutsceneOverlay">
