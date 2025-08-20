@@ -245,7 +245,7 @@ class CommandCenter {
                 await this.loadSchemaxRoom();
                 break;
             case 'programming':
-                await this.loadPlaceholderRoom('programming');
+                await this.loadCodevanceRoom();
                 break;
             default:
                 console.error(`Unknown room type: ${roomType}`);
@@ -1211,6 +1211,236 @@ class CommandCenter {
         }
     }
 
+    // =============================================
+    // CODEVANCE ROOM METHODS
+    // =============================================
+
+    async loadCodevanceRoom() {
+        const container = this.roomContainers['programming'];
+        
+        console.log('Loading CODEVANCE room...');
+        
+        // Load the game script first with correct path resolution
+        if (!window.CodevanceLab) {
+            console.log('Loading CODEVANCE lab script...');
+            try {
+                // Determine the correct script path based on current location
+                const currentPath = window.location.pathname;
+                let scriptPath;
+                
+                console.log('Current path for CODEVANCE script loading:', currentPath);
+                
+                if (currentPath.includes('/src/pages/')) {
+                    // We're in a subfolder like /src/pages/command-center.html
+                    scriptPath = '../../static/js/codevance-game.js';
+                } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                    // We're at the root
+                    scriptPath = './static/js/codevance-game.js';
+                } else {
+                    // Default fallback
+                    scriptPath = '/static/js/codevance-game.js';
+                }
+                
+                console.log('Attempting to load CODEVANCE script from:', scriptPath);
+                await this.loadScript(scriptPath);
+                console.log('CODEVANCE lab script loaded successfully');
+            } catch (error) {
+                console.error('Failed to load CODEVANCE lab script:', error);
+                // Try alternative paths if the first one fails
+                console.log('Trying alternative CODEVANCE script paths...');
+                const alternativePaths = [
+                    './static/js/codevance-game.js',
+                    '../static/js/codevance-game.js', 
+                    '../../static/js/codevance-game.js',
+                    '/static/js/codevance-game.js',
+                    'static/js/codevance-game.js',
+                    './js/codevance-game.js',
+                    '../js/codevance-game.js'
+                ];
+                
+                let scriptLoaded = false;
+                for (const altPath of alternativePaths) {
+                    try {
+                        console.log(`Trying CODEVANCE script path: ${altPath}`);
+                        await this.loadScript(altPath);
+                        console.log(`✓ CODEVANCE script loaded successfully from: ${altPath}`);
+                        scriptLoaded = true;
+                        break;
+                    } catch (altError) {
+                        console.log(`✗ Failed to load CODEVANCE from: ${altPath}`, altError.message);
+                    }
+                }
+                
+                if (!scriptLoaded) {
+                    console.error('All CODEVANCE script loading attempts failed');
+                    this.createCodevanceFallback(container);
+                    return;
+                }
+            }
+        }
+
+        try {
+            // Get the current page's base path for HTML loading
+            const currentPath = window.location.pathname;
+            let basePath;
+            
+            if (currentPath.includes('/src/pages/')) {
+                basePath = '../../';
+            } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                basePath = './';
+            } else {
+                basePath = '/';
+            }
+            
+            // Try multiple possible paths for the HTML file
+            const possiblePaths = [
+                `${basePath}src/rooms/codevance-room.html`,
+                './src/rooms/codevance-room.html',
+                '../src/rooms/codevance-room.html',
+                '/src/rooms/codevance-room.html',
+                '../../src/rooms/codevance-room.html',
+                'src/rooms/codevance-room.html'
+            ];
+            
+            console.log('Current path:', currentPath);
+            console.log('Base path:', basePath);
+            console.log('Trying CODEVANCE HTML paths:', possiblePaths);
+            
+            let htmlContent = null;
+            let loadedPath = null;
+            
+            for (const path of possiblePaths) {
+                try {
+                    console.log(`Attempting to fetch CODEVANCE HTML from: ${path}`);
+                    const response = await fetch(path);
+                    console.log(`Response status for ${path}:`, response.status);
+                    
+                    if (response.ok) {
+                        htmlContent = await response.text();
+                        loadedPath = path;
+                        console.log(`✓ Successfully loaded CODEVANCE HTML from: ${path}`);
+                        console.log('HTML content length:', htmlContent.length);
+                        break;
+                    } else {
+                        console.log(`✗ Failed to load from ${path}: HTTP ${response.status}`);
+                    }
+                } catch (e) {
+                    console.log(`✗ Network error loading from ${path}:`, e.message);
+                }
+            }
+            
+            if (!htmlContent) {
+                throw new Error('Could not load CODEVANCE room HTML from any path. All attempts failed.');
+            }
+            
+            // Parse the HTML and extract content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const gameContainer = doc.getElementById('game-container');
+            
+            if (!gameContainer) {
+                console.error('HTML content does not contain #game-container');
+                console.log('Available elements:', Array.from(doc.querySelectorAll('[id]')).map(el => el.id));
+                throw new Error('Game container not found in HTML');
+            }
+            
+            console.log('✓ Found game container with content length:', gameContainer.innerHTML.length);
+            
+            // Extract and add styles
+            const styles = doc.querySelectorAll('style');
+            console.log(`Found ${styles.length} style elements`);
+            
+            styles.forEach((style, index) => {
+                const styleId = `codevance-styles-${index}`;
+                if (!document.getElementById(styleId)) {
+                    const newStyle = document.createElement('style');
+                    newStyle.id = styleId;
+                    newStyle.setAttribute('data-room', 'codevance');
+                    newStyle.textContent = style.textContent;
+                    document.head.appendChild(newStyle);
+                    console.log(`✓ Added style block ${index + 1}`);
+                } else {
+                    console.log(`Style block ${index + 1} already exists`);
+                }
+            });
+            
+            // Set the container content
+            container.innerHTML = gameContainer.innerHTML;
+            console.log('✓ Container content set, length:', container.innerHTML.length);
+            
+            // Verify the required elements are present
+            const difficultyScreen = container.querySelector('#difficulty-screen');
+            const levelScreen = container.querySelector('#level-screen');
+            const gameScreen = container.querySelector('#game-screen');
+            
+            console.log('Element verification:', {
+                difficultyScreen: !!difficultyScreen,
+                levelScreen: !!levelScreen,
+                gameScreen: !!gameScreen
+            });
+            
+            if (!difficultyScreen || !levelScreen || !gameScreen) {
+                throw new Error('Required game screens not found in loaded HTML');
+            }
+            
+            // Initialize the lab
+            if (window.CodevanceLab) {
+                console.log('✓ CodevanceLab class available, initializing...');
+                this.roomInstances['programming'] = new CodevanceLab();
+                
+                // Setup integration after a short delay
+                setTimeout(() => {
+                    this.setupCodevanceLabIntegration();
+                }, 300);
+            } else {
+                throw new Error('CodevanceLab class not available after script load');
+            }
+            
+        } catch (error) {
+            console.error('✗ Error loading CODEVANCE room:', error);
+            this.createCodevanceFallback(container);
+        }
+    }
+
+    setupCodevanceLabIntegration() {
+        const codevanceLab = this.roomInstances['programming'];
+        const container = this.roomContainers['programming'];
+        
+        if (!codevanceLab || !container) {
+            console.error('✗ CODEVANCE lab or container not available for integration');
+            return;
+        }
+        
+        console.log('Setting up CODEVANCE integration...');
+        console.log('Container innerHTML length:', container.innerHTML.length);
+        
+        try {
+            // Initialize the lab with the container
+            codevanceLab.init(container);
+            
+            // Setup command center navigation
+            this.setupCommandCenterNavigation(container, 'codevance');
+            
+            console.log('✓ CODEVANCE integration completed successfully');
+            
+            // Ensure the difficulty screen is visible after initialization
+            setTimeout(() => {
+                const difficultyScreen = container.querySelector('#difficulty-screen');
+                if (difficultyScreen) {
+                    console.log('🔧 Ensuring CODEVANCE difficulty screen visibility...');
+                    difficultyScreen.style.display = 'flex';
+                    difficultyScreen.classList.remove('hidden');
+                    console.log('Difficulty screen display:', difficultyScreen.style.display);
+                    console.log('Difficulty screen classes:', difficultyScreen.className);
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('✗ Error setting up CODEVANCE integration:', error);
+            this.createCodevanceFallback(container);
+        }
+    }
+
     createFlowchartFallback(container) {
         console.log('Creating FlowByte fallback interface');
         container.innerHTML = `
@@ -1803,6 +2033,9 @@ class CommandCenter {
                 } else if (src.includes('netxus')) {
                     classAvailable = !!window.NetxusLab;
                     className = 'NetxusLab';
+                } else if (src.includes('codevance-game')) {
+                    classAvailable = !!window.CodevanceLab;
+                    className = 'CodevanceLab';
                 } else {
                     // Generic check - assume success if no specific class needed
                     classAvailable = true;
