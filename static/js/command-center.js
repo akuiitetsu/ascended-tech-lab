@@ -231,6 +231,8 @@ class CommandCenter {
     async loadRoomInstance(roomType) {
         if (roomType === 'flowchart') {
             await this.loadFlowchartRoom();
+        } else if (roomType === 'networking') {
+            await this.loadNetxusRoom();
         } else {
             this.createPlaceholderRoom(roomType);
         }
@@ -481,6 +483,255 @@ class CommandCenter {
     }
 
     // =============================================
+    // NETXUS ROOM METHODS
+    // =============================================
+
+    async loadNetxusRoom() {
+        const container = this.roomContainers['networking'];
+        
+        console.log('Loading NETXUS room...');
+        
+        // Load the game script first with correct path resolution
+        if (!window.NetxusLab) {
+            console.log('Loading NETXUS lab script...');
+            try {
+                // Determine the correct script path based on current location
+                const currentPath = window.location.pathname;
+                let scriptPath;
+                
+                if (currentPath.includes('/src/pages/')) {
+                    // We're in a subfolder like /src/pages/command-center.html
+                    scriptPath = '../../static/js/netxus.js';
+                } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                    // We're at the root
+                    scriptPath = './static/js/netxus.js';
+                } else {
+                    // Default fallback
+                    scriptPath = '/static/js/netxus.js';
+                }
+                
+                console.log('Attempting to load script from:', scriptPath);
+                await this.loadScript(scriptPath);
+                console.log('NETXUS lab script loaded successfully');
+            } catch (error) {
+                console.error('Failed to load NETXUS lab script:', error);
+                // Try alternative paths if the first one fails
+                console.log('Trying alternative script paths...');
+                const alternativePaths = [
+                    '/static/js/netxus.js',
+                    '../static/js/netxus.js',
+                    '../../static/js/netxus.js',
+                    './static/js/netxus.js'
+                ];
+                
+                let scriptLoaded = false;
+                for (const altPath of alternativePaths) {
+                    try {
+                        console.log(`Trying script path: ${altPath}`);
+                        await this.loadScript(altPath);
+                        console.log(`✓ Script loaded successfully from: ${altPath}`);
+                        scriptLoaded = true;
+                        break;
+                    } catch (altError) {
+                        console.log(`✗ Failed to load from: ${altPath}`);
+                    }
+                }
+                
+                if (!scriptLoaded) {
+                    console.error('All script loading attempts failed');
+                    this.createNetxusFallback(container);
+                    return;
+                }
+            }
+        }
+
+        try {
+            // Get the current page's base path for HTML loading
+            const currentPath = window.location.pathname;
+            let basePath;
+            
+            if (currentPath.includes('/src/pages/')) {
+                basePath = '../../';
+            } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                basePath = './';
+            } else {
+                basePath = '/';
+            }
+            
+            // Try multiple possible paths for the HTML file
+            const possiblePaths = [
+                `${basePath}src/rooms/netxus-room.html`,
+                './src/rooms/netxus-room.html',
+                '../src/rooms/netxus-room.html',
+                '/src/rooms/netxus-room.html',
+                '../../src/rooms/netxus-room.html'
+            ];
+            
+            console.log('Current path:', currentPath);
+            console.log('Base path:', basePath);
+            console.log('Trying HTML paths:', possiblePaths);
+            
+            let htmlContent = null;
+            let loadedPath = null;
+            
+            for (const path of possiblePaths) {
+                try {
+                    console.log(`Attempting to fetch HTML from: ${path}`);
+                    const response = await fetch(path);
+                    console.log(`Response status for ${path}:`, response.status);
+                    
+                    if (response.ok) {
+                        htmlContent = await response.text();
+                        loadedPath = path;
+                        console.log(`✓ Successfully loaded HTML from: ${path}`);
+                        console.log('HTML content length:', htmlContent.length);
+                        break;
+                    } else {
+                        console.log(`✗ Failed to load from ${path}: HTTP ${response.status}`);
+                    }
+                } catch (e) {
+                    console.log(`✗ Network error loading from ${path}:`, e.message);
+                }
+            }
+            
+            if (!htmlContent) {
+                throw new Error('Could not load NETXUS room HTML from any path. All attempts failed.');
+            }
+            
+            // Parse the HTML and extract content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const gameContainer = doc.getElementById('game-container');
+            
+            if (!gameContainer) {
+                console.error('HTML content does not contain #game-container');
+                console.log('Available elements:', Array.from(doc.querySelectorAll('[id]')).map(el => el.id));
+                throw new Error('Game container not found in HTML');
+            }
+            
+            console.log('✓ Found game container with content length:', gameContainer.innerHTML.length);
+            
+            // Extract and add styles
+            const styles = doc.querySelectorAll('style');
+            console.log(`Found ${styles.length} style elements`);
+            
+            styles.forEach((style, index) => {
+                const styleId = `netxus-styles-${index}`;
+                if (!document.getElementById(styleId)) {
+                    const newStyle = document.createElement('style');
+                    newStyle.id = styleId;
+                    newStyle.setAttribute('data-room', 'netxus');
+                    newStyle.textContent = style.textContent;
+                    document.head.appendChild(newStyle);
+                    console.log(`✓ Added style block ${index + 1}`);
+                } else {
+                    console.log(`Style block ${index + 1} already exists`);
+                }
+            });
+            
+            // Set the container content
+            container.innerHTML = gameContainer.innerHTML;
+            console.log('✓ Container content set, length:', container.innerHTML.length);
+            
+            // Verify the required elements are present
+            const difficultyScreen = container.querySelector('#difficulty-screen');
+            const levelScreen = container.querySelector('#level-screen');
+            const gameScreen = container.querySelector('#game-screen');
+            
+            console.log('Element verification:', {
+                difficultyScreen: !!difficultyScreen,
+                levelScreen: !!levelScreen,
+                gameScreen: !!gameScreen
+            });
+            
+            if (!difficultyScreen || !levelScreen || !gameScreen) {
+                throw new Error('Required game screens not found in loaded HTML');
+            }
+            
+            // Initialize the lab
+            if (window.NetxusLab) {
+                console.log('✓ NetxusLab class available, initializing...');
+                this.roomInstances['networking'] = new NetxusLab();
+                
+                // Setup integration after a short delay
+                setTimeout(() => {
+                    this.setupNetxusLabIntegration();
+                }, 300);
+            } else {
+                throw new Error('NetxusLab class not available after script load');
+            }
+            
+        } catch (error) {
+            console.error('✗ Error loading NETXUS room:', error);
+            this.createNetxusFallback(container);
+        }
+    }
+
+    setupNetxusLabIntegration() {
+        const netxusLab = this.roomInstances['networking'];
+        const container = this.roomContainers['networking'];
+        
+        if (!netxusLab || !container) {
+            console.error('✗ NETXUS lab or container not available for integration');
+            return;
+        }
+        
+        console.log('Setting up NETXUS integration...');
+        console.log('Container innerHTML length:', container.innerHTML.length);
+        
+        try {
+            // Initialize the lab with the container
+            netxusLab.init(container);
+            
+            // Setup command center navigation
+            this.setupCommandCenterNavigation(container, 'netxus');
+            
+            console.log('✓ NETXUS integration completed successfully');
+            
+            // Ensure the difficulty screen is visible after initialization
+            setTimeout(() => {
+                const difficultyScreen = container.querySelector('#difficulty-screen');
+                if (difficultyScreen) {
+                    console.log('🔧 Ensuring difficulty screen visibility...');
+                    difficultyScreen.style.display = 'flex';
+                    difficultyScreen.classList.remove('hidden');
+                    console.log('Difficulty screen display:', difficultyScreen.style.display);
+                    console.log('Difficulty screen classes:', difficultyScreen.className);
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('✗ Error setting up NETXUS integration:', error);
+            this.createNetxusFallback(container);
+        }
+    }
+
+    setupCommandCenterNavigation(container, roomType = 'flowchart') {
+        // Wait a bit for the game to fully initialize
+        setTimeout(() => {
+            const backToCommandBtn = container.querySelector('#back-to-command-btn') || 
+                                   container.querySelector('#abort-mission-btn');
+            if (backToCommandBtn) {
+                // Create a new button to ensure clean event handling
+                const newBackBtn = backToCommandBtn.cloneNode(true);
+                backToCommandBtn.parentNode.replaceChild(newBackBtn, backToCommandBtn);
+                
+                // Add command center navigation
+                newBackBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Navigating back to command center dashboard');
+                    this.showCommandDashboard();
+                });
+                
+                console.log(`Command center navigation setup complete for ${roomType}`);
+            } else {
+                console.warn('Back to command button not found');
+            }
+        }, 300);
+    }
+
+    // =============================================
     // FALLBACK METHODS
     // =============================================
 
@@ -509,6 +760,33 @@ class CommandCenter {
             </div>
         `;
         this.roomInstances['flowchart'] = { type: 'fallback' };
+    }
+
+    createNetxusFallback(container) {
+        console.log('Creating NETXUS fallback interface');
+        container.innerHTML = `
+            <div class="room-placeholder">
+                <button class="back-to-command" onclick="window.commandCenter.showCommandDashboard()">
+                    ← Back to Command Center
+                </button>
+                <div class="room-header" style="border-color: #00A949;">
+                    <i class="bi bi-hdd-network" style="color: #00A949;"></i>
+                    <h2>NETXUS</h2>
+                </div>
+                <div class="room-description">
+                    <p>Network Engineering Training Room</p>
+                </div>
+                <div class="coming-soon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h3>Loading Error</h3>
+                    <p>Unable to load the NETXUS room content. Please refresh the page and try again.</p>
+                    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Refresh Page
+                    </button>
+                </div>
+            </div>
+        `;
+        this.roomInstances['networking'] = { type: 'fallback' };
     }
 
     // =============================================
@@ -633,7 +911,7 @@ class CommandCenter {
                     </div>
                 </div>
                 <div class="room-status available" style="background: ${room.color};">
-                    ${roomType === 'flowchart' ? 'Available' : 'Coming Soon'}
+                    ${(roomType === 'flowchart' || roomType === 'networking') ? 'Available' : 'Coming Soon'}
                 </div>
             </div>
         `;
@@ -981,27 +1259,29 @@ class CommandCenter {
 
     loadScript(src) {
         return new Promise((resolve, reject) => {
-            // Check if script is already loaded by checking for the FlowByteGame class
-            if (window.FlowByteGame) {
-                console.log('FlowByteGame class already available');
+            // Check if script is already loaded by checking for the specific class
+            const className = src.includes('netxus') ? 'NetxusLab' : 'FlowByteGame';
+            
+            if (window[className]) {
+                console.log(`${className} class already available`);
                 resolve();
                 return;
             }
             
             // Check if script element already exists
-            const existingScript = document.querySelector(`script[src*="flowchart-game.js"]`);
+            const existingScript = document.querySelector(`script[src*="${src.split('/').pop()}"]`);
             if (existingScript) {
-                console.log('FlowByte script element already exists, waiting for class...');
+                console.log(`${className} script element already exists, waiting for class...`);
                 // Wait a bit for the class to be available
                 let attempts = 0;
                 const checkClass = () => {
-                    if (window.FlowByteGame) {
+                    if (window[className]) {
                         resolve();
                     } else if (attempts < 10) {
                         attempts++;
                         setTimeout(checkClass, 100);
                     } else {
-                        reject(new Error('Script loaded but FlowByteGame class not available'));
+                        reject(new Error(`Script loaded but ${className} class not available`));
                     }
                 };
                 checkClass();
@@ -1017,12 +1297,12 @@ class CommandCenter {
                 console.log('✓ Script element loaded successfully:', src);
                 // Wait a moment for the class to be available
                 setTimeout(() => {
-                    if (window.FlowByteGame) {
-                        console.log('✓ FlowByteGame class is now available');
+                    if (window[className]) {
+                        console.log(`✓ ${className} class is now available`);
                         resolve();
                     } else {
-                        console.error('✗ FlowByteGame class not available after script load');
-                        reject(new Error('FlowByteGame class not found after script load'));
+                        console.error(`✗ ${className} class not available after script load`);
+                        reject(new Error(`${className} class not found after script load`));
                     }
                 }, 50);
             };
