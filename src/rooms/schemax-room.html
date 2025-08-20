@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCHEMAX - Database Schema Training</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --bg-main: #0f0f23;
+            --bg-panel: #1a1a2e;
+            --bg-canvas: #16213e;
+            --color-database: #FF3600;
+            --color-database-light: #FF6B47;
+            --color-database-dark: #CC2B00;
+            --color-success: #00ff88;
+            --color-warning: #ffaa00;
+            --color-error: #ff4444;
+            --color-info: #00aaff;
+            --text-light: #ffffff;
+            --text-muted: #cccccc;
+            --border-color: #444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-panel) 100%);
+            overflow: hidden;
+        }
+
+        /* Difficulty Selection Screen */
+        .schemax-difficulty-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #2d1810 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            padding: 20px;
+        }
+
+        .difficulty-modal {
+            background: rgba(42, 42, 62, 0.95);
+            border: 2px solid var(--color-database);
+            border-radius: 20px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(255, 54, 0, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .database-icon {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .database-icon i {
+            font-size: 4rem;
+            color: var(--color-database);
+            animation: pulse-database 2s infinite;
+        }
+
+        @keyframes pulse-database {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .modal-title {
+            color: var(--text-light);
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-description {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.4;
+            margin: 0 0 30px 0;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .difficulty-btn {
+            width: 100%;
+            padding: 12px 25px;
+            font-size: 0.95em;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .easy-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .easy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .hard-btn {
+            background: linear-gradient(135deg, var(--color-database), var(--color-database-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 54, 0, 0.3);
+        }
+
+        .hard-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 54, 0, 0.4);
+        }
+
+        /* Level Selection Screen */
+        .schemax-room {
+            padding: 30px 20px;
+            color: white;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            height: 100%;
+            position: relative;
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .level-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--color-database);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: var(--color-database);
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 54, 0, 0.2);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .level-header h1 {
+            font-size: 2.5rem;
+            color: var(--color-database);
+            margin: 0;
+        }
+
+        .level-header p {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin: 8px 0 0 0;
+        }
+
+        .level-selection h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--text-light);
+            font-size: 1.5rem;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .level-card {
+            background: rgba(255, 54, 0, 0.1);
+            border: 2px solid #333;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .level-card:hover {
+            border-color: var(--color-database);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 54, 0, 0.2);
+        }
+
+        .level-number {
+            background: linear-gradient(135deg, var(--color-database), var(--color-database-dark));
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .concepts-list {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--color-database-light);
+        }
+
+        /* Lab Interface Screen */
+        .lab-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            padding: 8px;
+            gap: 8px;
+            background: var(--bg-main);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .lab-sidebar {
+            width: 260px;
+            min-width: 240px;
+            max-width: 280px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 2px solid var(--color-database);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .lab-header {
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--color-database);
+            position: relative;
+        }
+
+        .lab-header .database-icon {
+            font-size: 1.8rem;
+            color: var(--color-database);
+            margin-bottom: 8px;
+        }
+
+        .lab-header h1 {
+            color: var(--color-database);
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+
+        .back-to-levels {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--color-error);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-to-levels:hover {
+            background: #cc3333;
+        }
+
+        .lab-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: rgba(255, 54, 0, 0.1);
+            border: 1px solid var(--color-database);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .stat-box span:first-child {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .stat-box .value {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--color-database);
+        }
+
+        .lab-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-complete { background: var(--color-success); color: white; }
+        .btn-hint { background: var(--color-info); color: white; }
+        .btn-reset { background: var(--color-warning); color: white; }
+        .btn-back { background: var(--color-error); color: white; }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .sql-tutor-panel {
+            background: rgba(255, 54, 0, 0.05);
+            border: 1px solid var(--color-database);
+            border-radius: 8px;
+            padding: 12px;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sql-tutor-panel h3 {
+            color: var(--color-database);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1rem;
+        }
+
+        .sql-message {
+            background: rgba(255, 54, 0, 0.1);
+            border-left: 3px solid var(--color-database);
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-radius: 0 6px 6px 0;
+            font-style: italic;
+            font-size: 0.85rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0 0 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-database), var(--color-database-light));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Main Content Area - Optimized for side-by-side layout */
+        .lab-content {
+            width: calc(100vw - 280px);
+            max-width: calc(100vw - 280px);
+            min-width: 400px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 2px solid var(--color-database);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+            height: calc(100vh - 16px);
+            flex-shrink: 1;
+        }
+
+        .challenge-workspace {
+            flex: 1;
+            min-height: 0;
+            background: var(--bg-canvas);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        .challenge-interface {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 100%;
+        }
+
+        .challenge-interface.active {
+            display: flex;
+        }
+
+        /* Challenge content sections - More compact */
+        .challenge-header {
+            background: rgba(255, 54, 0, 0.1);
+            border: 1px solid var(--color-database);
+            border-radius: 6px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .challenge-header h3 {
+            color: var(--color-database);
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        .challenge-header p {
+            margin: 0;
+            font-size: 0.85rem;
+        }
+
+        .requirements-panel {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--color-success);
+            border-radius: 6px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .requirements-panel h4 {
+            color: var(--color-success);
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .requirements-panel ul, .requirements-panel ol {
+            margin: 6px 0;
+            padding-left: 18px;
+        }
+
+        .requirements-panel li {
+            margin-bottom: 3px;
+            font-size: 0.8rem;
+            line-height: 1.2;
+        }
+
+        .sql-workspace {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .editor-header h4 {
+            color: var(--color-database);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .execute-btn {
+            background: var(--color-database);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .execute-btn:hover {
+            background: var(--color-database-dark);
+            transform: translateY(-1px);
+        }
+
+        .clear-btn {
+            background: var(--color-warning);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .clear-btn:hover {
+            background: #e6a100;
+            transform: translateY(-1px);
+        }
+
+        /* SQL Editor - More compact */
+        #sql-editor {
+            width: 100%;
+            height: 120px;
+            max-height: 150px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Courier New', 'Monaco', monospace;
+            font-size: 11px;
+            resize: vertical;
+            min-height: 80px;
+            tab-size: 4;
+            box-sizing: border-box;
+            line-height: 1.2;
+        }
+
+        #sql-editor:focus {
+            outline: none;
+            border-color: var(--color-database);
+            box-shadow: 0 0 6px rgba(255, 54, 0, 0.3);
+        }
+
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Output panels - More compact and scrollable */
+        .output-panel, .schema-preview, .data-preview, .constraints-info, 
+        .relationship-diagram, .normalization-analysis, .banking-analysis, 
+        .performance-analysis, .relationship-analysis, .security-analysis {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            overflow-y: auto;
+            min-height: 100px;
+            max-height: 150px;
+        }
+
+        .output-panel h5, .schema-preview h5, .data-preview h5, .constraints-info h5,
+        .relationship-diagram h5, .normalization-analysis h5, .banking-analysis h5,
+        .performance-analysis h5, .relationship-analysis h5, .security-analysis h5 {
+            color: var(--color-database);
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        .execution-result {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            padding: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            white-space: pre-wrap;
+            line-height: 1.1;
+        }
+
+        .execution-result.success {
+            border-left: 3px solid var(--color-success);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .execution-result.error {
+            border-left: 3px solid var(--color-error);
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .execution-result.warning {
+            border-left: 3px solid var(--color-warning);
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        /* Data tables - More compact */
+        .data-table table, .denormalized-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 6px 0;
+            font-size: 0.75rem;
+        }
+
+        .data-table th, .data-table td,
+        .denormalized-table th, .denormalized-table td {
+            border: 1px solid var(--border-color);
+            padding: 3px 6px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background: rgba(255, 54, 0, 0.2);
+            color: var(--color-database);
+            font-weight: bold;
+        }
+
+        .denormalized-table th, .denormalized-table td {
+            border: 1px solid var(--color-error);
+        }
+
+        .denormalized-table th {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--color-error);
+        }
+
+        /* Sample data tables - More compact */
+        .sample-data {
+            margin: 8px 0;
+        }
+
+        .sample-data h5 {
+            color: var(--color-info);
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        .sample-data table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .sample-data th, .sample-data td {
+            border: 1px solid var(--border-color);
+            padding: 3px 6px;
+            text-align: left;
+        }
+
+        .sample-data th {
+            background: rgba(0, 170, 255, 0.2);
+            color: var(--color-info);
+        }
+
+        /* Enhanced Responsive Design */
+        @media (max-width: 1400px) {
+            .lab-container {
+                padding: 6px;
+                gap: 6px;
+            }
+            
+            .lab-sidebar {
+                width: 240px;
+                min-width: 220px;
+            }
+            
+            .lab-content {
+                width: calc(100vw - 260px);
+                max-width: calc(100vw - 260px);
+                min-width: 350px;
+            }
+            
+            .results-section {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            #sql-editor {
+                height: 100px;
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .lab-container {
+                gap: 5px;
+                padding: 5px;
+            }
+            
+            .lab-sidebar {
+                width: 220px;
+                min-width: 200px;
+            }
+            
+            .lab-content {
+                width: calc(100vw - 240px);
+                max-width: calc(100vw - 240px);
+                min-width: 300px;
+            }
+            
+            .challenge-workspace {
+                padding: 8px;
+            }
+            
+            .results-section {
+                min-height: 80px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .lab-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+                gap: 8px;
+                padding: 8px;
+            }
+            
+            .lab-sidebar {
+                width: 100%;
+                min-width: auto;
+                max-width: none;
+                flex-shrink: 0;
+                order: 1;
+                max-height: 300px;
+            }
+            
+            .lab-content {
+                width: 100%;
+                max-width: 100%;
+                min-width: auto;
+                flex: 1;
+                min-height: 400px;
+                order: 2;
+                height: auto;
+            }
+            
+            .challenge-workspace {
+                min-height: 350px;
+            }
+            
+            #sql-editor {
+                height: 80px;
+                min-height: 60px;
+                font-size: 10px;
+            }
+            
+            .results-section {
+                min-height: 60px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .lab-container {
+                padding: 5px;
+                gap: 5px;
+            }
+            
+            .lab-sidebar {
+                padding: 8px;
+            }
+            
+            .lab-content {
+                padding: 8px;
+                min-height: 300px;
+            }
+            
+            .challenge-workspace {
+                padding: 6px;
+                min-height: 250px;
+            }
+
+            .lab-controls {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .lab-stats {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .editor-controls {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .execute-btn, .clear-btn {
+                width: 100%;
+                padding: 6px;
+            }
+            
+            #sql-editor {
+                font-size: 9px;
+                height: 70px;
+            }
+        }
+
+        /* Ensure content is always accessible */
+        .lab-content {
+           position: relative;
+            z-index: 1;
+        }
+
+        .lab-sidebar {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Improve scrolling behavior */
+        .challenge-workspace {
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-database) transparent;
+        }
+
+        .challenge-workspace::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .challenge-workspace::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .challenge-workspace::-webkit-scrollbar-thumb {
+            background: var(--color-database);
+            border-radius: 2px;
+        }
+
+        /* Ensure minimum workspace visibility */
+        @media (min-width: 993px) {
+            .challenge-workspace {
+                min-width: 400px;
+            }
+        }
+
+        /* SQL Syntax Highlighting */
+        .sql-keyword { color: #569cd6; font-weight: bold; }
+        .sql-string { color: #ce9178; }
+        .sql-number { color: #b5cea8; }
+        .sql-comment { color: #6a9955; font-style: italic; }
+        .sql-operator { color: #d4d4d4; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Difficulty Selection Screen -->
+        <div id="difficulty-screen" class="schemax-difficulty-screen">
+            <div class="difficulty-modal">
+                <div class="database-icon">
+                    <i class="bi bi-database"></i>
+                </div>
+                
+                <h1 class="modal-title">SCHEMAX</h1>
+                
+                <p class="modal-description">
+                    Database Schema Design Training<br>
+                    Master SQL table creation and optimization!
+                </p>
+                
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn easy-btn" id="easy-difficulty-btn">
+                        EASY SQL SCHEMA
+                    </button>
+                    <button class="difficulty-btn hard-btn" id="hard-difficulty-btn">
+                        ADVANCED SQL SCHEMA
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Selection Screen -->
+        <div id="level-screen" class="schemax-room hidden">
+            <div class="level-header">
+                <button class="back-btn" id="back-to-difficulty-btn">
+                    <i class="bi bi-arrow-left-circle"></i>
+                </button>
+                <h1 id="difficulty-title">SCHEMAX</h1>
+                <p id="difficulty-description"></p>
+            </div>
+            <div class="level-selection">
+                <h2>Select Database Challenge</h2>
+                <div class="level-grid" id="level-grid">
+                    <!-- Level cards will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Lab Interface Screen -->
+        <div id="game-screen" class="lab-container hidden">
+            <aside class="lab-sidebar">
+                <header class="lab-header">
+                    <div class="database-icon">
+                        <i class="bi bi-database"></i>
+                    </div>
+                    <h1>SCHEMAX Lab</h1>
+                    <button class="back-to-levels" id="back-to-levels-btn">← Challenges</button>
+                </header>
+
+                <section class="lab-stats">
+                    <div class="stat-box">
+                        <span>Current Challenge</span>
+                        <span class="value" id="current-challenge-display">1/5</span>
+                    </div>
+                    <div class="stat-box">
+                        <span>Progress</span>
+                        <span class="value" id="challenge-progress">0%</span>
+                    </div>
+                </section>
+
+                <section class="lab-controls">
+                    <button class="btn btn-complete" id="validate-solution-btn">✓ Validate</button>
+                    <button class="btn btn-hint" id="get-hint-btn">💡 Hint</button>
+                    <button class="btn btn-reset" id="reset-challenge-btn">🔄 Reset</button>
+                    <button class="btn btn-back" id="abort-mission-btn">✗ Abort</button>
+                </section>
+
+                <section class="sql-tutor-panel">
+                    <h3>
+                        <i class="bi bi-database"></i>
+                        SQL Tutor
+                    </h3>
+                    <div id="sql-conversation">
+                        <div class="sql-message" id="sql-current-message">
+                            Welcome to SCHEMAX! Let's design and optimize database schemas using SQL best practices.
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="tutor-progress" style="width: 0%"></div>
+                    </div>
+                </section>
+            </aside>
+
+            <main class="lab-content">
+                <div class="challenge-workspace" id="challenge-workspace">
+                    <!-- Challenge interfaces will be loaded here -->
+                    <div class="challenge-interface active" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted);">
+                        <div style="text-align: center;">
+                            <div class="database-icon" style="font-size: 3rem; margin-bottom: 20px;">
+                                <i class="bi bi-database"></i>
+                            </div>
+                            <h3>Select a Challenge to Begin</h3>
+                            <p>Choose a difficulty level and challenge from the sidebar to start practicing SQL schema design.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Load the SCHEMAX JavaScript -->
+    <script src="../../static/js/schemax-game.js"></script>
+    
+    <script>
+        console.log('SCHEMAX room HTML loaded and ready for command center integration');
+    </script>
+</body>
+</html>

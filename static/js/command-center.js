@@ -242,7 +242,7 @@ class CommandCenter {
                 await this.loadAitrixRoom();
                 break;
             case 'database':
-                await this.loadPlaceholderRoom('database');
+                await this.loadSchemaxRoom();
                 break;
             case 'programming':
                 await this.loadPlaceholderRoom('programming');
@@ -252,6 +252,10 @@ class CommandCenter {
                 await this.loadPlaceholderRoom(roomType);
         }
     }
+
+    // =============================================
+    // FLOWBYTE ROOM METHODS
+    // =============================================
 
     async loadFlowchartRoom() {
         const container = this.roomContainers['flowchart'];
@@ -978,8 +982,234 @@ class CommandCenter {
     }
 
     // =============================================
-    // FALLBACK METHODS
+    // SCHEMAX ROOM METHODS
     // =============================================
+
+    async loadSchemaxRoom() {
+        const container = this.roomContainers['database'];
+        
+        console.log('Loading SCHEMAX room...');
+        
+        // Load the game script first with correct path resolution
+        if (!window.SchemaxLab) {
+            console.log('Loading SCHEMAX lab script...');
+            try {
+                // Determine the correct script path based on current location
+                const currentPath = window.location.pathname;
+                let scriptPath;
+                
+                console.log('Current path for SCHEMAX script loading:', currentPath);
+                
+                if (currentPath.includes('/src/pages/')) {
+                    // We're in a subfolder like /src/pages/command-center.html
+                    scriptPath = '../../static/js/schemax-game.js';
+                } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                    // We're at the root
+                    scriptPath = './static/js/schemax-game.js';
+                } else {
+                    // Default fallback
+                    scriptPath = '/static/js/schemax-game.js';
+                }
+                
+                console.log('Attempting to load SCHEMAX script from:', scriptPath);
+                await this.loadScript(scriptPath);
+                console.log('SCHEMAX lab script loaded successfully');
+            } catch (error) {
+                console.error('Failed to load SCHEMAX lab script:', error);
+                // Try alternative paths if the first one fails
+                console.log('Trying alternative SCHEMAX script paths...');
+                const alternativePaths = [
+                    './static/js/schemax-game.js',
+                    '../static/js/schemax-game.js', 
+                    '../../static/js/schemax-game.js',
+                    '/static/js/schemax-game.js',
+                    'static/js/schemax-game.js',
+                    './js/schemax-game.js',
+                    '../js/schemax-game.js'
+                ];
+                
+                let scriptLoaded = false;
+                for (const altPath of alternativePaths) {
+                    try {
+                        console.log(`Trying SCHEMAX script path: ${altPath}`);
+                        await this.loadScript(altPath);
+                        console.log(`✓ SCHEMAX script loaded successfully from: ${altPath}`);
+                        scriptLoaded = true;
+                        break;
+                    } catch (altError) {
+                        console.log(`✗ Failed to load SCHEMAX from: ${altPath}`, altError.message);
+                    }
+                }
+                
+                if (!scriptLoaded) {
+                    console.error('All SCHEMAX script loading attempts failed');
+                    this.createSchemaxFallback(container);
+                    return;
+                }
+            }
+        }
+
+        try {
+            // Get the current page's base path for HTML loading
+            const currentPath = window.location.pathname;
+            let basePath;
+            
+            if (currentPath.includes('/src/pages/')) {
+                basePath = '../../';
+            } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                basePath = './';
+            } else {
+                basePath = '/';
+            }
+            
+            // Try multiple possible paths for the HTML file
+            const possiblePaths = [
+                `${basePath}src/rooms/schemax-room.html`,
+                './src/rooms/schemax-room.html',
+                '../src/rooms/schemax-room.html',
+                '/src/rooms/schemax-room.html',
+                '../../src/rooms/schemax-room.html',
+                'src/rooms/schemax-room.html'
+            ];
+            
+            console.log('Current path:', currentPath);
+            console.log('Base path:', basePath);
+            console.log('Trying SCHEMAX HTML paths:', possiblePaths);
+            
+            let htmlContent = null;
+            let loadedPath = null;
+            
+            for (const path of possiblePaths) {
+                try {
+                    console.log(`Attempting to fetch SCHEMAX HTML from: ${path}`);
+                    const response = await fetch(path);
+                    console.log(`Response status for ${path}:`, response.status);
+                    
+                    if (response.ok) {
+                        htmlContent = await response.text();
+                        loadedPath = path;
+                        console.log(`✓ Successfully loaded SCHEMAX HTML from: ${path}`);
+                        console.log('HTML content length:', htmlContent.length);
+                        break;
+                    } else {
+                        console.log(`✗ Failed to load from ${path}: HTTP ${response.status}`);
+                    }
+                } catch (e) {
+                    console.log(`✗ Network error loading from ${path}:`, e.message);
+                }
+            }
+            
+            if (!htmlContent) {
+                throw new Error('Could not load SCHEMAX room HTML from any path. All attempts failed.');
+            }
+            
+            // Parse the HTML and extract content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const gameContainer = doc.getElementById('game-container');
+            
+            if (!gameContainer) {
+                console.error('HTML content does not contain #game-container');
+                console.log('Available elements:', Array.from(doc.querySelectorAll('[id]')).map(el => el.id));
+                throw new Error('Game container not found in HTML');
+            }
+            
+            console.log('✓ Found game container with content length:', gameContainer.innerHTML.length);
+            
+            // Extract and add styles
+            const styles = doc.querySelectorAll('style');
+            console.log(`Found ${styles.length} style elements`);
+            
+            styles.forEach((style, index) => {
+                const styleId = `schemax-styles-${index}`;
+                if (!document.getElementById(styleId)) {
+                    const newStyle = document.createElement('style');
+                    newStyle.id = styleId;
+                    newStyle.setAttribute('data-room', 'schemax');
+                    newStyle.textContent = style.textContent;
+                    document.head.appendChild(newStyle);
+                    console.log(`✓ Added style block ${index + 1}`);
+                } else {
+                    console.log(`Style block ${index + 1} already exists`);
+                }
+            });
+            
+            // Set the container content
+            container.innerHTML = gameContainer.innerHTML;
+            console.log('✓ Container content set, length:', container.innerHTML.length);
+            
+            // Verify the required elements are present
+            const difficultyScreen = container.querySelector('#difficulty-screen');
+            const levelScreen = container.querySelector('#level-screen');
+            const gameScreen = container.querySelector('#game-screen');
+            
+            console.log('Element verification:', {
+                difficultyScreen: !!difficultyScreen,
+                levelScreen: !!levelScreen,
+                gameScreen: !!gameScreen
+            });
+            
+            if (!difficultyScreen || !levelScreen || !gameScreen) {
+                throw new Error('Required game screens not found in loaded HTML');
+            }
+            
+            // Initialize the lab
+            if (window.SchemaxLab) {
+                console.log('✓ SchemaxLab class available, initializing...');
+                this.roomInstances['database'] = new SchemaxLab();
+                
+                // Setup integration after a short delay
+                setTimeout(() => {
+                    this.setupSchemaxLabIntegration();
+                }, 300);
+            } else {
+                throw new Error('SchemaxLab class not available after script load');
+            }
+            
+        } catch (error) {
+            console.error('✗ Error loading SCHEMAX room:', error);
+            this.createSchemaxFallback(container);
+        }
+    }
+
+    setupSchemaxLabIntegration() {
+        const schemaxLab = this.roomInstances['database'];
+        const container = this.roomContainers['database'];
+        
+        if (!schemaxLab || !container) {
+            console.error('✗ SCHEMAX lab or container not available for integration');
+            return;
+        }
+        
+        console.log('Setting up SCHEMAX integration...');
+        console.log('Container innerHTML length:', container.innerHTML.length);
+        
+        try {
+            // Initialize the lab with the container
+            schemaxLab.init(container);
+            
+            // Setup command center navigation
+            this.setupCommandCenterNavigation(container, 'schemax');
+            
+            console.log('✓ SCHEMAX integration completed successfully');
+            
+            // Ensure the difficulty screen is visible after initialization
+            setTimeout(() => {
+                const difficultyScreen = container.querySelector('#difficulty-screen');
+                if (difficultyScreen) {
+                    console.log('🔧 Ensuring SCHEMAX difficulty screen visibility...');
+                    difficultyScreen.style.display = 'flex';
+                    difficultyScreen.classList.remove('hidden');
+                    console.log('Difficulty screen display:', difficultyScreen.style.display);
+                    console.log('Difficulty screen classes:', difficultyScreen.className);
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('✗ Error setting up SCHEMAX integration:', error);
+            this.createSchemaxFallback(container);
+        }
+    }
 
     createFlowchartFallback(container) {
         console.log('Creating FlowByte fallback interface');
@@ -1035,34 +1265,71 @@ class CommandCenter {
         this.roomInstances['networking'] = { type: 'fallback' };
     }
 
-    // =============================================
-    // PLACEHOLDER ROOM METHODS
-    // =============================================
-
-    createPlaceholderRoom(roomType) {
-        const container = this.roomContainers[roomType];
-        const room = this.roomConfig.info[roomType];
-        
+    createAitrixFallback(container) {
+        console.log('Creating AITRIX fallback interface');
         container.innerHTML = `
             <div class="room-placeholder">
                 <button class="back-to-command" onclick="window.commandCenter.showCommandDashboard()">
                     ← Back to Command Center
                 </button>
-                <div class="room-header" style="border-color: ${room.color};">
-                    <i class="bi ${room.icon}" style="color: ${room.color};"></i>
-                    <h2>${room.name}</h2>
+                <div class="room-header" style="border-color: #E08300;">
+                    <i class="bi bi-robot" style="color: #E08300;"></i>
+                    <h2>AITRIX</h2>
                 </div>
                 <div class="room-description">
-                    <p>${room.description}</p>
+                    <p>AI & Machine Learning Training Room</p>
                 </div>
                 <div class="coming-soon">
-                    <i class="bi bi-tools"></i>
-                    <h3>Under Development</h3>
-                    <p>This room is currently being built. Check back soon for exciting challenges!</p>
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h3>Loading Error</h3>
+                    <p>Unable to load the AITRIX room content. Please refresh the page and try again.</p>
+                    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Refresh Page
+                    </button>
                 </div>
             </div>
         `;
-        this.roomInstances[roomType] = { type: 'placeholder', room: room };
+        this.roomInstances['ai-training'] = { type: 'fallback' };
+    }
+
+    // =============================================
+    // FALLBACK METHODS
+    // =============================================
+
+    createSchemaxFallback(container) {
+        console.log('Creating SCHEMAX fallback interface');
+        container.innerHTML = `
+            <div class="room-placeholder">
+                <button class="back-to-command" onclick="window.commandCenter.showCommandDashboard()">
+                    ← Back to Command Center
+                </button>
+                <div class="room-header" style="border-color: #FF3600;">
+                    <i class="bi bi-database" style="color: #FF3600;"></i>
+                    <h2>SCHEMAX</h2>
+                </div>
+                <div class="room-description">
+                    <p>Database Schema Design Training Room</p>
+                </div>
+                <div class="coming-soon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h3>Script Loading Error</h3>
+                    <p>Unable to load the SCHEMAX game script. This might be due to:</p>
+                    <ul style="text-align: left; margin: 15px 0;">
+                        <li>Missing schemax-game.js file</li>
+                        <li>Incorrect file path configuration</li>
+                        <li>Network connectivity issues</li>
+                    </ul>
+                    <p><strong>Expected file location:</strong> /static/js/schemax-game.js</p>
+                    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #FF3600; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Refresh Page
+                    </button>
+                    <button onclick="window.commandCenter.loadSchemaxRoom()" style="margin-top: 5px; margin-left: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Retry Load
+                    </button>
+                </div>
+            </div>
+        `;
+        this.roomInstances['database'] = { type: 'fallback' };
     }
 
     // =============================================
@@ -1530,6 +1797,9 @@ class CommandCenter {
                 } else if (src.includes('aitrix-game')) {
                     classAvailable = !!window.AitrixLab;
                     className = 'AitrixLab';
+                } else if (src.includes('schemax-game')) {
+                    classAvailable = !!window.SchemaxLab;
+                    className = 'SchemaxLab';
                 } else if (src.includes('netxus')) {
                     classAvailable = !!window.NetxusLab;
                     className = 'NetxusLab';
