@@ -229,12 +229,27 @@ class CommandCenter {
     // =============================================
 
     async loadRoomInstance(roomType) {
-        if (roomType === 'flowchart') {
-            await this.loadFlowchartRoom();
-        } else if (roomType === 'networking') {
-            await this.loadNetxusRoom();
-        } else {
-            this.createPlaceholderRoom(roomType);
+        console.log(`Loading room instance: ${roomType}`);
+        
+        switch(roomType) {
+            case 'flowchart':
+                await this.loadFlowchartRoom();
+                break;
+            case 'networking':
+                await this.loadNetxusRoom();
+                break;
+            case 'ai-training':
+                await this.loadAitrixRoom();
+                break;
+            case 'database':
+                await this.loadPlaceholderRoom('database');
+                break;
+            case 'programming':
+                await this.loadPlaceholderRoom('programming');
+                break;
+            default:
+                console.error(`Unknown room type: ${roomType}`);
+                await this.loadPlaceholderRoom(roomType);
         }
     }
 
@@ -706,29 +721,260 @@ class CommandCenter {
         }
     }
 
-    setupCommandCenterNavigation(container, roomType = 'flowchart') {
-        // Wait a bit for the game to fully initialize
-        setTimeout(() => {
-            const backToCommandBtn = container.querySelector('#back-to-command-btn') || 
-                                   container.querySelector('#abort-mission-btn');
-            if (backToCommandBtn) {
-                // Create a new button to ensure clean event handling
-                const newBackBtn = backToCommandBtn.cloneNode(true);
-                backToCommandBtn.parentNode.replaceChild(newBackBtn, backToCommandBtn);
+    // =============================================
+    // AITRIX ROOM METHODS
+    // =============================================
+
+    async loadAitrixRoom() {
+        const container = this.roomContainers['ai-training'];
+        
+        console.log('Loading AITRIX room...');
+        
+        // Load the game script first with correct path resolution
+        if (!window.AitrixLab) {
+            console.log('Loading AITRIX lab script...');
+            try {
+                // Determine the correct script path based on current location
+                const currentPath = window.location.pathname;
+                let scriptPath;
                 
-                // Add command center navigation
-                newBackBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Navigating back to command center dashboard');
-                    this.showCommandDashboard();
-                });
+                console.log('Current path for AITRIX script loading:', currentPath);
                 
-                console.log(`Command center navigation setup complete for ${roomType}`);
-            } else {
-                console.warn('Back to command button not found');
+                if (currentPath.includes('/src/pages/')) {
+                    // We're in a subfolder like /src/pages/command-center.html
+                    scriptPath = '../../static/js/aitrix-game.js';
+                } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                    // We're at the root
+                    scriptPath = './static/js/aitrix-game.js';
+                } else {
+                    // Default fallback
+                    scriptPath = '/static/js/aitrix-game.js';
+                }
+                
+                console.log('Attempting to load AITRIX script from:', scriptPath);
+                await this.loadScript(scriptPath);
+                console.log('AITRIX lab script loaded successfully');
+            } catch (error) {
+                console.error('Failed to load AITRIX lab script:', error);
+                // Try alternative paths if the first one fails
+                console.log('Trying alternative AITRIX script paths...');
+                const alternativePaths = [
+                    './static/js/aitrix-game.js',
+                    '../static/js/aitrix-game.js', 
+                    '../../static/js/aitrix-game.js',
+                    '/static/js/aitrix-game.js',
+                    'static/js/aitrix-game.js',
+                    './js/aitrix-game.js',
+                    '../js/aitrix-game.js'
+                ];
+                
+                let scriptLoaded = false;
+                for (const altPath of alternativePaths) {
+                    try {
+                        console.log(`Trying AITRIX script path: ${altPath}`);
+                        await this.loadScript(altPath);
+                        console.log(`✓ AITRIX script loaded successfully from: ${altPath}`);
+                        scriptLoaded = true;
+                        break;
+                    } catch (altError) {
+                        console.log(`✗ Failed to load AITRIX from: ${altPath}`, altError.message);
+                    }
+                }
+                
+                if (!scriptLoaded) {
+                    console.error('All AITRIX script loading attempts failed');
+                    
+                    // Try to check if the file exists at expected locations
+                    console.log('Checking file existence at common locations...');
+                    const testPaths = [
+                        './static/js/aitrix-game.js',
+                        '/static/js/aitrix-game.js',
+                        '../static/js/aitrix-game.js'
+                    ];
+                    
+                    for (const testPath of testPaths) {
+                        try {
+                            const response = await fetch(testPath, { method: 'HEAD' });
+                            console.log(`File check for ${testPath}: ${response.status}`);
+                            if (response.ok) {
+                                console.log(`✓ File exists at: ${testPath}, trying to load again...`);
+                                await this.loadScript(testPath);
+                                scriptLoaded = true;
+                                break;
+                            }
+                        } catch (e) {
+                            console.log(`File check failed for ${testPath}`);
+                        }
+                    }
+                    
+                    if (!scriptLoaded) {
+                        this.createAitrixFallback(container);
+                        return;
+                    }
+                }
             }
-        }, 300);
+        }
+
+        try {
+            // Get the current page's base path for HTML loading
+            const currentPath = window.location.pathname;
+            let basePath;
+            
+            if (currentPath.includes('/src/pages/')) {
+                basePath = '../../';
+            } else if (currentPath === '/' || currentPath.includes('index.html')) {
+                basePath = './';
+            } else {
+                basePath = '/';
+            }
+            
+            // Try multiple possible paths for the HTML file
+            const possiblePaths = [
+                `${basePath}src/rooms/aitrix-room.html`,
+                './src/rooms/aitrix-room.html',
+                '../src/rooms/aitrix-room.html',
+                '/src/rooms/aitrix-room.html',
+                '../../src/rooms/aitrix-room.html',
+                'src/rooms/aitrix-room.html'
+            ];
+            
+            console.log('Current path:', currentPath);
+            console.log('Base path:', basePath);
+            console.log('Trying AITRIX HTML paths:', possiblePaths);
+            
+            let htmlContent = null;
+            let loadedPath = null;
+            
+            for (const path of possiblePaths) {
+                try {
+                    console.log(`Attempting to fetch AITRIX HTML from: ${path}`);
+                    const response = await fetch(path);
+                    console.log(`Response status for ${path}:`, response.status);
+                    
+                    if (response.ok) {
+                        htmlContent = await response.text();
+                        loadedPath = path;
+                        console.log(`✓ Successfully loaded AITRIX HTML from: ${path}`);
+                        console.log('HTML content length:', htmlContent.length);
+                        break;
+                    } else {
+                        console.log(`✗ Failed to load from ${path}: HTTP ${response.status}`);
+                    }
+                } catch (e) {
+                    console.log(`✗ Network error loading from ${path}:`, e.message);
+                }
+            }
+            
+            if (!htmlContent) {
+                throw new Error('Could not load AITRIX room HTML from any path. All attempts failed.');
+            }
+            
+            // Parse the HTML and extract content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const gameContainer = doc.getElementById('game-container');
+            
+            if (!gameContainer) {
+                console.error('HTML content does not contain #game-container');
+                console.log('Available elements:', Array.from(doc.querySelectorAll('[id]')).map(el => el.id));
+                throw new Error('Game container not found in HTML');
+            }
+            
+            console.log('✓ Found game container with content length:', gameContainer.innerHTML.length);
+            
+            // Extract and add styles
+            const styles = doc.querySelectorAll('style');
+            console.log(`Found ${styles.length} style elements`);
+            
+            styles.forEach((style, index) => {
+                const styleId = `aitrix-styles-${index}`;
+                if (!document.getElementById(styleId)) {
+                    const newStyle = document.createElement('style');
+                    newStyle.id = styleId;
+                    newStyle.setAttribute('data-room', 'aitrix');
+                    newStyle.textContent = style.textContent;
+                    document.head.appendChild(newStyle);
+                    console.log(`✓ Added style block ${index + 1}`);
+                } else {
+                    console.log(`Style block ${index + 1} already exists`);
+                }
+            });
+            
+            // Set the container content
+            container.innerHTML = gameContainer.innerHTML;
+            console.log('✓ Container content set, length:', container.innerHTML.length);
+            
+            // Verify the required elements are present
+            const difficultyScreen = container.querySelector('#difficulty-screen');
+            const levelScreen = container.querySelector('#level-screen');
+            const gameScreen = container.querySelector('#game-screen');
+            
+            console.log('Element verification:', {
+                difficultyScreen: !!difficultyScreen,
+                levelScreen: !!levelScreen,
+                gameScreen: !!gameScreen
+            });
+            
+            if (!difficultyScreen || !levelScreen || !gameScreen) {
+                throw new Error('Required game screens not found in loaded HTML');
+            }
+            
+            // Initialize the lab
+            if (window.AitrixLab) {
+                console.log('✓ AitrixLab class available, initializing...');
+                this.roomInstances['ai-training'] = new AitrixLab();
+                
+                // Setup integration after a short delay
+                setTimeout(() => {
+                    this.setupAitrixLabIntegration();
+                }, 300);
+            } else {
+                throw new Error('AitrixLab class not available after script load');
+            }
+            
+        } catch (error) {
+            console.error('✗ Error loading AITRIX room:', error);
+            this.createAitrixFallback(container);
+        }
+    }
+
+    setupAitrixLabIntegration() {
+        const aitrixLab = this.roomInstances['ai-training'];
+        const container = this.roomContainers['ai-training'];
+        
+        if (!aitrixLab || !container) {
+            console.error('✗ AITRIX lab or container not available for integration');
+            return;
+        }
+        
+        console.log('Setting up AITRIX integration...');
+        console.log('Container innerHTML length:', container.innerHTML.length);
+        
+        try {
+            // Initialize the lab with the container
+            aitrixLab.init(container);
+            
+            // Setup command center navigation
+            this.setupCommandCenterNavigation(container, 'aitrix');
+            
+            console.log('✓ AITRIX integration completed successfully');
+            
+            // Ensure the difficulty screen is visible after initialization
+            setTimeout(() => {
+                const difficultyScreen = container.querySelector('#difficulty-screen');
+                if (difficultyScreen) {
+                    console.log('🔧 Ensuring AITRIX difficulty screen visibility...');
+                    difficultyScreen.style.display = 'flex';
+                    difficultyScreen.classList.remove('hidden');
+                    console.log('Difficulty screen display:', difficultyScreen.style.display);
+                    console.log('Difficulty screen classes:', difficultyScreen.className);
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('✗ Error setting up AITRIX integration:', error);
+            this.createAitrixFallback(container);
+        }
     }
 
     // =============================================
@@ -1259,57 +1505,53 @@ class CommandCenter {
 
     loadScript(src) {
         return new Promise((resolve, reject) => {
-            // Check if script is already loaded by checking for the specific class
-            const className = src.includes('netxus') ? 'NetxusLab' : 'FlowByteGame';
-            
-            if (window[className]) {
-                console.log(`${className} class already available`);
+            // Check if script is already loaded
+            const existingScript = document.querySelector(`script[src="${src}"]`);
+            if (existingScript) {
+                console.log(`Script ${src} already loaded`);
                 resolve();
                 return;
             }
-            
-            // Check if script element already exists
-            const existingScript = document.querySelector(`script[src*="${src.split('/').pop()}"]`);
-            if (existingScript) {
-                console.log(`${className} script element already exists, waiting for class...`);
-                // Wait a bit for the class to be available
-                let attempts = 0;
-                const checkClass = () => {
-                    if (window[className]) {
-                        resolve();
-                    } else if (attempts < 10) {
-                        attempts++;
-                        setTimeout(checkClass, 100);
-                    } else {
-                        reject(new Error(`Script loaded but ${className} class not available`));
-                    }
-                };
-                checkClass();
-                return;
-            }
-            
-            console.log('Creating new script element for:', src);
+
             const script = document.createElement('script');
             script.src = src;
             script.type = 'text/javascript';
             
             script.onload = () => {
-                console.log('✓ Script element loaded successfully:', src);
-                // Wait a moment for the class to be available
-                setTimeout(() => {
-                    if (window[className]) {
-                        console.log(`✓ ${className} class is now available`);
-                        resolve();
-                    } else {
-                        console.error(`✗ ${className} class not available after script load`);
-                        reject(new Error(`${className} class not found after script load`));
-                    }
-                }, 50);
+                console.log(`✓ Script loaded: ${src}`);
+                
+                // Verify the correct class is available based on the script
+                let classAvailable = false;
+                let className = '';
+                
+                if (src.includes('flowchart-game')) {
+                    classAvailable = !!window.FlowByteGame;
+                    className = 'FlowByteGame';
+                } else if (src.includes('aitrix-game')) {
+                    classAvailable = !!window.AitrixLab;
+                    className = 'AitrixLab';
+                } else if (src.includes('netxus')) {
+                    classAvailable = !!window.NetxusLab;
+                    className = 'NetxusLab';
+                } else {
+                    // Generic check - assume success if no specific class needed
+                    classAvailable = true;
+                }
+                
+                if (classAvailable) {
+                    console.log(`✓ ${className || 'Script'} class available after load`);
+                    resolve();
+                } else {
+                    const error = new Error(`${className} class not found after script load`);
+                    console.error(`✗ ${className} class not available after script load`);
+                    reject(error);
+                }
             };
             
-            script.onerror = (error) => {
-                console.error('✗ Script failed to load:', src, error);
-                reject(new Error(`Failed to load script: ${src}`));
+            script.onerror = () => {
+                const error = new Error(`Failed to load script: ${src}`);
+                console.error(`✗ Failed to load script: ${src}`);
+                reject(error);
             };
             
             document.head.appendChild(script);

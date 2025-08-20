@@ -13,7 +13,7 @@ AscendEd is an interactive educational game that teaches technical concepts thro
 - **Multiple Learning Modules**:
   - 🔄 **FLOWBYTE**: Master flowchart design and logical thinking
   - 🌐 **NETXUS**: Dive deep into network protocols and infrastructure
-  - 🤖 **AITRIX**: Train AI models and understand machine learning
+  - 🤖 **AITRIX**: AI-powered IT training with personalized mentoring
   - 🗄️ **SCHEMAX**: Design and optimize database systems
   - 💻 **CODEVANCE**: Master programming concepts and algorithms
 
@@ -91,6 +91,26 @@ ui-test-2/
 - Real-time validation and feedback
 - Character-driven learning with Sarah's Coffee Shop story
 
+### NETXUS - Network Engineering Lab
+- Hands-on Cisco networking simulations
+- Build and configure network topologies
+- Learn routing, switching, and network security
+- Command-line interface practice
+
+### AITRIX - AI-Powered IT Training
+- **Easy Challenges**: Fundamental IT concepts with AI guidance
+  - IP Address Detective: Network troubleshooting basics
+  - Password Security: Cybersecurity fundamentals
+  - OS Matchmaker: Operating system selection
+  - Network Builder: Basic connectivity setup
+  - Cyber Hygiene: Digital citizenship and security
+- **Advanced Challenges**: College-level IT scenarios
+  - Network Segmentation: Advanced security design
+  - Ethical Hacking: Controlled penetration testing
+  - Database Normalization: Schema design optimization
+  - Linux Command Line: System administration mastery
+  - Cloud Architecture: AWS infrastructure design
+
 *More modules coming soon!*
 
 ## 🤝 Contributing
@@ -109,11 +129,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 Roadmap
 
-- [ ] Complete all 5 learning modules
+- [x] FLOWBYTE - Flowchart construction training
+- [x] NETXUS - Network engineering simulation  
+- [x] AITRIX - AI-powered IT mentoring system
+- [ ] SCHEMAX - Database design and optimization
+- [ ] CODEVANCE - Advanced programming challenges
 - [ ] Add multiplayer functionality
 - [ ] Implement advanced progress tracking
 - [ ] Mobile responsive design improvements
-- [ ] Add more interactive scenarios
 - [ ] Integration with learning management systems
 
 ## 📞 Contact
