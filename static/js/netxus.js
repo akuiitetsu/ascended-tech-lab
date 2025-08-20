@@ -5,6 +5,20 @@ class NetxusLab {
         this.container = null;
         this.initialized = false;
         
+        // Simulation state
+        this.devices = [];
+        this.cables = [];
+        this.selectedDevice = null;
+        this.connectionMode = false;
+        this.connectionSource = null;
+        this.deviceCounter = 0;
+        this.canvas = null;
+        this.draggedDevice = null;
+        this.dragOffset = { x: 0, y: 0 };
+        
+        // Current tool/mode
+        this.currentTool = 'select';
+        
         this.labCategories = {
             easy: {
                 name: 'Easy Labs',
@@ -362,123 +376,1133 @@ class NetxusLab {
     startLab(labNumber) {
         console.log('Starting lab:', labNumber);
         this.currentLab = labNumber;
+        this.initializeSimulation();
         this.displayLabInstructions();
         this.updateLabInterface();
         this.showScreen('game-screen');
         console.log('Lab interface initialized successfully');
     }
 
-    updateLabInterface() {
-        const container = this.container;
-        const currentLabDisplay = container.querySelector('#current-lab-display');
-        const progressDisplay = container.querySelector('#lab-progress');
+    initializeSimulation() {
+        // Reset simulation state
+        this.devices = [];
+        this.cables = [];
+        this.selectedDevice = null;
+        this.connectionMode = false;
+        this.connectionSource = null;
+        this.deviceCounter = 0;
         
-        if (currentLabDisplay) {
-            currentLabDisplay.textContent = `${this.currentLab}/5`;
+        // Get canvas element
+        this.canvas = this.container.querySelector('#network-canvas');
+        if (this.canvas) {
+            this.setupSimulationEventListeners();
+            this.setupDeviceToolbar();
+            this.clearCanvas();
         }
         
-        if (progressDisplay) {
-            const progress = Math.round((this.currentLab / 5) * 100);
-            progressDisplay.textContent = `${progress}%`;
+        // Set global reference for device configuration callbacks
+        window.netxusLab = this;
+    }
+
+    setupSimulationEventListeners() {
+        // Canvas click events
+        this.canvas.addEventListener('click', (e) => {
+            this.handleCanvasClick(e);
+        });
+
+        // Device drag events
+        this.canvas.addEventListener('mousedown', (e) => {
+            this.handleMouseDown(e);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            this.handleMouseMove(e);
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            this.handleMouseUp(e);
+        });
+
+        // Simulation controls
+        const clearBtn = this.container.querySelector('#clear-workspace-btn');
+        const testBtn = this.container.querySelector('#test-configuration-btn');
+        const connectionBtn = this.container.querySelector('#connection-mode-btn');
+
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clearCanvas());
+        if (testBtn) testBtn.addEventListener('click', () => this.testConfiguration());
+        if (connectionBtn) connectionBtn.addEventListener('click', () => this.toggleConnectionMode());
+    }
+
+    setupDeviceToolbar() {
+        const toolbar = this.container.querySelector('.device-toolbar');
+        if (!toolbar) return;
+
+        // Add click handlers to existing device buttons
+        toolbar.querySelectorAll('.device-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const deviceType = btn.dataset.device;
+                this.selectDeviceTool(deviceType);
+            });
+        });
+    }
+
+    selectDeviceTool(deviceType) {
+        this.currentTool = deviceType;
+        this.connectionMode = false;
+        
+        // Update toolbar visual state
+        this.container.querySelectorAll('.device-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const activeBtn = this.container.querySelector(`[data-device="${deviceType}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
         }
+        
+        this.canvas.style.cursor = 'crosshair';
+        this.showFeedback(`Click on the workspace to place a ${deviceType}`, 'info');
     }
 
-    displayLabInstructions() {
-        const instructionsContainer = this.container.querySelector('#lab-instructions');
-        if (!instructionsContainer) return;
+    toggleConnectionMode() {
+        this.connectionMode = !this.connectionMode;
+        this.currentTool = this.connectionMode ? 'connect' : 'select';
         
-        const instructions = this.labInstructions[this.currentDifficulty][this.currentLab];
-        instructionsContainer.innerHTML = instructions;
-    }
-
-    completeLab() {
-        this.showFeedback('Lab completed successfully! 🎉', 'success');
+        const btn = this.container.querySelector('#connection-mode-btn');
+        if (btn) {
+            btn.classList.toggle('active', this.connectionMode);
+            btn.textContent = this.connectionMode ? 'Exit Connect' : 'Connect Devices';
+        }
         
-        if (this.currentLab < 5) {
-            setTimeout(() => {
-                this.startLab(this.currentLab + 1);
-            }, 2000);
+        this.canvas.classList.toggle('connection-mode', this.connectionMode);
+        
+        if (this.connectionMode) {
+            this.showFeedback('Click on two devices to connect them', 'info');
         } else {
-            setTimeout(() => {
-                if (window.commandCenter) {
-                    window.commandCenter.showCommandDashboard();
-                }
-            }, 2000);
+            this.connectionSource = null;
+            this.showFeedback('Connection mode disabled', 'info');
         }
     }
 
-    showHint() {
-        const hints = {
-            1: "💡 Remember to use straight-through cables between PC and switch. Check your IP configurations!",
-            2: "💡 Router interfaces are shut down by default. Don't forget to use 'no shutdown' command!",
-            3: "💡 Make sure all devices are on the same subnet for communication within the LAN.",
-            4: "💡 Each network needs its own subnet. Set the router as the default gateway for both networks.",
-            5: "💡 Configure the DHCP pool with network address, default gateway, and DNS server settings."
+    handleCanvasClick(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Check if clicking on a device
+        const clickedDevice = this.getDeviceAtPosition(x, y);
+
+        if (clickedDevice) {
+            if (this.connectionMode) {
+                this.handleDeviceConnection(clickedDevice);
+            } else {
+                this.selectDevice(clickedDevice);
+            }
+            return;
+        }
+
+        // Place device if tool selected
+        if (this.currentTool && this.currentTool !== 'select' && this.currentTool !== 'connect') {
+            this.placeDevice(this.currentTool, x, y);
+        } else {
+            // Deselect current selection
+            this.selectedDevice = null;
+            this.updateDeviceSelection();
+        }
+    }
+
+    getDeviceAtPosition(x, y) {
+        return this.devices.find(device => {
+            return x >= device.x && x <= device.x + device.width &&
+                   y >= device.y && y <= device.y + device.height;
+        });
+    }
+
+    placeDevice(deviceType, x, y) {
+        const device = {
+            id: `${deviceType}-${++this.deviceCounter}`,
+            type: deviceType,
+            name: `${deviceType.toUpperCase()}${this.deviceCounter}`,
+            x: x - 30, // Center the device
+            y: y - 30,
+            width: 60,
+            height: 60,
+            interfaces: this.getDefaultInterfaces(deviceType),
+            configuration: this.getDefaultConfiguration(deviceType)
+        };
+
+        this.devices.push(device);
+        this.renderDevice(device);
+        this.showFeedback(`${device.name} placed successfully`, 'success');
+        
+        // Reset tool selection
+        this.currentTool = 'select';
+        this.canvas.style.cursor = 'default';
+        this.container.querySelectorAll('.device-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+    }
+
+    getDefaultInterfaces(deviceType) {
+        const interfaces = {
+            pc: [{ name: 'FastEthernet0', type: 'ethernet', connected: false }],
+            laptop: [{ name: 'Wireless0', type: 'wireless', connected: false }],
+            router: [
+                { name: 'GigabitEthernet0/0', type: 'ethernet', connected: false },
+                { name: 'GigabitEthernet0/1', type: 'ethernet', connected: false },
+                { name: 'Serial0/0/0', type: 'serial', connected: false }
+            ],
+            switch: Array.from({ length: 24 }, (_, i) => ({
+                name: `FastEthernet0/${i + 1}`,
+                type: 'ethernet',
+                connected: false
+            })),
+            server: [{ name: 'FastEthernet0', type: 'ethernet', connected: false }],
+            wireless: [
+                { name: 'FastEthernet0', type: 'ethernet', connected: false },
+                { name: 'Wireless0', type: 'wireless', connected: false }
+            ]
         };
         
-        const hint = hints[this.currentLab] || "💡 Follow the step-by-step instructions carefully and verify each configuration.";
-        this.showFeedback(hint, 'info');
+        return interfaces[deviceType] || [];
     }
 
-    resetLab() {
-        if (confirm('Are you sure you want to reset this lab? All progress will be lost.')) {
-            this.showFeedback('Lab reset! Start from the beginning.', 'warning');
-            this.displayLabInstructions();
-        }
-    }
-
-    abortMission() {
-        if (confirm('Are you sure you want to abort this lab? Your progress will be lost.')) {
-            // Check if we're in command center mode
-            if (window.commandCenter) {
-                window.commandCenter.showCommandDashboard();
-            } else {
-                // Fallback navigation
-                this.showDifficultySelection();
+    getDefaultConfiguration(deviceType) {
+        const configs = {
+            pc: {
+                ipAddress: '',
+                subnetMask: '255.255.255.0',
+                defaultGateway: '',
+                dnsServer: '8.8.8.8',
+                dhcp: false
+            },
+            laptop: {
+                ipAddress: '',
+                subnetMask: '255.255.255.0',
+                defaultGateway: '',
+                dnsServer: '8.8.8.8',
+                dhcp: false,
+                ssid: '',
+                wifiPassword: ''
+            },
+            router: {
+                hostname: `Router${this.deviceCounter}`,
+                interfaces: {},
+                dhcpPools: [],
+                routes: [],
+                accessLists: [],
+                enablePassword: 'cisco',
+                running: true
+            },
+            switch: {
+                hostname: `Switch${this.deviceCounter}`,
+                vlans: [{ id: 1, name: 'default' }],
+                interfaces: {}
+            },
+            server: {
+                ipAddress: '',
+                subnetMask: '255.255.255.0',
+                defaultGateway: '',
+                services: ['HTTP', 'FTP', 'DNS']
+            },
+            wireless: {
+                ssid: 'TechLab',
+                security: 'WPA2',
+                password: '12345',
+                ipAddress: '192.168.1.1',
+                subnetMask: '255.255.255.0',
+                dhcpEnabled: true
             }
-        }
+        };
+        
+        return configs[deviceType] || {};
     }
 
-    showFeedback(message, type = 'info') {
-        const feedback = document.createElement('div');
-        feedback.className = `feedback-message ${type}`;
-        feedback.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
+    renderDevice(device) {
+        const deviceElement = document.createElement('div');
+        deviceElement.className = `network-device device-${device.type}`;
+        deviceElement.id = device.id;
+        deviceElement.style.cssText = `
+            position: absolute;
+            left: ${device.x}px;
+            top: ${device.y}px;
+            width: ${device.width}px;
+            height: ${device.height}px;
+            background: var(--bg-panel, #2d3748);
+            border: 2px solid var(--color-cyan, #00b8d8);
             border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            z-index: 2000;
-            max-width: 350px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            font-family: 'Segoe UI', sans-serif;
-            font-size: 14px;
+            padding: 8px;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-sizing: border-box;
         `;
         
-        switch(type) {
-            case 'success':
-                feedback.style.backgroundColor = '#38a169';
-                break;
-            case 'warning':
-                feedback.style.backgroundColor = '#dd6b20';
-                break;
-            case 'error':
-                feedback.style.backgroundColor = '#e53e3e';
-                break;
-            default:
-                feedback.style.backgroundColor = '#3182ce';
+        deviceElement.innerHTML = `
+            <div class="device-icon" style="font-size: 1.5rem; color: var(--color-cyan, #00b8d8); margin-bottom: 4px;">
+                <i class="bi ${this.getDeviceIcon(device.type)}"></i>
+            </div>
+            <div class="device-name" style="font-size: 0.7rem; color: white; text-align: center; line-height: 1.1;">
+                ${device.name}
+            </div>
+        `;
+
+        // Add double-click for configuration
+        deviceElement.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            this.openDeviceConfiguration(device);
+        });
+
+        // Add hover effects
+        deviceElement.addEventListener('mouseenter', () => {
+            deviceElement.style.borderColor = 'var(--color-green, #38a169)';
+            deviceElement.style.boxShadow = '0 4px 12px rgba(0, 184, 216, 0.3)';
+        });
+
+        deviceElement.addEventListener('mouseleave', () => {
+            if (!deviceElement.classList.contains('selected')) {
+                deviceElement.style.borderColor = 'var(--color-cyan, #00b8d8)';
+                deviceElement.style.boxShadow = 'none';
+            }
+        });
+
+        this.canvas.appendChild(deviceElement);
+    }
+
+    getDeviceIcon(deviceType) {
+        const icons = {
+            pc: 'bi-pc-display',
+            laptop: 'bi-laptop',
+            router: 'bi-router',
+            switch: 'bi-hdd-network',
+            server: 'bi-server',
+            wireless: 'bi-wifi'
+        };
+        
+        return icons[deviceType] || 'bi-question-circle';
+    }
+
+    handleMouseDown(e) {
+        const target = e.target.closest('.network-device');
+        if (!target) return;
+        
+        const deviceId = target.id;
+        const device = this.devices.find(d => d.id === deviceId);
+        
+        if (device) {
+            this.startDrag(device, e);
+        }
+    }
+
+    startDrag(device, e) {
+        this.draggedDevice = device;
+        const deviceElement = document.getElementById(device.id);
+        const rect = deviceElement.getBoundingClientRect();
+        const canvasRect = this.canvas.getBoundingClientRect();
+        
+        this.dragOffset = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+        
+        deviceElement.style.zIndex = '1000';
+        deviceElement.classList.add('dragging');
+        this.canvas.style.cursor = 'grabbing';
+    }
+
+    handleMouseMove(e) {
+        if (!this.draggedDevice) return;
+        
+        e.preventDefault();
+        const canvasRect = this.canvas.getBoundingClientRect();
+        
+        let x = e.clientX - canvasRect.left - this.dragOffset.x;
+        let y = e.clientY - canvasRect.top - this.dragOffset.y;
+        
+        // Constrain to canvas bounds
+        x = Math.max(0, Math.min(x, canvasRect.width - this.draggedDevice.width));
+        y = Math.max(0, Math.min(y, canvasRect.height - this.draggedDevice.height));
+        
+        // Update device position
+        this.draggedDevice.x = x;
+        this.draggedDevice.y = y;
+        
+        const deviceElement = document.getElementById(this.draggedDevice.id);
+        deviceElement.style.left = `${x}px`;
+        deviceElement.style.top = `${y}px`;
+        
+        // Update any connections to this device
+        this.updateDeviceConnections(this.draggedDevice.id);
+    }
+
+    handleMouseUp(e) {
+        if (!this.draggedDevice) return;
+        
+        const deviceElement = document.getElementById(this.draggedDevice.id);
+        deviceElement.style.zIndex = '';
+        deviceElement.classList.remove('dragging');
+        this.canvas.style.cursor = 'default';
+        
+        this.draggedDevice = null;
+        this.dragOffset = { x: 0, y: 0 };
+    }
+
+    handleDeviceConnection(device) {
+        if (!this.connectionSource) {
+            this.connectionSource = device;
+            this.selectDevice(device);
+            this.showFeedback(`Selected ${device.name} as source. Click another device to connect.`, 'info');
+        } else if (this.connectionSource.id !== device.id) {
+            this.createConnection(this.connectionSource, device);
+            this.connectionSource = null;
+            this.selectedDevice = null;
+            this.updateDeviceSelection();
+        }
+    }
+
+    createConnection(sourceDevice, targetDevice) {
+        // Check if connection already exists
+        const existingConnection = this.cables.find(cable => 
+            (cable.source === sourceDevice.id && cable.target === targetDevice.id) ||
+            (cable.source === targetDevice.id && cable.target === sourceDevice.id)
+        );
+
+        if (existingConnection) {
+            this.showFeedback('Devices are already connected!', 'warning');
+            return;
+        }
+
+        // Determine cable type
+        const cableType = this.determineCableType(sourceDevice, targetDevice);
+        
+        const cable = {
+            id: `cable-${sourceDevice.id}-${targetDevice.id}`,
+            source: sourceDevice.id,
+            target: targetDevice.id,
+            type: cableType,
+            connected: true
+        };
+
+        this.cables.push(cable);
+        this.renderCable(cable);
+        
+        // Update device interfaces
+        this.updateDeviceInterfaces(sourceDevice, targetDevice, cable);
+        
+        this.showFeedback(`Connected ${sourceDevice.name} to ${targetDevice.name} with ${cableType} cable`, 'success');
+    }
+
+    determineCableType(device1, device2) {
+        // Simplified cable type determination
+        const sameType = device1.type === device2.type;
+        
+        if (sameType && (device1.type === 'pc' || device1.type === 'router')) {
+            return 'crossover';
+        } else if (device1.type === 'router' && device2.type === 'router') {
+            return 'serial';
+        } else {
+            return 'straight';
+        }
+    }
+
+    updateDeviceInterfaces(sourceDevice, targetDevice, cable) {
+        // Find available interfaces and mark as connected
+        const sourceInterface = sourceDevice.interfaces.find(iface => !iface.connected);
+        const targetInterface = targetDevice.interfaces.find(iface => !iface.connected);
+        
+        if (sourceInterface) sourceInterface.connected = true;
+        if (targetInterface) targetInterface.connected = true;
+    }
+
+    renderCable(cable) {
+        const sourceDevice = this.devices.find(d => d.id === cable.source);
+        const targetDevice = this.devices.find(d => d.id === cable.target);
+        
+        if (!sourceDevice || !targetDevice) return;
+
+        const svg = this.canvas.querySelector('#network-cables');
+        if (!svg) return;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('id', cable.id);
+        line.setAttribute('class', `network-cable cable-${cable.type}`);
+        line.setAttribute('x1', sourceDevice.x + 30);
+        line.setAttribute('y1', sourceDevice.y + 30);
+        line.setAttribute('x2', targetDevice.x + 30);
+        line.setAttribute('y2', targetDevice.y + 30);
+        line.setAttribute('stroke', this.getCableColor(cable.type));
+        line.setAttribute('stroke-width', '3');
+
+        svg.appendChild(line);
+    }
+
+    getCableColor(cableType) {
+        const colors = {
+            straight: 'var(--color-green, #38a169)',
+            crossover: 'var(--color-orange, #dd6b20)',
+            serial: 'var(--color-red, #e53e3e)'
+        };
+        return colors[cableType] || 'var(--color-green, #38a169)';
+    }
+
+    updateDeviceConnections(deviceId) {
+        // Find all connections involving this device and redraw them
+        const connectionsToUpdate = this.cables.filter(conn => 
+            conn.source === deviceId || conn.target === deviceId
+        );
+        
+        connectionsToUpdate.forEach(connection => {
+            const sourceDevice = this.devices.find(n => n.id === connection.source);
+            const targetDevice = this.devices.find(n => n.id === connection.target);
+            
+            if (sourceDevice && targetDevice) {
+                // Update connection visual
+                const line = document.getElementById(connection.id);
+                if (line) {
+                    line.setAttribute('x1', sourceDevice.x + 30);
+                    line.setAttribute('y1', sourceDevice.y + 30);
+                    line.setAttribute('x2', targetDevice.x + 30);
+                    line.setAttribute('y2', targetDevice.y + 30);
+                }
+            }
+        });
+    }
+
+    selectDevice(device) {
+        // Clear previous selection
+        if (this.selectedDevice) {
+            const prevElement = document.getElementById(this.selectedDevice.id);
+            if (prevElement) {
+                prevElement.classList.remove('selected');
+                prevElement.style.borderColor = 'var(--color-cyan, #00b8d8)';
+                prevElement.style.boxShadow = 'none';
+            }
         }
         
-        feedback.textContent = message;
-        document.body.appendChild(feedback);
+        this.selectedDevice = device;
+        const deviceElement = document.getElementById(device.id);
+        if (deviceElement) {
+            deviceElement.classList.add('selected');
+            deviceElement.style.borderColor = 'var(--color-orange, #dd6b20)';
+            deviceElement.style.boxShadow = '0 4px 12px rgba(221, 107, 32, 0.5)';
+        }
+    }
+
+    updateDeviceSelection() {
+        this.container.querySelectorAll('.network-device').forEach(element => {
+            element.classList.remove('selected');
+            element.style.borderColor = 'var(--color-cyan, #00b8d8)';
+            element.style.boxShadow = 'none';
+        });
+    }
+
+    openDeviceConfiguration(device) {
+        const modal = document.createElement('div');
+        modal.className = 'device-config-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        `;
+        modal.innerHTML = this.generateConfigurationUI(device);
+
+        document.body.appendChild(modal);
+
+        // Setup modal event listeners
+        this.setupConfigurationModal(modal, device);
+    }
+
+    generateConfigurationUI(device) {
+        const deviceName = device.name;
+        const deviceType = device.type;
+
+        let configContent = '';
+
+        switch (deviceType) {
+            case 'pc':
+            case 'laptop':
+                configContent = this.generatePCConfiguration(device);
+                break;
+            case 'router':
+                configContent = this.generateRouterConfiguration(device);
+                break;
+            case 'switch':
+                configContent = this.generateSwitchConfiguration(device);
+                break;
+            default:
+                configContent = '<div class="config-section">Configuration panel for this device coming soon...</div>';
+        }
+
+        return `
+            <div class="config-panel" style="
+                background: var(--bg-panel, #2d3748);
+                border: 2px solid var(--color-cyan, #00b8d8);
+                border-radius: 12px;
+                padding: 20px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+            ">
+                <div class="config-header" style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 10px;
+                    border-bottom: 1px solid var(--color-cyan, #00b8d8);
+                ">
+                    <h3 style="margin: 0; color: var(--color-cyan, #00b8d8);">Configure ${deviceName}</h3>
+                    <button class="config-close" style="
+                        background: var(--color-red, #e53e3e);
+                        border: none;
+                        border-radius: 4px;
+                        color: white;
+                        padding: 4px 8px;
+                        cursor: pointer;
+                    ">&times;</button>
+                </div>
+                
+                <div class="config-content" style="color: white;">
+                    ${configContent}
+                </div>
+            </div>
+        `;
+    }
+
+    generatePCConfiguration(device) {
+        const config = device.configuration;
         
-        setTimeout(() => {
-            if (feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
+        return `
+            <div class="config-section" style="margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: var(--color-green, #38a169); font-size: 1rem;">IP Configuration</h4>
+                <div class="config-form" style="display: grid; gap: 10px;">
+                    <div class="form-group" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;">
+                        <label style="font-size: 0.9rem; color: #ccc;">Configuration:</label>
+                        <select id="ip-mode" style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;">
+                            <option value="static" ${!config.dhcp ? 'selected' : ''}>Static</option>
+                            <option value="dhcp" ${config.dhcp ? 'selected' : ''}>DHCP</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="static-config" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; ${config.dhcp ? 'opacity: 0.5;' : ''}">
+                        <label style="font-size: 0.9rem; color: #ccc;">IP Address:</label>
+                        <input type="text" id="ip-address" value="${config.ipAddress || ''}" placeholder="192.168.1.10" style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;" ${config.dhcp ? 'disabled' : ''}>
+                    </div>
+                    
+                    <div class="form-group" id="subnet-config" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; ${config.dhcp ? 'opacity: 0.5;' : ''}">
+                        <label style="font-size: 0.9rem; color: #ccc;">Subnet Mask:</label>
+                        <input type="text" id="subnet-mask" value="${config.subnetMask || '255.255.255.0'}" placeholder="255.255.255.0" style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;" ${config.dhcp ? 'disabled' : ''}>
+                    </div>
+                    
+                    <div class="form-group" id="gateway-config" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; ${config.dhcp ? 'opacity: 0.5;' : ''}">
+                        <label style="font-size: 0.9rem; color: #ccc;">Default Gateway:</label>
+                        <input type="text" id="default-gateway" value="${config.defaultGateway || ''}" placeholder="192.168.1.1" style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;" ${config.dhcp ? 'disabled' : ''}>
+                    </div>
+                    
+                    <div class="form-group" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;">
+                        <label style="font-size: 0.9rem; color: #ccc;">DNS Server:</label>
+                        <input type="text" id="dns-server" value="${config.dnsServer || '8.8.8.8'}" placeholder="8.8.8.8" style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;">
+                    </div>
+                </div>
+                
+                <button class="sim-btn" onclick="window.netxusLab.applyPCConfiguration('${device.id}')" style="
+                    margin-top: 15px;
+                    padding: 10px 20px;
+                    background: var(--color-green, #38a169);
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                ">
+                    Apply Configuration
+                </button>
+            </div>
+
+            <div class="config-section" style="
+                background: rgba(0, 184, 216, 0.1);
+                border: 1px solid var(--color-cyan, #00b8d8);
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 15px;
+            ">
+                <h4 style="margin: 0 0 10px 0; color: var(--color-cyan, #00b8d8);">Connectivity Test</h4>
+                <input type="text" id="ping-target" placeholder="IP Address to ping" style="
+                    width: 100%;
+                    margin-bottom: 10px;
+                    padding: 6px 10px;
+                    background: var(--bg-main, #1a202c);
+                    border: 1px solid #3d3d3d;
+                    border-radius: 4px;
+                    color: white;
+                ">
+                <button class="sim-btn" onclick="window.netxusLab.performPingTest('${device.id}')" style="
+                    padding: 8px 16px;
+                    background: var(--color-blue, #3182ce);
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    margin-right: 10px;
+                ">
+                    Ping Test
+                </button>
+                <div id="ping-results" style="margin-top: 10px; font-family: monospace; font-size: 0.8rem;"></div>
+            </div>
+        `;
+    }
+
+    generateRouterConfiguration(device) {
+        return `
+            <div class="config-section" style="margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: var(--color-green, #38a169);">Interface Configuration</h4>
+                <div id="router-interfaces">
+                    ${device.interfaces.map(iface => `
+                        <div class="interface-config" style="margin-bottom: 15px; padding: 10px; border: 1px solid #3d3d3d; border-radius: 4px;">
+                            <h5 style="margin: 0 0 10px 0; color: var(--color-orange, #dd6b20);">${iface.name}</h5>
+                            <div style="display: grid; gap: 8px;">
+                                <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px; align-items: center;">
+                                    <label style="font-size: 0.8rem;">IP Address:</label>
+                                    <input type="text" id="${iface.name}-ip" placeholder="192.168.1.1" style="padding: 4px 8px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.8rem;">
+                                </div>
+                                <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px; align-items: center;">
+                                    <label style="font-size: 0.8rem;">Subnet Mask:</label>
+                                    <input type="text" id="${iface.name}-mask" placeholder="255.255.255.0" style="padding: 4px 8px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.8rem;">
+                                </div>
+                                <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px; align-items: center;">
+                                    <label style="font-size: 0.8rem;">Status:</label>
+                                    <select id="${iface.name}-status" style="padding: 4px 8px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.8rem;">
+                                        <option value="up">No Shutdown (Up)</option>
+                                        <option value="down" selected>Shutdown (Down)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <button class="sim-btn" onclick="window.netxusLab.applyRouterConfiguration('${device.id}')" style="
+                    padding: 10px 20px;
+                    background: var(--color-green, #38a169);
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                ">
+                    Apply Interface Configuration
+                </button>
+            </div>
+
+            <div class="config-section" style="margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: var(--color-green, #38a169);">CLI Terminal</h4>
+                <div class="cli-terminal" id="router-cli" style="
+                    background: #000;
+                    border: 1px solid var(--color-cyan, #00b8d8);
+                    border-radius: 4px;
+                    padding: 10px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 0.8rem;
+                    color: #00ff00;
+                    height: 150px;
+                    overflow-y: auto;
+                    margin: 10px 0;
+                ">
+                    <div>Router&gt; </div>
+                </div>
+                
+                <div style="display: flex; margin-top: 5px;">
+                    <span style="color: #00ff00; margin-right: 5px; font-family: 'Courier New', monospace;">Router&gt;</span>
+                    <input type="text" id="cli-input-${device.id}" placeholder="Enter command..." 
+                           onkeypress="if(event.key==='Enter') window.netxusLab.executeCommand('${device.id}', this.value)"
+                           style="flex: 1; background: #000; border: none; color: #00ff00; font-family: 'Courier New', monospace; font-size: 0.8rem; outline: none;">
+                </div>
+            </div>
+        `;
+    }
+
+    generateSwitchConfiguration(device) {
+        return `
+            <div class="config-section">
+                <h4 style="color: var(--color-green, #38a169);">Switch Configuration</h4>
+                <p>Switch configuration interface coming soon...</p>
+                <p>Available features:</p>
+                <ul>
+                    <li>VLAN Configuration</li>
+                    <li>Port Management</li>
+                    <li>Trunk Configuration</li>
+                </ul>
+            </div>
+        `;
+    }
+
+    setupConfigurationModal(modal, device) {
+        const closeBtn = modal.querySelector('.config-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+        }
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
             }
-        }, 4000);
+        });
+
+        // Setup DHCP toggle for PC/Laptop
+        if (device.type === 'pc' || device.type === 'laptop') {
+            const ipModeSelect = modal.querySelector('#ip-mode');
+            if (ipModeSelect) {
+                ipModeSelect.addEventListener('change', (e) => {
+                    const isDHCP = e.target.value === 'dhcp';
+                    const staticFields = modal.querySelectorAll('#static-config, #subnet-config, #gateway-config');
+                    
+                    staticFields.forEach(field => {
+                        field.style.opacity = isDHCP ? '0.5' : '1';
+                        const inputs = field.querySelectorAll('input');
+                        inputs.forEach(input => {
+                            input.disabled = isDHCP;
+                        });
+                    });
+                });
+            }
+        }
+    }
+
+    // Device configuration methods
+    applyPCConfiguration(deviceId) {
+        const device = this.devices.find(d => d.id === deviceId);
+        if (!device) return;
+
+        const dhcpMode = document.getElementById('ip-mode').value === 'dhcp';
+        
+        device.configuration.dhcp = dhcpMode;
+        
+        if (!dhcpMode) {
+            device.configuration.ipAddress = document.getElementById('ip-address').value;
+            device.configuration.subnetMask = document.getElementById('subnet-mask').value;
+            device.configuration.defaultGateway = document.getElementById('default-gateway').value;
+        } else {
+            // Simulate DHCP assignment
+            device.configuration.ipAddress = this.assignDHCPAddress(device);
+            device.configuration.subnetMask = '255.255.255.0';
+            device.configuration.defaultGateway = this.findDHCPGateway();
+        }
+        
+        device.configuration.dnsServer = document.getElementById('dns-server').value;
+
+        this.showFeedback(`${device.name} configuration applied successfully`, 'success');
+        
+        // Close modal
+        const modal = document.querySelector('.device-config-modal');
+        if (modal) modal.remove();
+    }
+
+    applyRouterConfiguration(deviceId) {
+        const device = this.devices.find(d => d.id === deviceId);
+        if (!device) return;
+
+        device.interfaces.forEach(iface => {
+            const ipInput = document.getElementById(`${iface.name}-ip`);
+            const maskInput = document.getElementById(`${iface.name}-mask`);
+            const statusSelect = document.getElementById(`${iface.name}-status`);
+
+            if (ipInput && maskInput && statusSelect) {
+                device.configuration.interfaces[iface.name] = {
+                    ipAddress: ipInput.value,
+                    subnetMask: maskInput.value,
+                    status: statusSelect.value
+                };
+            }
+        });
+
+        this.showFeedback(`${device.name} interfaces configured successfully`, 'success');
+        
+        // Close modal
+        const modal = document.querySelector('.device-config-modal');
+        if (modal) modal.remove();
+    }
+
+    executeCommand(deviceId, command) {
+        const device = this.devices.find(d => d.id === deviceId);
+        if (!device) return;
+
+        const cli = document.getElementById('router-cli');
+        const input = document.getElementById(`cli-input-${deviceId}`);
+        
+        if (!cli || !input) return;
+
+        // Add command to CLI history
+        const commandDiv = document.createElement('div');
+        commandDiv.textContent = `Router> ${command}`;
+        cli.appendChild(commandDiv);
+
+        // Process command
+        const response = this.processRouterCommand(device, command);
+        
+        if (response) {
+            const responseDiv = document.createElement('div');
+            responseDiv.innerHTML = response.replace(/\n/g, '<br>');
+            cli.appendChild(responseDiv);
+        }
+
+        // Clear input
+        input.value = '';
+        
+        // Scroll to bottom
+        cli.scrollTop = cli.scrollHeight;
+    }
+
+    processRouterCommand(device, command) {
+        const cmd = command.trim().toLowerCase();
+        
+        if (cmd === 'enable') {
+            return '';
+        } else if (cmd === 'configure terminal' || cmd === 'conf t') {
+            return '';
+        } else if (cmd.startsWith('interface') || cmd.startsWith('int')) {
+            return '';
+        } else if (cmd.startsWith('ip address')) {
+            return '';
+        } else if (cmd === 'no shutdown') {
+            return '%LINK-5-CHANGED: Interface up, line protocol is up';
+        } else if (cmd === 'shutdown') {
+            return '%LINK-5-CHANGED: Interface down, line protocol is down';
+        } else if (cmd === 'show ip interface brief' || cmd === 'sh ip int br') {
+            return this.generateInterfaceStatus(device);
+        } else if (cmd === 'show running-config' || cmd === 'sh run') {
+            return this.generateRunningConfig(device);
+        } else if (cmd.startsWith('ping')) {
+            const target = cmd.split(' ')[1];
+            return this.simulateRouterPing(device, target);
+        } else if (cmd === 'exit') {
+            return '';
+        } else {
+            return `% Invalid input detected at '^' marker.`;
+        }
+    }
+
+    generateInterfaceStatus(device) {
+        let status = 'Interface                  IP-Address      OK? Method Status                Protocol\n';
+        
+        Object.entries(device.configuration.interfaces).forEach(([ifaceName, config]) => {
+            const ip = config.ipAddress || 'unassigned';
+            const statusText = config.status === 'up' ? 'up' : 'administratively down';
+            const protocol = config.status === 'up' ? 'up' : 'down';
+            
+            status += `${ifaceName.padEnd(25)} ${ip.padEnd(15)} YES manual ${statusText.padEnd(20)} ${protocol}\n`;
+        });
+        
+        return status;
+    }
+
+    generateRunningConfig(device) {
+        let config = 'Building configuration...\n\nCurrent configuration:\n!\nversion 15.1\n!\nhostname ' + device.configuration.hostname + '\n!\n';
+        
+        Object.entries(device.configuration.interfaces).forEach(([ifaceName, ifaceConfig]) => {
+            if (ifaceConfig.ipAddress) {
+                config += `interface ${ifaceName}\n`;
+                config += ` ip address ${ifaceConfig.ipAddress} ${ifaceConfig.subnetMask}\n`;
+                config += ifaceConfig.status === 'up' ? ' no shutdown\n' : ' shutdown\n';
+                config += '!\n';
+            }
+        });
+        
+        return config;
+    }
+
+    simulateRouterPing(device, target) {
+        if (!target) {
+            return '% Bad IP address or hostname';
+        }
+
+        // Simulate ping response
+        if (this.isReachableFromRouter(device, target)) {
+            return `Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to ${target}, timeout is 2 seconds:
+!!!!!
+Success rate is 100 percent (5/5), round-trip min/avg/max = 1/1/4 ms`;
+        } else {
+            return `Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to ${target}, timeout is 2 seconds:
+.....
+Success rate is 0 percent (0/5)`;
+        }
+    }
+
+    assignDHCPAddress(device) {
+        // Find DHCP servers (routers with DHCP enabled)
+        const dhcpServers = this.devices.filter(d => 
+            d.type === 'router' && d.configuration.dhcpPools && d.configuration.dhcpPools.length > 0
+        );
+
+        if (dhcpServers.length > 0) {
+            // Return an IP from the first available DHCP pool
+            return '192.168.1.100'; // Simplified
+        }
+
+        return '169.254.1.1'; // APIPA address
+    }
+
+    findDHCPGateway() {
+        // Find the default gateway from DHCP configuration
+        return '192.168.1.1'; // Simplified
+    }
+
+    performPingTest(deviceId) {
+        const device = this.devices.find(d => d.id === deviceId);
+        const target = document.getElementById('ping-target').value;
+        const resultsDiv = document.getElementById('ping-results');
+
+        if (!target) {
+            resultsDiv.innerHTML = '<div style="color: red;">Please enter a target IP address</div>';
+            return;
+        }
+
+        // Simulate ping test
+        const success = this.simulatePing(device, target);
+        
+        if (success) {
+            resultsDiv.innerHTML = `
+                <div style="color: #52b788; margin-top: 10px;">
+                    <div>Pinging ${target}:</div>
+                    <div>Reply from ${target}: bytes=32 time<1ms TTL=128</div>
+                    <div>Reply from ${target}: bytes=32 time<1ms TTL=128</div>
+                    <div>Reply from ${target}: bytes=32 time<1ms TTL=128</div>
+                    <div>Reply from ${target}: bytes=32 time<1ms TTL=128</div>
+                    <div style="margin-top: 5px;">Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</div>
+                </div>
+            `;
+        } else {
+            resultsDiv.innerHTML = `
+                <div style="color: #e63946; margin-top: 10px;">
+                    <div>Pinging ${target}:</div>
+                    <div>Request timed out.</div>
+                    <div>Request timed out.</div>
+                    <div>Request timed out.</div>
+                    <div>Request timed out.</div>
+                    <div style="margin-top: 5px;">Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)</div>
+                </div>
+            `;
+        }
+    }
+
+    simulatePing(sourceDevice, targetIp) {
+        // Find target device with matching IP
+        const targetDevice = this.devices.find(d => 
+            d.configuration.ipAddress === targetIp
+        );
+
+        if (!targetDevice) return false;
+
+        // Check if devices are on same network or have routing
+        return this.isReachable(sourceDevice, targetDevice);
+    }
+
+    isReachable(source, target) {
+        // Simplified reachability check
+        if (!source.configuration.ipAddress || !target.configuration.ipAddress) {
+            return false;
+        }
+
+        // Check if on same subnet
+        const sourceNetwork = this.getNetworkAddress(source.configuration.ipAddress, source.configuration.subnetMask);
+        const targetNetwork = this.getNetworkAddress(target.configuration.ipAddress, target.configuration.subnetMask);
+
+        if (sourceNetwork === targetNetwork) {
+            // Check if connected through switch or directly
+            return this.areConnectedThroughSwitch(source, target) || this.areDirectlyConnected(source, target);
+        }
+
+        // Check if routing exists (simplified)
+        return this.hasRoutingPath(source, target);
+    }
+
+    isReachableFromRouter(device, targetIp) {
+        // Check if router can reach target IP
+        const targetDevice = this.devices.find(d => d.configuration.ipAddress === targetIp);
+        
+        if (!targetDevice) return false;
+        
+        // Check if target is on any of the router's directly connected networks
+        return Object.values(device.configuration.interfaces).some(iface => {
+            if (!iface.ipAddress) return false;
+            
+            const routerNetwork = this.getNetworkAddress(iface.ipAddress, iface.subnetMask);
+            const targetNetwork = this.getNetworkAddress(targetIp, targetDevice.configuration.subnetMask);
+            
+            return routerNetwork === targetNetwork;
+        });
+    }
+
+    getNetworkAddress(ip, mask) {
+        // Simplified network address calculation
+        const ipParts = ip.split('.').map(Number);
+        const maskParts = mask.split('.').map(Number);
+        
+        return ipParts.map((part, i) => part & maskParts[i]).join('.');
+    }
+
+    areConnectedThroughSwitch(device1, device2) {
+        // Check if both devices are connected to the same switch
+        const switches = this.devices.filter(d => d.type === 'switch');
+        
+        return switches.some(switchDevice => {
+            const device1Connected = this.cables.some(cable => 
+                (cable.source === device1.id && cable.target === switchDevice.id) ||
+                (cable.target === device1.id && cable.source === switchDevice.id)
+            );
+            
+            const device2Connected = this.cables.some(cable => 
+                (cable.source === device2.id && cable.target === switchDevice.id) ||
+                (cable.target === device2.id && cable.source === switchDevice.id)
+            );
+            
+            return device1Connected && device2Connected;
+        });
+    }
+
+    areDirectlyConnected(device1, device2) {
+        return this.cables.some(cable => 
+            (cable.source === device1.id && cable.target === device2.id) ||
+            (cable.target === device1.id && cable.source === device2.id)
+        );
+    }
+
+    hasRoutingPath(source, target) {
+        // Simplified routing path check
+        // In a real implementation, this would check routing tables
+        return false;
+    }
+
+    testConfiguration() {
+        const tests = this.currentDifficulty === 'hard' ? 
+            this.getAdvancedLabTests(this.currentLab) : 
+            this.getLabTests(this.currentLab);
+        const results = [];
+
+        tests.forEach(test => {
+            const result = this.runTest(test);
+            results.push({
+                name: test.name,
+                status: result.passed ? 'pass' : 'fail',
+                message: result.message
+            });
+        });
+
+        this.displayTestResults(results);
     }
 
     // Lab instruction generators
@@ -1484,159 +2508,6 @@ Router# show access-lists 100
         }
     }
 
-    // Additional hard challenge test implementations
-    getAdvancedLabTests(labNumber) {
-        const advancedTests = {
-            1: [ // Inter-VLAN Routing
-                {
-                    name: 'Switch with VLANs configured',
-                    check: () => {
-                        const switches = this.devices.filter(d => d.type === 'switch');
-                        return switches.some(sw => 
-                            sw.configuration.vlans && sw.configuration.vlans.length > 1
-                        );
-                    }
-                },
-                {
-                    name: 'Router with subinterfaces',
-                    check: () => {
-                        const routers = this.devices.filter(d => d.type === 'router');
-                        return routers.some(router => 
-                            Object.keys(router.configuration.interfaces).some(ifaceName => 
-                                ifaceName.includes('.')
-                            )
-                        );
-                    }
-                },
-                {
-                    name: 'Trunk connection between switch and router',
-                    check: () => {
-                        const routers = this.devices.filter(d => d.type === 'router');
-                        const switches = this.devices.filter(d => d.type === 'switch');
-                        
-                        return this.cables.some(cable => {
-                            const device1 = this.devices.find(d => d.id === cable.source);
-                            const device2 = this.devices.find(d => d.id === cable.target);
-                            
-                            return (device1?.type === 'router' && device2?.type === 'switch') ||
-                                   (device1?.type === 'switch' && device2?.type === 'router');
-                        });
-                    }
-                }
-            ],
-            2: [ // Static Routing
-                {
-                    name: 'Two routers placed',
-                    check: () => this.devices.filter(d => d.type === 'router').length >= 2
-                },
-                {
-                    name: 'WAN connection between routers',
-                    check: () => {
-                        const routers = this.devices.filter(d => d.type === 'router');
-                        if (routers.length < 2) return false;
-                        
-                        return this.cables.some(cable => {
-                            const device1 = this.devices.find(d => d.id === cable.source);
-                            const device2 = this.devices.find(d => d.id === cable.target);
-                            
-                            return device1?.type === 'router' && device2?.type === 'router';
-                        });
-                    }
-                },
-                {
-                    name: 'Static routes configured',
-                    check: () => {
-                        const routers = this.devices.filter(d => d.type === 'router');
-                        return routers.some(router => 
-                            router.configuration.routes && router.configuration.routes.length > 0
-                        );
-                    }
-                }
-            ],
-            3: [ // Small Office LAN
-                {
-                    name: '1 Router, 2 Switches, 4 PCs placed',
-                    check: () => this.devices.filter(d => d.type === 'router').length >= 1 &&
-                                 this.devices.filter(d => d.type === 'switch').length >= 2 &&
-                                 this.devices.filter(d => d.type === 'pc').length >= 4
-                },
-                {
-                    name: 'All devices properly connected',
-                    check: () => {
-                        // Simplified check - all devices should have at least one connection
-                        return this.devices.every(device => 
-                            this.cables.some(cable => 
-                                cable.source === device.id || cable.target === device.id
-                            )
-                        );
-                    }
-                },
-                {
-                    name: 'DHCP enabled on router',
-                    check: () => {
-                        const routers = this.devices.filter(d => d.type === 'router');
-                        return routers.some(router => 
-                            router.configuration.dhcpPools && router.configuration.dhcpPools.length > 0
-                        );
-                    }
-                }
-            ],
-            4: [ // Wireless LAN
-                {
-                    name: 'Wireless access point configured',
-                    check: () => this.devices.filter(d => d.type === 'wireless').length >= 1
-                },
-                {
-                    name: 'Laptops with wireless connection',
-                    check: () => this.devices.filter(d => d.type === 'laptop').length >= 2
-                },
-                {
-                    name: 'WPA2 security configured',
-                    check: () => {
-                        const wireless = this.devices.filter(d => d.type === 'wireless');
-                        return wireless.some(ap => 
-                            ap.configuration.security === 'WPA2' && ap.configuration.password
-                        );
-                    }
-                }
-            ],
-            5: [ // ACL Configuration
-                {
-                    name: 'Multiple network segments',
-                    check: () => {
-                        // Check for different IP networks
-                        const networks = new Set();
-                        this.devices.forEach(device => {
-                            if (device.configuration.ipAddress) {
-                                const network = this.getNetworkAddress(
-                                    device.configuration.ipAddress, 
-                                    device.configuration.subnetMask || '255.255.255.0'
-                                );
-                                networks.add(network);
-                            }
-                        });
-                        return networks.size >= 2;
-                    }
-                },
-                {
-                    name: 'ACL configured on router',
-                    check: () => {
-                        const routers = this.devices.filter(d => d.type === 'router');
-                        return routers.some(router => 
-                            router.configuration.accessLists && router.configuration.accessLists.length > 0
-                        );
-                    }
-                },
-                {
-                    name: 'Server device present',
-                    check: () => this.devices.filter(d => d.type === 'server').length >= 1
-                }
-            ]
-        };
-
-        return advancedTests[labNumber] || [];
-    }
-
     clearCanvas() {
         if (confirm('Clear all devices and connections? This cannot be undone.')) {
             this.devices = [];
@@ -2028,6 +2899,216 @@ Router# show access-lists 100
                 <p>HR devices blocked from server access while maintaining other connectivity.</p>
             </div>
         `;
+    }
+
+    showScreen(screenId) {
+        console.log('📺 NETXUS showScreen:', screenId);
+        const container = this.container;
+        
+        if (!container) {
+            console.error('❌ No container available for showScreen');
+            return;
+        }
+        
+        // Hide all screens
+        const screens = ['difficulty-screen', 'level-screen', 'game-screen'];
+        screens.forEach(id => {
+            const screen = container.querySelector(`#${id}`);
+            if (screen) {
+                screen.classList.add('hidden');
+                screen.style.display = 'none';
+                console.log(`🙈 Hidden screen: ${id}`);
+            }
+        });
+        
+        // Show target screen
+        const targetScreen = container.querySelector(`#${screenId}`);
+        if (targetScreen) {
+            targetScreen.classList.remove('hidden');
+            const displayType = screenId === 'difficulty-screen' ? 'flex' : 'block';
+            targetScreen.style.display = displayType;
+            
+            // Force visibility for difficulty screen
+            if (screenId === 'difficulty-screen') {
+                targetScreen.style.position = 'relative';
+                targetScreen.style.width = '100%';
+                targetScreen.style.height = '100vh';
+                targetScreen.style.zIndex = '100';
+            }
+            
+            console.log(`👁️ Showing screen: ${screenId} (display: ${displayType})`);
+        } else {
+            console.error(`❌ Screen ${screenId} not found in container`);
+        }
+    }
+
+    showDifficultySelection() {
+        console.log('🌐 Showing difficulty selection...');
+        this.showScreen('difficulty-screen');
+    }
+
+    selectDifficulty(difficulty) {
+        console.log('Difficulty selected:', difficulty);
+        this.currentDifficulty = difficulty;
+        this.showLabSelection();
+    }
+
+    showLabSelection() {
+        console.log('Showing lab selection for difficulty:', this.currentDifficulty);
+        
+        if (!this.currentDifficulty) {
+            console.error('No difficulty selected');
+            return;
+        }
+        
+        const categoryData = this.labCategories[this.currentDifficulty];
+        const container = this.container;
+        
+        // Update header
+        const titleElement = container.querySelector('#difficulty-title');
+        const descElement = container.querySelector('#difficulty-description');
+        
+        if (titleElement) titleElement.textContent = `NETXUS - ${categoryData.name}`;
+        if (descElement) descElement.textContent = categoryData.description;
+        
+        // Populate level grid
+        const labGrid = container.querySelector('#level-grid');
+        if (labGrid) {
+            labGrid.innerHTML = categoryData.labs.map((lab, index) => `
+                <div class="level-card" data-lab="${index + 1}">
+                    <div class="level-number">${index + 1}</div>
+                    <h3>${lab.name}</h3>
+                    <p><strong>Objective:</strong> ${lab.objective}</p>
+                    <p><strong>Time:</strong> ${lab.estimatedTime}</p>
+                    <p><strong>Difficulty:</strong> ${lab.difficulty}</p>
+                </div>
+            `).join('');
+            
+            // Add click handlers to level cards
+            labGrid.querySelectorAll('.level-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const lab = parseInt(card.dataset.lab);
+                    console.log('Lab selected:', lab);
+                    this.startLab(lab);
+                });
+            });
+        }
+        
+        this.showScreen('level-screen');
+    }
+
+    updateLabInterface() {
+        const container = this.container;
+        const currentLabDisplay = container.querySelector('#current-lab-display');
+        const progressDisplay = container.querySelector('#lab-progress');
+        
+        if (currentLabDisplay) {
+            currentLabDisplay.textContent = `${this.currentLab}/5`;
+        }
+        
+        if (progressDisplay) {
+            const progress = Math.round((this.currentLab / 5) * 100);
+            progressDisplay.textContent = `${progress}%`;
+        }
+    }
+
+    displayLabInstructions() {
+        const instructionsContainer = this.container.querySelector('#lab-instructions');
+        if (!instructionsContainer) return;
+        
+        const instructions = this.labInstructions[this.currentDifficulty][this.currentLab];
+        instructionsContainer.innerHTML = instructions;
+    }
+
+    completeLab() {
+        this.showFeedback('Lab completed successfully! 🎉', 'success');
+        
+        if (this.currentLab < 5) {
+            setTimeout(() => {
+                this.startLab(this.currentLab + 1);
+            }, 2000);
+        } else {
+            setTimeout(() => {
+                if (window.commandCenter) {
+                    window.commandCenter.showCommandDashboard();
+                }
+            }, 2000);
+        }
+    }
+
+    showHint() {
+        const hints = {
+            1: "💡 Remember to use straight-through cables between PC and switch. Check your IP configurations!",
+            2: "💡 Router interfaces are shut down by default. Don't forget to use 'no shutdown' command!",
+            3: "💡 Make sure all devices are on the same subnet for communication within the LAN.",
+            4: "💡 Each network needs its own subnet. Set the router as the default gateway for both networks.",
+            5: "💡 Configure the DHCP pool with network address, default gateway, and DNS server settings."
+        };
+        
+        const hint = hints[this.currentLab] || "💡 Follow the step-by-step instructions carefully and verify each configuration.";
+        this.showFeedback(hint, 'info');
+    }
+
+    resetLab() {
+        if (confirm('Are you sure you want to reset this lab? All progress will be lost.')) {
+            this.showFeedback('Lab reset! Start from the beginning.', 'warning');
+            this.displayLabInstructions();
+        }
+    }
+
+    abortMission() {
+        if (confirm('Are you sure you want to abort this lab? Your progress will be lost.')) {
+            // Check if we're in command center mode
+            if (window.commandCenter) {
+                window.commandCenter.showCommandDashboard();
+            } else {
+                // Fallback navigation
+                this.showDifficultySelection();
+            }
+        }
+    }
+
+    showFeedback(message, type = 'info') {
+        const feedback = document.createElement('div');
+        feedback.className = `feedback-message ${type}`;
+        feedback.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 2000;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+        `;
+        
+        switch(type) {
+            case 'success':
+                feedback.style.backgroundColor = '#38a169';
+                break;
+            case 'warning':
+                feedback.style.backgroundColor = '#dd6b20';
+                break;
+            case 'error':
+                feedback.style.backgroundColor = '#e53e3e';
+                break;
+            default:
+                feedback.style.backgroundColor = '#3182ce';
+        }
+        
+        feedback.textContent = message;
+        document.body.appendChild(feedback);
+        
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.parentNode.removeChild(feedback);
+            }
+        }, 4000);
     }
 }
 
