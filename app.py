@@ -104,6 +104,46 @@ def init_db():
             earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
         );
+        
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            session_token TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP NOT NULL,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS admin_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_user_id INTEGER NOT NULL,
+            action_type TEXT NOT NULL,
+            target_user_id INTEGER,
+            description TEXT,
+            ip_address TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (admin_user_id) REFERENCES users (id),
+            FOREIGN KEY (target_user_id) REFERENCES users (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS system_health (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            metric_name TEXT NOT NULL,
+            metric_value TEXT NOT NULL,
+            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            session_end TIMESTAMP,
+            duration_minutes INTEGER,
+            rooms_visited TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        );
     ''')
     
     # Add columns if they don't exist (schema migration)
@@ -145,6 +185,23 @@ def init_db():
         print("Added current_streak column")
     except sqlite3.OperationalError:
         pass
+    
+    # Create default admin user if none exists
+    admin_count = cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'").fetchone()[0]
+    
+    if admin_count == 0:
+        print("Creating default admin user...")
+        admin_password = hash_password("admin123")
+        cursor.execute('''
+            INSERT INTO users (name, email, password_hash, role, is_active, total_score, current_streak)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', ("admin", "admin@ascended.tech", admin_password, "admin", 1, 0, 0))
+        print("✅ Default admin user created:")
+        print("   Username: admin")
+        print("   Email: admin@ascended.tech") 
+        print("   Password: admin123")
+        print("   Role: admin")
+        print("\n🚨 IMPORTANT: Change the default admin password immediately!")
     
     db.commit()
     db.close()
@@ -268,24 +325,40 @@ def login_user():
         ''', (username, username)).fetchone()
         
         if not user_row:
-            print(f"User not found: {username}")
+            print(f"❌ User not found: {username}")
             return jsonify({'error': 'User not found'}), 404
         
         # Convert to dict for easier access
         user_dict = dict(user_row)
+        user_role = user_dict.get('role', 'user')
+        
+        print(f"✅ Found user: {user_dict['name']}")
+        print(f"📋 Current role in DB: '{user_role}'")
+        
+        # CRITICAL: Force admin role for admin user
+        if user_dict['name'].lower() == 'admin':
+            print(f"🔧 ADMIN USER DETECTED - Ensuring admin role...")
+            if user_role != 'admin':
+                print(f"🔧 Updating role from '{user_role}' to 'admin'")
+                db.execute('UPDATE users SET role = ? WHERE id = ?', ('admin', user_dict['id']))
+                db.commit()
+                user_role = 'admin'
+                user_dict['role'] = 'admin'
+            print(f"✅ Admin role confirmed: {user_role}")
         
         # Check if user is active (if column exists)
         if 'is_active' in columns and user_dict.get('is_active') == 0:
+            print(f"❌ Account disabled for user: {username}")
             return jsonify({'error': 'Account is disabled'}), 401
         
-        # Verify password - this is now required
+        # Verify password
         if 'password_hash' in columns and user_dict.get('password_hash'):
             if not verify_password(password, user_dict['password_hash']):
-                print("Password verification failed")
+                print(f"❌ Password verification failed for user: {username}")
                 return jsonify({'error': 'Invalid credentials'}), 401
-            print("Password verification successful")
+            print(f"✅ Password verification successful for: {username}")
         else:
-            print("No password hash found for user - rejecting login")
+            print(f"❌ No password hash found for user: {username}")
             return jsonify({'error': 'Invalid credentials'}), 401
         
         # Update last login if column exists
@@ -297,16 +370,18 @@ def login_user():
             ''', (user_dict['id'],))
             db.commit()
         
-        print(f"Login successful for user: {user_dict['name']}")
+        print(f"🎉 Login successful for user: {user_dict['name']} with role: {user_role}")
         
         user_data = {
             'id': user_dict['id'],
-            'username': user_dict['name'],  # Map 'name' to 'username' for frontend
+            'username': user_dict['name'],
             'email': user_dict['email'],
-            'role': user_dict.get('role', 'user'),
+            'role': user_role,  # This should now be 'admin' for admin user
             'total_score': user_dict.get('total_score', 0),
             'current_streak': user_dict.get('current_streak', 0)
         }
+        
+        print(f"📤 Sending user data to frontend: {user_data}")
         
         return jsonify({
             'message': 'Login successful',
@@ -314,7 +389,7 @@ def login_user():
         }), 200
         
     except Exception as e:
-        print(f"Login error: {str(e)}")
+        print(f"💥 Login error: {str(e)}")
         return jsonify({'error': f'Login failed: {str(e)}'}), 500
 
 # API Routes
@@ -544,6 +619,363 @@ def serve_index():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'OK', 'message': 'API is running'})
+
+def init_db():
+    """Initialize database with tables - simplified schema that works with existing code"""
+    db = sqlite3.connect(DATABASE)
+    db.row_factory = sqlite3.Row
+    
+    # Create tables if they don't exist
+    db.executescript('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT,
+            user_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS user_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            room_name TEXT NOT NULL,
+            progress_percentage INTEGER DEFAULT 0,
+            completed BOOLEAN DEFAULT 0,
+            last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            UNIQUE(user_id, room_name)
+        );
+        
+        CREATE TABLE IF NOT EXISTS badges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            badge_name TEXT NOT NULL,
+            badge_type TEXT DEFAULT 'achievement',
+            earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            session_token TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP NOT NULL,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS admin_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_user_id INTEGER NOT NULL,
+            action_type TEXT NOT NULL,
+            target_user_id INTEGER,
+            description TEXT,
+            ip_address TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (admin_user_id) REFERENCES users (id),
+            FOREIGN KEY (target_user_id) REFERENCES users (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS system_health (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            metric_name TEXT NOT NULL,
+            metric_value TEXT NOT NULL,
+            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            session_end TIMESTAMP,
+            duration_minutes INTEGER,
+            rooms_visited TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        );
+    ''')
+    
+    # Add columns if they don't exist (schema migration)
+    cursor = db.cursor()
+    
+    # Check and add missing columns to users table
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+        print("Added password_hash column")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+        print("Added role column")
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1")
+        print("Added is_active column")
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+        print("Added last_login column")
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN total_score INTEGER DEFAULT 0")
+        print("Added total_score column")
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN current_streak INTEGER DEFAULT 0")
+        print("Added current_streak column")
+    except sqlite3.OperationalError:
+        pass
+    
+    # Create default admin user if none exists
+    admin_count = cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'").fetchone()[0]
+    
+    if admin_count == 0:
+        print("Creating default admin user...")
+        admin_password = hash_password("admin123")
+        cursor.execute('''
+            INSERT INTO users (name, email, password_hash, role, is_active, total_score, current_streak)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', ("admin", "admin@ascended.tech", admin_password, "admin", 1, 0, 0))
+        print("✅ Default admin user created:")
+        print("   Username: admin")
+        print("   Email: admin@ascended.tech") 
+        print("   Password: admin123")
+        print("   Role: admin")
+        print("\n🚨 IMPORTANT: Change the default admin password immediately!")
+    
+    db.commit()
+    db.close()
+
+# Admin Authentication Middleware
+def require_admin():
+    """Decorator to require admin privileges"""
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return jsonify({'error': 'Admin authentication required'}), 401
+            
+            token = auth_header.split(' ')[1]
+            db = get_db()
+            
+            # Verify admin session
+            session_data = db.execute('''
+                SELECT s.*, u.role FROM admin_sessions s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.session_token = ? AND s.is_active = 1 
+                AND s.expires_at > CURRENT_TIMESTAMP
+                AND u.role = 'admin'
+            ''', (token,)).fetchone()
+            
+            if not session_data:
+                return jsonify({'error': 'Invalid or expired admin session'}), 401
+            
+            g.admin_user_id = session_data['user_id']
+            return f(*args, **kwargs)
+        wrapper.__name__ = f.__name__
+        return wrapper
+    return decorator
+
+def log_admin_action(action_type, description, target_user_id=None):
+    """Log admin actions for audit trail"""
+    db = get_db()
+    ip_address = request.remote_addr
+    db.execute('''
+        INSERT INTO admin_actions (admin_user_id, action_type, target_user_id, description, ip_address)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (g.admin_user_id, action_type, target_user_id, description, ip_address))
+    db.commit()
+
+# Admin Authentication Endpoints
+@app.route('/api/admin/auth/login', methods=['POST'])
+def admin_login():
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+        
+        db = get_db()
+        
+        # Find admin user
+        user_row = db.execute('''
+            SELECT * FROM users 
+            WHERE (LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?))
+            AND role = 'admin' AND is_active = 1
+        ''', (username, username)).fetchone()
+        
+        if not user_row:
+            return jsonify({'error': 'Admin user not found or inactive'}), 404
+        
+        user_dict = dict(user_row)
+        
+        # Verify password
+        if not verify_password(password, user_dict['password_hash']):
+            return jsonify({'error': 'Invalid credentials'}), 401
+        
+        # Create admin session
+        session_token = generate_session_token()
+        expires_at = datetime.now() + timedelta(hours=8)  # 8 hour session
+        
+        db.execute('''
+            INSERT INTO admin_sessions (user_id, session_token, expires_at)
+            VALUES (?, ?, ?)
+        ''', (user_dict['id'], session_token, expires_at))
+        
+        # Update last login
+        db.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user_dict['id'],))
+        db.commit()
+        
+        # Log admin login
+        db.execute('''
+            INSERT INTO admin_actions (admin_user_id, action_type, description, ip_address)
+            VALUES (?, ?, ?, ?)
+        ''', (user_dict['id'], 'LOGIN', f"Admin login successful", request.remote_addr))
+        db.commit()
+        
+        return jsonify({
+            'message': 'Admin login successful',
+            'token': session_token,
+            'expires_at': expires_at.isoformat(),
+            'user': {
+                'id': user_dict['id'],
+                'username': user_dict['name'],
+                'email': user_dict['email'],
+                'role': user_dict['role']
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Admin login error: {str(e)}")
+        return jsonify({'error': f'Admin login failed: {str(e)}'}), 500
+
+# Add missing admin endpoints
+@app.route('/api/admin/system/backup', methods=['POST'])
+@require_admin()
+def create_backup():
+    try:
+        import tempfile
+        import shutil
+        
+        # Create backup
+        backup_data = f"-- Database backup created on {datetime.now().isoformat()}\n"
+        backup_data += "-- This is a simulated backup for demonstration\n"
+        
+        log_admin_action('CREATE_BACKUP', 'Database backup created')
+        
+        return jsonify({
+            'message': 'Backup created successfully',
+            'backup_data': backup_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Backup failed: {str(e)}'}), 500
+
+@app.route('/api/admin/system/clear-sessions', methods=['POST'])
+@require_admin()
+def clear_old_sessions():
+    try:
+        db = get_db()
+        
+        # Clear sessions older than 7 days
+        cutoff_date = datetime.now() - timedelta(days=7)
+        result = db.execute('''
+            DELETE FROM user_sessions 
+            WHERE session_start < ? AND is_active = 0
+        ''', (cutoff_date,))
+        
+        cleared_count = result.rowcount
+        db.commit()
+        
+        log_admin_action('CLEAR_SESSIONS', f'Cleared {cleared_count} old sessions')
+        
+        return jsonify({
+            'message': f'Cleared {cleared_count} old sessions',
+            'cleared_count': cleared_count
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to clear sessions: {str(e)}'}), 500
+
+@app.route('/api/admin/system/optimize', methods=['POST'])
+@require_admin()
+def optimize_database():
+    try:
+        db = get_db()
+        
+        # Run VACUUM to optimize database
+        db.execute('VACUUM')
+        db.execute('ANALYZE')
+        db.commit()
+        
+        log_admin_action('OPTIMIZE_DB', 'Database optimization completed')
+        
+        return jsonify({'message': 'Database optimized successfully'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Optimization failed: {str(e)}'}), 500
+
+@app.route('/api/admin/system/validate-data', methods=['POST'])
+@require_admin()
+def validate_data():
+    try:
+        db = get_db()
+        issues = []
+        
+        # Check for users without email
+        no_email = db.execute('SELECT COUNT(*) FROM users WHERE email IS NULL OR email = ""').fetchone()[0]
+        if no_email > 0:
+            issues.append(f'{no_email} users without email addresses')
+        
+        # Check for orphaned progress records
+        orphaned_progress = db.execute('''
+            SELECT COUNT(*) FROM user_progress up 
+            LEFT JOIN users u ON up.user_id = u.id 
+            WHERE u.id IS NULL
+        ''').fetchone()[0]
+        if orphaned_progress > 0:
+            issues.append(f'{orphaned_progress} orphaned progress records')
+        
+        log_admin_action('VALIDATE_DATA', f'Data validation completed - {len(issues)} issues found')
+        
+        return jsonify({
+            'message': 'Data validation completed',
+            'issues': issues
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Validation failed: {str(e)}'}), 500
+
+# Complete the admin system
+print("🔧 Admin system ready!")
+print("📋 Default admin credentials:")
+print("   • Access admin at: /src/pages/dashboard/admin-dashboard.html")
+print("   • Username: admin")  
+print("   • Password: admin123")
 
 if __name__ == '__main__':
     # Always run database initialization to handle schema migration

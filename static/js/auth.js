@@ -155,6 +155,97 @@ class AuthService {
     }
 }
 
+// Function to handle successful login
+function handleSuccessfulLogin(userData) {
+    console.log('🎯 handleSuccessfulLogin called with:', userData);
+    
+    // Clear any existing auth data first
+    localStorage.clear();
+    
+    // Store user data with explicit role handling
+    localStorage.setItem('currentUser', userData.username);
+    localStorage.setItem('currentEmail', userData.email);
+    localStorage.setItem('userRole', userData.role || 'user');
+    localStorage.setItem('userId', userData.id.toString());
+    localStorage.setItem('totalScore', (userData.total_score || 0).toString());
+    localStorage.setItem('currentStreak', (userData.current_streak || 0).toString());
+    
+    console.log('💾 Stored data:', {
+        currentUser: localStorage.getItem('currentUser'),
+        userRole: localStorage.getItem('userRole'),
+        userId: localStorage.getItem('userId')
+    });
+    
+    // CRITICAL: Handle admin users with multiple checks
+    const isAdminUser = userData.role === 'admin' || 
+                       userData.username === 'admin' || 
+                       userData.username.toLowerCase() === 'admin';
+    
+    if (isAdminUser) {
+        console.log('🔐 ADMIN USER LOGIN DETECTED!');
+        console.log('   • Setting admin flags...');
+        
+        localStorage.setItem('isAdmin', 'true');
+        localStorage.setItem('userRole', 'admin');
+        
+        console.log('   • Admin flags set:', {
+            isAdmin: localStorage.getItem('isAdmin'),
+            userRole: localStorage.getItem('userRole')
+        });
+        
+        console.log('🚀 Redirecting admin to admin dashboard...');
+        
+        // Use replace to prevent back button issues
+        window.location.replace('/src/pages/dashboard/admin-dashboard.html');
+    } else {
+        console.log('👤 Regular user, redirecting to user dashboard...');
+        window.location.replace('/src/pages/dashboard/user-dashboard.html');
+    }
+}
+
+// Update the login form handler to use the new function
+async function handleLogin(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!username || !password) {
+        showError('Please fill in all fields');
+        return;
+    }
+    
+    setLoading(true);
+    
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            console.log('Login successful:', data);
+            showSuccess('Login successful! Redirecting...');
+            
+            // Use the centralized login handler
+            setTimeout(() => {
+                handleSuccessfulLogin(data.user);
+            }, 500);
+        } else {
+            showError(data.error || 'Login failed');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        showError('Network error. Please try again.');
+    } finally {
+        setLoading(false);
+    }
+}
+
 const auth = new AuthService();
 export default auth;
-

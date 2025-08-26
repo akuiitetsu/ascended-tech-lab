@@ -37,7 +37,19 @@ function changePassword() {
 }
 
 function logout() {
-    auth.logout();
+    console.log('User logging out...');
+    
+    // Clear all user data from localStorage
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentEmail');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('totalScore');
+    localStorage.removeItem('currentStreak');
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('adminToken');
+    
+    // Redirect to main page
     window.location.href = '/index.html';
 }
 
@@ -203,26 +215,60 @@ function closeCutscene() {
 
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Check authentication on load
+    console.log('🔍 Dashboard.js loading - checking authentication...');
+    
+    // Get authentication data
     const username = localStorage.getItem('currentUser');
     const email = localStorage.getItem('currentEmail');
+    const userRole = localStorage.getItem('userRole');
+    
+    console.log('Authentication data:', { username, email, userRole });
     
     if (!username) {
+        console.log('❌ No authenticated user found, redirecting to login...');
         window.location.href = '/index.html';
         return;
     }
     
-    // Update profile info
-    document.getElementById('profileUsername').textContent = username;
-    document.getElementById('profileEmail').textContent = email || `${username}@ascended.lab`;
-    
-    // Update welcome username if element exists
-    const welcomeUsername = document.getElementById('welcomeUsername');
-    if (welcomeUsername) {
-        welcomeUsername.textContent = username;
+    // CRITICAL FIX: Check for admin role IMMEDIATELY and redirect
+    if (userRole === 'admin' || username === 'admin') {
+        console.log('🔐 ADMIN USER DETECTED!');
+        console.log('   • Username:', username);
+        console.log('   • Role:', userRole);
+        console.log('   • Forcing admin flag...');
+        
+        // Force set admin flag
+        localStorage.setItem('isAdmin', 'true');
+        localStorage.setItem('userRole', 'admin');
+        
+        console.log('🚀 Redirecting to admin dashboard...');
+        
+        // Immediate redirect with no delay
+        window.location.replace('/src/pages/dashboard/admin-dashboard.html');
+        return; // STOP ALL EXECUTION
     }
+    
+    console.log('👤 Regular user confirmed, proceeding with user dashboard...');
+    
+    // Update profile info for regular users
+    const profileUsernameElement = document.getElementById('profileUsername');
+    const profileEmailElement = document.getElementById('profileEmail');
+    const welcomeUsernameElement = document.getElementById('welcomeUsername');
+    
+    if (profileUsernameElement) {
+        profileUsernameElement.textContent = username;
+    }
+    
+    if (profileEmailElement) {
+        profileEmailElement.textContent = email || `${username}@ascended.lab`;
+    }
+    
+    if (welcomeUsernameElement) {
+        welcomeUsernameElement.textContent = username;
+    }
+    
+    console.log('User dashboard initialized successfully for:', username);
 });
-
 
 // Close panels when clicking outside
 document.addEventListener('click', function(event) {
