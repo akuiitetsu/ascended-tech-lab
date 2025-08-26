@@ -7,6 +7,19 @@
     --admin-success: #4CAF50;
     --admin-warning: #FFC107;
     --admin-danger: #FF5252;
+    --admin-info: #2196F3;
+    --admin-text: #ffffff;
+    --admin-text-muted: #9ca3af;
+    --admin-border: rgba(255, 255, 255, 0.1);
+    --admin-panel: rgba(255, 255, 255, 0.05);
+    --admin-bg: #0D1A2C;
+    --bg-main: #0a1525;
+    --bg-panel: rgba(255, 255, 255, 0.05);
+    --color-cyan: #00b8d8;
+    --color-green: #38a169;
+    --color-orange: #dd6b20;
+    --color-red: #e53e3e;
+    --color-blue: #3182ce;
 }
 
 body {
