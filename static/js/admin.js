@@ -719,6 +719,18 @@ const userManagement = {
         }
     },
 
+    filterUsers() {
+        return this.currentUsers.filter(user => {
+            const matchesSearch = !this.currentFilters.search || 
+                user.name.toLowerCase().includes(this.currentFilters.search.toLowerCase()) ||
+                user.email.toLowerCase().includes(this.currentFilters.search.toLowerCase());
+            
+            const matchesRole = this.currentFilters.role === 'all' || user.role === this.currentFilters.role;
+            
+            return matchesSearch && matchesRole;
+        });
+    },
+
     displayUsers() {
         const tbody = document.getElementById('usersTableBody');
         if (!tbody) return;

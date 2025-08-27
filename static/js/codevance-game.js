@@ -266,9 +266,69 @@ class CodevanceLab {
         this.showScreen('level-screen');
     }
 
+    showExecutionResult(message, type) {
+        // Display execution results in console and optionally in UI
+        console.log(`${type.toUpperCase()}: ${message}`);
+        
+        // Try to update validation panel if it exists
+        const validationPanel = this.container.querySelector('#validation-output');
+        if (validationPanel) {
+            const resultMessage = document.createElement('div');
+            resultMessage.style.cssText = `
+                margin: 10px 0;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 0.9rem;
+                background: ${type === 'success' ? 'rgba(76, 175, 80, 0.1)' : 
+                            type === 'error' ? 'rgba(244, 67, 54, 0.1)' : 
+                            'rgba(33, 150, 243, 0.1)'};
+                color: ${type === 'success' ? '#4CAF50' : 
+                        type === 'error' ? '#f44336' : 
+                        '#2196F3'};
+                border: 1px solid ${type === 'success' ? '#4CAF50' : 
+                                  type === 'error' ? '#f44336' : 
+                                  '#2196F3'};
+            `;
+            resultMessage.textContent = message;
+            
+            // Insert at the top of validation output
+            validationPanel.insertBefore(resultMessage, validationPanel.firstChild);
+            
+            // Remove old messages after 5 seconds
+            setTimeout(() => {
+                if (resultMessage.parentNode) {
+                    resultMessage.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    updateChallengeProgress() {
+        const progressElement = this.container.querySelector('#challenge-progress');
+        if (progressElement) {
+            const progress = Math.min((this.score / 100) * 100, 100);
+            progressElement.textContent = `${Math.round(progress)}%`;
+        }
+        
+        // Also update any progress bars
+        const progressBars = this.container.querySelectorAll('.progress-fill');
+        progressBars.forEach(bar => {
+            const progress = Math.min((this.score / 100) * 100, 100);
+            bar.style.width = `${progress}%`;
+        });
+        
+        // Update challenge display counter
+        const currentDisplay = this.container.querySelector('#current-challenge-display');
+        if (currentDisplay) {
+            currentDisplay.textContent = `${this.currentChallenge}/5`;
+        }
+        
+        console.log(`📊 Progress updated: ${this.score}% for challenge ${this.currentChallenge}`);
+    }
+
     startChallenge(challengeNumber) {
         this.currentChallenge = challengeNumber;
-        this.score = 0;
+        this.score = 0; // Reset score to 0
         this.attempts = 0;
         this.currentStep = 0;
         
@@ -277,6 +337,11 @@ class CodevanceLab {
         
         this.initChallengeInterface();
         this.showScreen('game-screen');
+        
+        // FIX: Immediately update progress display to show 0%
+        this.updateChallengeProgress();
+        
+        console.log(`🎯 Started challenge ${challengeNumber} with reset progress: ${this.score}%`);
     }
 
     initChallengeInterface() {
@@ -292,8 +357,20 @@ class CodevanceLab {
         // Initialize code editor
         this.initializeCodeEditor();
         
+        // FIX: Reset progress display immediately when interface loads
+        this.score = 0; // Ensure score is 0
+        this.updateChallengeProgress();
+        
+        // Clear any previous validation results
+        const validationOutput = container.querySelector('#validation-output');
+        if (validationOutput) {
+            validationOutput.innerHTML = 'Complete the requirements and run your code to see validation results.';
+        }
+        
         // Set global reference for callbacks
         window.codevanceLab = this;
+        
+        console.log(`🔧 Challenge interface initialized for challenge ${this.currentChallenge}`);
     }
 
     loadChallengeInterface() {
@@ -1100,10 +1177,15 @@ print(counter)"></textarea>
             `).join('')}
         `;
 
-        // Update progress
+        // FIX: Set score based on completion percentage, not accumulation
         if (passedTests === totalTests) {
-            this.score += 20;
+            this.score = 100; // Set to 100 when perfect, don't accumulate
             this.updateChallengeProgress();
+            this.showExecutionResult('✅ Perfect! All validation tests passed!', 'success');
+        } else {
+            this.score = Math.round((passedTests / totalTests) * 100); // Proportional score
+            this.updateChallengeProgress();
+            this.showExecutionResult(`⚠️ ${passedTests}/${totalTests} tests passed. Check requirements.`, 'warning');
         }
     }
 
@@ -1112,7 +1194,7 @@ print(counter)"></textarea>
         if (!validationDiv) return;
 
         if (result.type === 'success') {
-            this.score += 20;
+            this.score = 100; // FIX: Set to 100, don't accumulate
             this.updateChallengeProgress();
             
             validationDiv.innerHTML = `
@@ -1125,6 +1207,7 @@ print(counter)"></textarea>
                 <div style="margin: 5px 0;">✓ Best practices followed</div>
             `;
         } else {
+            this.score = 0; // FIX: Set to 0 on failure
             validationDiv.innerHTML = `
                 <div style="color: #f44336; margin-bottom: 10px;">
                     <strong>❌ Algorithm Validation: FAILED</strong>
@@ -1134,34 +1217,25 @@ print(counter)"></textarea>
         }
     }
 
-    showExecutionResult(message, type) {
-        // This could be enhanced to show results in a dedicated area
-        console.log(`${type.toUpperCase()}: ${message}`);
-    }
-
-    updateChallengeProgress() {
-        const progressElement = this.container.querySelector('#challenge-progress');
-        if (progressElement) {
-            const progress = Math.min((this.score / 100) * 100, 100);
-            progressElement.textContent = `${Math.round(progress)}%`;
-        }
-    }
-
     validateSolution() {
-        if (this.score >= 80) {
+        console.log(`🔍 Validating solution - Current score: ${this.score}%`);
+        
+        if (this.score >= 100) {
             this.showFeedback('🎉 Outstanding! Your code solution is correct and follows best practices!', 'success');
             
-            // Update room progress in command center if available
+            // Update room progress in command center
             if (window.commandCenter && window.commandCenter.updateRoomProgress) {
                 window.commandCenter.updateRoomProgress('programming', this.currentChallenge, 5);
             }
             
             if (this.currentChallenge < 5) {
                 setTimeout(() => {
+                    console.log(`➡️ Moving to next challenge: ${this.currentChallenge + 1}`);
                     this.startChallenge(this.currentChallenge + 1);
                 }, 2000);
             } else {
                 setTimeout(() => {
+                    console.log('🏁 All challenges completed!');
                     if (window.commandCenter) {
                         window.commandCenter.showCommandDashboard();
                     } else {
@@ -1171,49 +1245,9 @@ print(counter)"></textarea>
             }
         } else {
             this.attempts++;
-            this.showFeedback('❌ Solution needs improvement. Check the requirements and run your code first.', 'error');
+            this.showFeedback('❌ Solution needs improvement. Make sure your code passes all validation tests first.', 'error');
+            console.log(`❌ Validation failed - Score: ${this.score}%, Attempts: ${this.attempts}`);
         }
-    }
-
-    clearEditor() {
-        const editor = this.container.querySelector('#code-editor');
-        if (editor) {
-            editor.value = '';
-            editor.focus();
-        }
-        
-        // Clear preview/output
-        const preview = this.container.querySelector('#html-preview');
-        const pythonOutput = this.container.querySelector('#python-output');
-        
-        if (preview) {
-            const doc = preview.contentDocument || preview.contentWindow.document;
-            doc.open();
-            doc.write('');
-            doc.close();
-        }
-        
-        if (pythonOutput) {
-            pythonOutput.textContent = 'Click "Run Python" to see output...';
-        }
-    }
-
-    getHint() {
-        const hints = {
-            'basic_html': "💡 Start with <!DOCTYPE html> and include complete HTML structure: html, head, body tags. Don't forget the title and content!",
-            'html_image': "💡 Use <img src='...' alt='...' width='300'> with the placeholder URL provided in the requirements.",
-            'html_list': "💡 Use <ul> for unordered list and <li> for each fruit item. Make sure to close all tags properly.",
-            'css_styling': "💡 Add <style> in the <head> section. Use body selector with background-color and text-align properties.",
-            'css_button': "💡 Create a CSS class called 'btn' with background, color, padding, border, and border-radius properties.",
-            'python_fibonacci': "💡 Use two variables (a, b) and a for loop. In each iteration: print a, then swap values: a, b = b, a + b",
-            'python_file': "💡 Use 'with open(filename, 'r') as file:' then iterate over file lines with 'for line in file:' and print(line.strip())",
-            'python_average': "💡 Use sum(grades) to add all numbers, len(grades) to count them, then divide: sum(grades) / len(grades)",
-            'python_login': "💡 Check if username exists with 'username in users', then compare passwords with users[username] == password",
-            'python_counter': "💡 Split text with .split(), create empty dict, then for each word: counter[word] = counter.get(word, 0) + 1"
-        };
-        
-        const hint = hints[this.challengeData.type] || "💡 Follow the requirements step by step. Run your code to test it, then validate when complete!";
-        this.showFeedback(hint, 'info');
     }
 
     resetChallenge() {
@@ -1222,10 +1256,18 @@ print(counter)"></textarea>
             this.attempts = 0;
             this.executionHistory = [];
             
+            // Clear editor and outputs
             this.clearEditor();
+            
+            // Reload challenge interface (this will reset progress display)
             this.loadChallengeInterface();
+            this.initializeCodeEditor();
+            
+            // Explicitly update progress display
+            this.updateChallengeProgress();
             
             this.showFeedback('Challenge reset! Start fresh with your solution.', 'warning');
+            console.log('🔄 Challenge reset - Progress: 0%');
         }
     }
 
@@ -1282,6 +1324,16 @@ print(counter)"></textarea>
 
 // Export the class for use by command center
 window.CodevanceLab = CodevanceLab;
+window.codevanceLab = null;
+
+// Don't auto-initialize when loaded independently
+console.log('CodevanceLab class loaded and ready for programming challenges');
+// Export the class for use by command center
+window.CodevanceLab = CodevanceLab;
+window.codevanceLab = null;
+
+// Don't auto-initialize when loaded independently
+console.log('CodevanceLab class loaded and ready for programming challenges');
 window.codevanceLab = null;
 
 // Don't auto-initialize when loaded independently
