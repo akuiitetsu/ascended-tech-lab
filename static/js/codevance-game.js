@@ -105,6 +105,126 @@ class CodevanceLab {
                 ]
             }
         };
+        
+        // NEW: Scenario system for randomized challenges
+        this.scenarioTemplates = {
+            easy: {
+                basic_html: [
+                    {
+                        theme: 'Coffee Shop',
+                        title: 'Brew & Beans Café',
+                        heading: 'Welcome to Brew & Beans!',
+                        paragraph: 'We serve the finest coffee in town with fresh pastries daily.',
+                        image: 'https://via.placeholder.com/300x200/8B4513/FFFFFF?text=Coffee+Shop'
+                    },
+                    {
+                        theme: 'Pet Store',
+                        title: 'Pawsome Pets',
+                        heading: 'Find Your Perfect Pet!',
+                        paragraph: 'From adorable puppies to exotic birds, we have the perfect companion for you.',
+                        image: 'https://via.placeholder.com/300x200/FF69B4/FFFFFF?text=Pet+Store'
+                    },
+                    {
+                        theme: 'Bookstore',
+                        title: 'Chapter & Verse Books',
+                        heading: 'Discover Your Next Great Read',
+                        paragraph: 'Thousands of books across all genres waiting to transport you to new worlds.',
+                        image: 'https://via.placeholder.com/300x200/4169E1/FFFFFF?text=Bookstore'
+                    }
+                ],
+                html_list: [
+                    {
+                        theme: 'Grocery Store',
+                        listTitle: 'Fresh Produce',
+                        items: ['Apples', 'Bananas', 'Oranges'],
+                        context: 'Create a produce section list for Valley Fresh Market'
+                    },
+                    {
+                        theme: 'Restaurant Menu',
+                        listTitle: 'Today\'s Specials',
+                        items: ['Grilled Salmon', 'Pasta Primavera', 'Chocolate Cake'],
+                        context: 'Display the daily specials for Mama Rosa\'s Restaurant'
+                    },
+                    {
+                        theme: 'Todo List',
+                        listTitle: 'Weekend Plans',
+                        items: ['Visit Museum', 'Go Hiking', 'Movie Night'],
+                        context: 'Create a weekend activity list for planning'
+                    }
+                ],
+                css_styling: [
+                    {
+                        theme: 'Beach Resort',
+                        title: 'Sunset Beach Resort',
+                        backgroundColor: 'lightblue',
+                        heading: 'Paradise Awaits You',
+                        paragraph: 'Relax on pristine beaches with crystal clear waters and golden sunsets.'
+                    },
+                    {
+                        theme: 'Mountain Lodge',
+                        title: 'Alpine Mountain Lodge',
+                        backgroundColor: 'lightgreen',
+                        heading: 'Mountain Adventure',
+                        paragraph: 'Experience the beauty of nature with hiking trails and cozy cabins.'
+                    },
+                    {
+                        theme: 'City Hotel',
+                        title: 'Metro Grand Hotel',
+                        backgroundColor: 'lightcoral',
+                        heading: 'Urban Luxury',
+                        paragraph: 'Modern accommodations in the heart of the bustling city center.'
+                    }
+                ]
+            },
+            hard: {
+                name: 'Hard Mode (Python)',
+                description: 'Logic-heavy backend programming challenges',
+                challenges: [
+                    {
+                        name: 'Fibonacci Sequence',
+                        objective: 'Print the first 10 Fibonacci numbers',
+                        description: 'Generate mathematical sequences using loops',
+                        type: 'python_fibonacci',
+                        concepts: ['Loops', 'Variables', 'Mathematical sequences'],
+                        expectedOutput: '0 1 1 2 3 5 8 13 21 34'
+                    },
+                    {
+                        name: 'File Reader',
+                        objective: 'Read and print the contents of sample.txt',
+                        description: 'Handle file operations and text processing',
+                        type: 'python_file',
+                        concepts: ['File handling', 'Context managers', 'Text processing'],
+                        expectedOutput: 'Contents of sample.txt displayed line by line'
+                    },
+                    {
+                        name: 'Student Grade Average',
+                        objective: 'Given grades in a list, compute the average',
+                        description: 'Process data collections and perform calculations',
+                        type: 'python_average',
+                        concepts: ['Lists', 'Mathematical operations', 'Data processing'],
+                        expectedOutput: 'Average grade: 86.6'
+                    },
+                    {
+                        name: 'Login Validation',
+                        objective: 'Validate a login using a dictionary of users',
+                        description: 'Implement user authentication logic',
+                        type: 'python_login',
+                        concepts: ['Dictionaries', 'Conditionals', 'User input'],
+                        expectedOutput: 'Login successful! or Invalid login message'
+                    },
+                    {
+                        name: 'Word Counter',
+                        objective: 'Count word frequency in a string',
+                        description: 'Analyze text data and create frequency maps',
+                        type: 'python_counter',
+                        concepts: ['String processing', 'Dictionaries', 'Data analysis'],
+                        expectedOutput: "{'hello': 2, 'world': 2, 'python': 1}"
+                    }
+                ]
+            }
+        };
+        
+        this.currentScenario = null; // Store the selected scenario
     }
 
     init(container = null) {
@@ -328,20 +448,32 @@ class CodevanceLab {
 
     startChallenge(challengeNumber) {
         this.currentChallenge = challengeNumber;
-        this.score = 0; // Reset score to 0
+        this.score = 0;
         this.attempts = 0;
         this.currentStep = 0;
         
         const categoryData = this.challengeCategories[this.currentDifficulty];
         this.challengeData = categoryData.challenges[challengeNumber - 1];
         
+        // NEW: Select random scenario for this challenge
+        this.selectRandomScenario();
+        
         this.initChallengeInterface();
         this.showScreen('game-screen');
+    }
+
+    // NEW: Scenario selection method
+    selectRandomScenario() {
+        const challengeType = this.challengeData.type;
+        const scenarios = this.scenarioTemplates[this.currentDifficulty]?.[challengeType];
         
-        // FIX: Immediately update progress display to show 0%
-        this.updateChallengeProgress();
-        
-        console.log(`🎯 Started challenge ${challengeNumber} with reset progress: ${this.score}%`);
+        if (scenarios && scenarios.length > 0) {
+            const randomIndex = Math.floor(Math.random() * scenarios.length);
+            this.currentScenario = scenarios[randomIndex];
+            console.log(`🎲 Selected scenario: ${this.currentScenario.theme || 'Default'} for ${challengeType}`);
+        } else {
+            this.currentScenario = null;
+        }
     }
 
     initChallengeInterface() {
@@ -411,20 +543,27 @@ class CodevanceLab {
     }
 
     generateBasicHTMLInterface() {
+        const scenario = this.currentScenario || {
+            theme: 'Generic Website',
+            title: 'My First Page',
+            heading: 'Hello, World!',
+            paragraph: 'This is my first HTML page.'
+        };
+
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🌐 Basic Webpage Creation</h3>
-                    <p>Create a complete HTML page with proper structure, title, heading, and paragraph.</p>
+                    <h3>🌐 ${scenario.theme} Website</h3>
+                    <p>Create a webpage for ${scenario.theme.toLowerCase()} with proper HTML structure.</p>
                 </div>
                 
                 <div class="requirements-panel">
                     <h4>📋 Requirements</h4>
                     <ul>
                         <li>Complete HTML document structure with DOCTYPE</li>
-                        <li>Page title: "My First Page"</li>
-                        <li>H1 heading: "Hello, World!"</li>
-                        <li>Paragraph: "This is my first HTML page."</li>
+                        <li>Page title: "${scenario.title}"</li>
+                        <li>H1 heading: "${scenario.heading}"</li>
+                        <li>Paragraph: "${scenario.paragraph}"</li>
                     </ul>
                 </div>
                 
@@ -439,22 +578,23 @@ class CodevanceLab {
                     <textarea id="code-editor" placeholder="<!DOCTYPE html>
 <html>
 <head>
-    <title>My First Page</title>
+    <title>${scenario.title}</title>
 </head>
 <body>
-    <!-- Your HTML content here -->
+    <h1>${scenario.heading}</h1>
+    <p>${scenario.paragraph}</p>
 </body>
 </html>"></textarea>
                 </div>
                 
                 <div class="results-section">
                     <div class="output-panel" id="code-output">
-                        <h5>🖥️ Live Preview</h5>
+                        <h5>🖥️ ${scenario.theme} Preview</h5>
                         <iframe id="html-preview" style="width: 100%; height: 200px; border: 1px solid #ccc; background: white;"></iframe>
                     </div>
                     <div class="validation-panel" id="validation-panel">
                         <h5>✅ Validation Results</h5>
-                        <div id="validation-output">Write your HTML code and click "Run HTML" to see the preview</div>
+                        <div id="validation-output">Create your ${scenario.theme.toLowerCase()} webpage and run to see results</div>
                     </div>
                 </div>
             </div>
@@ -506,11 +646,18 @@ class CodevanceLab {
     }
 
     generateHTMLListInterface() {
+        const scenario = this.currentScenario || {
+            theme: 'Generic List',
+            listTitle: 'Sample Items',
+            items: ['Apple', 'Banana', 'Mango'],
+            context: 'Create a basic unordered list'
+        };
+
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>📝 HTML List Creation</h3>
-                    <p>Create an unordered list containing exactly three fruit items.</p>
+                    <h3>📝 ${scenario.theme}</h3>
+                    <p>${scenario.context}</p>
                 </div>
                 
                 <div class="requirements-panel">
@@ -518,8 +665,8 @@ class CodevanceLab {
                     <ul>
                         <li>Use UL tag for unordered list</li>
                         <li>Create exactly 3 list items (LI tags)</li>
-                        <li>List items must contain: Apple, Banana, Mango</li>
-                        <li>Proper HTML structure and nesting</li>
+                        <li>List items must contain: ${scenario.items.join(', ')}</li>
+                        <li>Include a heading: "${scenario.listTitle}"</li>
                     </ul>
                 </div>
                 
@@ -531,21 +678,22 @@ class CodevanceLab {
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="<!-- Create an unordered list with 3 fruits -->
+                    <textarea id="code-editor" placeholder="<h2>${scenario.listTitle}</h2>
 <ul>
-    <li>Apple</li>
-    <!-- Add more list items here -->
+    <li>${scenario.items[0]}</li>
+    <li>${scenario.items[1]}</li>
+    <li>${scenario.items[2]}</li>
 </ul>"></textarea>
                 </div>
                 
                 <div class="results-section">
                     <div class="output-panel" id="code-output">
-                        <h5>🖥️ Live Preview</h5>
+                        <h5>🖥️ ${scenario.theme} Preview</h5>
                         <iframe id="html-preview" style="width: 100%; height: 180px; border: 1px solid #ccc; background: white;"></iframe>
                     </div>
                     <div class="validation-panel" id="validation-panel">
                         <h5>✅ Validation Results</h5>
-                        <div id="validation-output">Create your fruit list and run to see the result</div>
+                        <div id="validation-output">Create your ${scenario.theme.toLowerCase()} and run to see results</div>
                     </div>
                 </div>
             </div>
@@ -553,20 +701,28 @@ class CodevanceLab {
     }
 
     generateCSSStylingInterface() {
+        const scenario = this.currentScenario || {
+            theme: 'Generic Website',
+            title: 'My Styled Page',
+            backgroundColor: 'lightblue',
+            heading: 'My Styled Page',
+            paragraph: 'This is centered text.'
+        };
+
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🎨 CSS Styling Challenge</h3>
-                    <p>Apply CSS styles to change background color and text alignment.</p>
+                    <h3>🎨 ${scenario.theme} Styling</h3>
+                    <p>Apply CSS styles to create an attractive ${scenario.theme.toLowerCase()} webpage.</p>
                 </div>
                 
                 <div class="requirements-panel">
                     <h4>📋 Requirements</h4>
                     <ul>
                         <li>Complete HTML document with CSS in the head</li>
-                        <li>Body background color: lightblue</li>
+                        <li>Body background color: ${scenario.backgroundColor}</li>
                         <li>All text centered using text-align property</li>
-                        <li>Include heading "My Styled Page" and paragraph</li>
+                        <li>Include heading "${scenario.heading}" and paragraph</li>
                     </ul>
                 </div>
                 
@@ -581,88 +737,29 @@ class CodevanceLab {
                     <textarea id="code-editor" placeholder="<!DOCTYPE html>
 <html>
 <head>
+    <title>${scenario.title}</title>
     <style>
         body {
-            background-color: lightblue;
+            background-color: ${scenario.backgroundColor};
             text-align: center;
         }
     </style>
 </head>
 <body>
-    <h1>My Styled Page</h1>
-    <p>This is centered text.</p>
+    <h1>${scenario.heading}</h1>
+    <p>${scenario.paragraph}</p>
 </body>
 </html>"></textarea>
                 </div>
                 
                 <div class="results-section">
                     <div class="output-panel" id="code-output">
-                        <h5>🖥️ Live Preview</h5>
+                        <h5>🖥️ ${scenario.theme} Preview</h5>
                         <iframe id="html-preview" style="width: 100%; height: 200px; border: 1px solid #ccc; background: white;"></iframe>
                     </div>
                     <div class="validation-panel" id="validation-panel">
                         <h5>✅ Validation Results</h5>
-                        <div id="validation-output">Apply your CSS styles and see the styled result</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    generateCSSButtonInterface() {
-        return `
-            <div class="challenge-interface active">
-                <div class="challenge-header">
-                    <h3>🔘 CSS Button Styling</h3>
-                    <p>Create and style a button with specific colors and appearance.</p>
-                </div>
-                
-                <div class="requirements-panel">
-                    <h4>📋 Requirements</h4>
-                    <ul>
-                        <li>Button with class "btn" and text "Click Me"</li>
-                        <li>Green background color</li>
-                        <li>White text color</li>
-                        <li>Padding: 10px 20px</li>
-                        <li>No border and 6px border-radius</li>
-                    </ul>
-                </div>
-                
-                <div class="code-workspace">
-                    <div class="editor-header">
-                        <h4>💻 HTML + CSS Editor</h4>
-                        <div class="editor-controls">
-                            <button onclick="window.codevanceLab.runCode()" class="run-btn">▶ Run HTML</button>
-                            <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
-                        </div>
-                    </div>
-                    <textarea id="code-editor" placeholder="<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        .btn {
-            background: green;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-        }
-    </style>
-</head>
-<body>
-    <button class=&quot;btn&quot;>Click Me</button>
-</body>
-</html>"></textarea>
-                </div>
-                
-                <div class="results-section">
-                    <div class="output-panel" id="code-output">
-                        <h5>🖥️ Live Preview</h5>
-                        <iframe id="html-preview" style="width: 100%; height: 150px; border: 1px solid #ccc; background: white;"></iframe>
-                    </div>
-                    <div class="validation-panel" id="validation-panel">
-                        <h5>✅ Validation Results</h5>
-                        <div id="validation-output">Style your button and see the interactive result</div>
+                        <div id="validation-output">Style your ${scenario.theme.toLowerCase()} and see the results</div>
                     </div>
                 </div>
             </div>
@@ -670,11 +767,18 @@ class CodevanceLab {
     }
 
     generatePythonFibonacciInterface() {
+        const scenario = this.currentScenario || {
+            theme: 'Basic Fibonacci',
+            context: 'Generate the classic Fibonacci sequence',
+            numbers: 10,
+            realWorld: 'Fibonacci sequences appear in mathematics and computer science.'
+        };
+
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🔢 Fibonacci Sequence Generator</h3>
-                    <p>Create a function to generate and print the first 10 Fibonacci numbers.</p>
+                    <h3>🔢 ${scenario.theme}</h3>
+                    <p>${scenario.context} - ${scenario.realWorld}</p>
                 </div>
                 
                 <div class="requirements-panel">
@@ -682,84 +786,39 @@ class CodevanceLab {
                     <ul>
                         <li>Define a function called <code>fibonacci(n)</code></li>
                         <li>Use two variables to track sequence (a=0, b=1)</li>
-                        <li>Use a loop to generate n numbers</li>
-                        <li>Call fibonacci(10) to print first 10 numbers</li>
+                        <li>Use a loop to generate ${scenario.numbers} numbers</li>
+                        <li>Call fibonacci(${scenario.numbers}) to print results</li>
                         <li>Expected output: 0 1 1 2 3 5 8 13 21 34</li>
                     </ul>
                 </div>
                 
                 <div class="code-workspace">
                     <div class="editor-header">
-                        <h4>🐍 Python Editor</h4>
+                        <h4>🐍 Python Editor - ${scenario.theme}</h4>
                         <div class="editor-controls">
                             <button onclick="window.codevanceLab.runCode()" class="run-btn">▶ Run Python</button>
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="def fibonacci(n):
+                    <textarea id="code-editor" placeholder="# ${scenario.context}
+def fibonacci(n):
     a, b = 0, 1
     for _ in range(n):
         print(a, end=' ')
         a, b = b, a + b
 
-fibonacci(10)"></textarea>
+# Generate ${scenario.numbers} numbers
+fibonacci(${scenario.numbers})"></textarea>
                 </div>
                 
                 <div class="results-section">
                     <div class="output-panel" id="code-output">
-                        <h5>📺 Console Output</h5>
-                        <div id="python-output" style="font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 15px; min-height: 150px; white-space: pre-wrap;">Click "Run Python" to see output...</div>
+                        <h5>📺 ${scenario.theme} Results</h5>
+                        <div id="python-output" style="font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 15px; min-height: 150px; white-space: pre-wrap;">Click "Run Python" to see the ${scenario.theme.toLowerCase()} sequence...</div>
                     </div>
                     <div class="validation-panel" id="validation-panel">
                         <h5>✅ Algorithm Analysis</h5>
-                        <div id="validation-output">Run your code to analyze the Fibonacci sequence generation</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    generatePythonFileInterface() {
-        return `
-            <div class="challenge-interface active">
-                <div class="challenge-header">
-                    <h3>📄 File Reading Challenge</h3>
-                    <p>Read and process the contents of a text file using Python file operations.</p>
-                </div>
-                
-                <div class="requirements-panel">
-                    <h4>📋 Requirements</h4>
-                    <ul>
-                        <li>Use context manager (with statement) for file handling</li>
-                        <li>Read "sample.txt" file</li>
-                        <li>Print each line with .strip() to remove whitespace</li>
-                        <li>Handle file operations safely</li>
-                        <li>Note: File will be simulated in this environment</li>
-                    </ul>
-                </div>
-                
-                <div class="code-workspace">
-                    <div class="editor-header">
-                        <h4>🐍 Python Editor</h4>
-                        <div class="editor-controls">
-                            <button onclick="window.codevanceLab.runCode()" class="run-btn">▶ Run Python</button>
-                            <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
-                        </div>
-                    </div>
-                    <textarea id="code-editor" placeholder="# File reading with context manager
-with open('sample.txt', 'r') as file:
-    for line in file:
-        print(line.strip())"></textarea>
-                </div>
-                
-                <div class="results-section">
-                    <div class="output-panel" id="code-output">
-                        <h5>📺 Console Output</h5>
-                        <div id="python-output" style="font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 15px; min-height: 150px; white-space: pre-wrap;">Click "Run Python" to see file contents...</div>
-                    </div>
-                    <div class="validation-panel" id="validation-panel">
-                        <h5>📄 File Operations Analysis</h5>
-                        <div id="validation-output">Run your file reading code to see the analysis</div>
+                        <div id="validation-output">Run your code to analyze the sequence pattern</div>
                     </div>
                 </div>
             </div>
@@ -767,41 +826,49 @@ with open('sample.txt', 'r') as file:
     }
 
     generatePythonAverageInterface() {
+        const scenario = this.currentScenario || {
+            theme: 'Grade Calculator',
+            subject: 'Mathematics',
+            grades: [85, 90, 78, 92, 88],
+            context: 'Calculate the average for student grades'
+        };
+
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>📊 Grade Average Calculator</h3>
-                    <p>Process a list of student grades and calculate the average score.</p>
+                    <h3>📊 ${scenario.theme}</h3>
+                    <p>${scenario.context} - Analyze ${scenario.subject.toLowerCase()} performance data.</p>
                 </div>
                 
                 <div class="requirements-panel">
                     <h4>📋 Requirements</h4>
                     <ul>
-                        <li>Given grades list: [85, 90, 78, 92, 88]</li>
-                        <li>Use sum() function to add all grades</li>
-                        <li>Use len() function to count grades</li>
+                        <li>Given data: ${scenario.grades.join(', ')}</li>
+                        <li>Use sum() function to add all values</li>
+                        <li>Use len() function to count entries</li>
                         <li>Calculate average by dividing sum by count</li>
-                        <li>Print result: "Average grade: XX.X"</li>
+                        <li>Print result: "Average ${scenario.subject.toLowerCase()}: XX.X"</li>
                     </ul>
                 </div>
                 
                 <div class="code-workspace">
                     <div class="editor-header">
-                        <h4>🐍 Python Editor</h4>
+                        <h4>🐍 Python Editor - ${scenario.theme}</h4>
                         <div class="editor-controls">
                             <button onclick="window.codevanceLab.runCode()" class="run-btn">▶ Run Python</button>
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="grades = [85, 90, 78, 92, 88]
-average = sum(grades) / len(grades)
-print('Average grade:', average)"></textarea>
+                    <textarea id="code-editor" placeholder="# ${scenario.context}
+${scenario.subject.toLowerCase().replace(' ', '_')}_data = ${JSON.stringify(scenario.grades)}
+average = sum(${scenario.subject.toLowerCase().replace(' ', '_')}_data) / len(${scenario.subject.toLowerCase().replace(' ', '_')}_data)
+print('Average ${scenario.subject.toLowerCase()}:', average)"></textarea>
                 </div>
                 
                 <div class="results-section">
                     <div class="output-panel" id="code-output">
-                        <h5>📺 Console Output</h5>
-                        <div id="python-output" style="font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 15px; min-height: 150px; white-space: pre-wrap;">Click "Run Python" to calculate average...</div>
+                        <h5>📺 ${scenario.theme} Results</h5>
+                        <div id="python-output" style="font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 15px; min-height: 150px; white-space: pre-wrap;">Click "Run Python" to calculate the average...</div>
                     </div>
                     <div class="validation-panel" id="validation-panel">
                         <h5>📈 Data Analysis</h5>
@@ -813,18 +880,26 @@ print('Average grade:', average)"></textarea>
     }
 
     generatePythonLoginInterface() {
+        const scenario = this.currentScenario || {
+            theme: 'System Login',
+            users: { 'admin': '1234', 'user': 'pass' },
+            context: 'Validate user credentials for system access',
+            testUser: 'admin',
+            testPass: '1234'
+        };
+
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🔐 User Login Validation</h3>
-                    <p>Implement a login system using dictionary-based user authentication.</p>
+                    <h3>🔐 ${scenario.theme}</h3>
+                    <p>${scenario.context}</p>
                 </div>
                 
                 <div class="requirements-panel">
                     <h4>📋 Requirements</h4>
                     <ul>
-                        <li>Create users dictionary: {"anna": "1234", "mark": "abcd"}</li>
-                        <li>Get username and password from user (simulated input)</li>
+                        <li>Create users dictionary: ${JSON.stringify(scenario.users)}</li>
+                        <li>Test with username: "${scenario.testUser}" and password: "${scenario.testPass}"</li>
                         <li>Check if username exists in dictionary</li>
                         <li>Verify password matches stored value</li>
                         <li>Print "Login successful!" or "Invalid login"</li>
@@ -833,17 +908,18 @@ print('Average grade:', average)"></textarea>
                 
                 <div class="code-workspace">
                     <div class="editor-header">
-                        <h4>🐍 Python Editor</h4>
+                        <h4>🐍 Python Editor - ${scenario.theme}</h4>
                         <div class="editor-controls">
                             <button onclick="window.codevanceLab.runCode()" class="run-btn">▶ Run Python</button>
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="users = {'anna': '1234', 'mark': 'abcd'}
+                    <textarea id="code-editor" placeholder="# ${scenario.context}
+users = ${JSON.stringify(scenario.users)}
 
-# Simulated user input (replace with actual input() in real scenario)
-username = 'anna'  # Try changing this
-password = '1234'  # Try changing this
+# Test credentials (change these to test different scenarios)
+username = '${scenario.testUser}'
+password = '${scenario.testPass}'
 
 if username in users and users[username] == password:
     print('Login successful!')
@@ -853,8 +929,8 @@ else:
                 
                 <div class="results-section">
                     <div class="output-panel" id="code-output">
-                        <h5>📺 Console Output</h5>
-                        <div id="python-output" style="font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 15px; min-height: 150px; white-space: pre-wrap;">Click "Run Python" to test login...</div>
+                        <h5>📺 ${scenario.theme} Results</h5>
+                        <div id="python-output" style="font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 15px; min-height: 150px; white-space: pre-wrap;">Click "Run Python" to test authentication...</div>
                     </div>
                     <div class="validation-panel" id="validation-panel">
                         <h5>🔒 Security Analysis</h5>
@@ -1105,6 +1181,7 @@ print(counter)"></textarea>
         if (!validationDiv) return;
 
         const challengeType = this.challengeData.type;
+        const scenario = this.currentScenario;
         let validationResults = [];
 
         switch (challengeType) {
@@ -1113,9 +1190,9 @@ print(counter)"></textarea>
                     { test: 'DOCTYPE declaration', passed: htmlCode.toLowerCase().includes('<!doctype html>') },
                     { test: 'HTML structure', passed: htmlCode.includes('<html>') && htmlCode.includes('</html>') },
                     { test: 'Head section', passed: htmlCode.includes('<head>') && htmlCode.includes('</head>') },
-                    { test: 'Title element', passed: htmlCode.includes('<title>My First Page</title>') },
-                    { test: 'H1 heading', passed: htmlCode.includes('<h1>Hello, World!</h1>') },
-                    { test: 'Paragraph content', passed: htmlCode.includes('This is my first HTML page') }
+                    { test: `Title: ${scenario?.title || 'My First Page'}`, passed: htmlCode.includes(`<title>${scenario?.title || 'My First Page'}</title>`) },
+                    { test: `Heading: ${scenario?.heading || 'Hello, World!'}`, passed: htmlCode.includes(`<h1>${scenario?.heading || 'Hello, World!'}</h1>`) },
+                    { test: 'Paragraph content', passed: htmlCode.includes(scenario?.paragraph || 'This is my first HTML page') }
                 ];
                 break;
 
@@ -1140,7 +1217,7 @@ print(counter)"></textarea>
             case 'css_styling':
                 validationResults = [
                     { test: 'CSS style block', passed: htmlCode.includes('<style>') },
-                    { test: 'Background color', passed: htmlCode.includes('background-color: lightblue') },
+                    { test: `Background color: ${bgColor}`, passed: htmlCode.includes(`background-color: ${bgColor}`) },
                     { test: 'Text alignment', passed: htmlCode.includes('text-align: center') },
                     { test: 'Body selector', passed: htmlCode.includes('body {') }
                 ];
@@ -1166,6 +1243,7 @@ print(counter)"></textarea>
         validationDiv.innerHTML = `
             <div style="margin-bottom: 10px;">
                 <strong>Validation Score: ${passedTests}/${totalTests}</strong>
+                ${scenario ? `<br><small>Scenario: ${scenario.theme}</small>` : ''}
             </div>
             ${validationResults.map(result => `
                 <div style="margin: 5px 0; display: flex; justify-content: space-between;">
@@ -1177,15 +1255,14 @@ print(counter)"></textarea>
             `).join('')}
         `;
 
-        // FIX: Set score based on completion percentage, not accumulation
         if (passedTests === totalTests) {
-            this.score = 100; // Set to 100 when perfect, don't accumulate
+            this.score = 100;
             this.updateChallengeProgress();
-            this.showExecutionResult('✅ Perfect! All validation tests passed!', 'success');
+            this.showExecutionResult(`✅ Perfect! All validation tests passed for ${scenario?.theme || 'this challenge'}!`, 'success');
         } else {
-            this.score = Math.round((passedTests / totalTests) * 100); // Proportional score
+            this.score = Math.round((passedTests / totalTests) * 100);
             this.updateChallengeProgress();
-            this.showExecutionResult(`⚠️ ${passedTests}/${totalTests} tests passed. Check requirements.`, 'warning');
+            this.showExecutionResult(`⚠️ ${passedTests}/${totalTests} tests passed. Check requirements for ${scenario?.theme || 'this challenge'}.`, 'warning');
         }
     }
 
@@ -1222,6 +1299,9 @@ print(counter)"></textarea>
         
         if (this.score >= 100) {
             this.showFeedback('🎉 Outstanding! Your code solution is correct and follows best practices!', 'success');
+            
+            // Show replay option before moving to next challenge
+            this.showReplayOption();
             
             // Update room progress in command center
             if (window.commandCenter && window.commandCenter.updateRoomProgress) {
@@ -1326,20 +1406,45 @@ print(counter)"></textarea>
             }
         }, 4000);
     }
+
+    // Add method to show replay option
+    showReplayOption() {
+        const replayBtn = document.createElement('button');
+        replayBtn.textContent = '🎲 Try Different Scenario';
+        replayBtn.className = 'replay-btn';
+        replayBtn.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: var(--color-purple, #8B5CF6);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        `;
+        
+        replayBtn.addEventListener('click', () => {
+            // Restart same challenge with different scenario
+            this.startChallenge(this.currentChallenge);
+            replayBtn.remove();
+        });
+        
+        document.body.appendChild(replayBtn);
+        
+        // Remove after 10 seconds
+        setTimeout(() => {
+            if (replayBtn.parentNode) {
+                replayBtn.remove();
+            }
+        }, 10000);
+    }
 }
 
 // Export the class for use by command center
 window.CodevanceLab = CodevanceLab;
-window.codevanceLab = null;
-
-// Don't auto-initialize when loaded independently
-console.log('CodevanceLab class loaded and ready for programming challenges');
-// Export the class for use by command center
-window.CodevanceLab = CodevanceLab;
-window.codevanceLab = null;
-
-// Don't auto-initialize when loaded independently
-console.log('CodevanceLab class loaded and ready for programming challenges');
 window.codevanceLab = null;
 
 // Don't auto-initialize when loaded independently
