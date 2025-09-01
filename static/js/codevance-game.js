@@ -1273,11 +1273,17 @@ print(counter)"></textarea>
 
     abortMission() {
         if (confirm('Are you sure you want to abort this mission? Your progress will be lost.')) {
-            if (window.commandCenter) {
-                window.commandCenter.showCommandDashboard();
-            } else {
-                this.showDifficultySelection();
-            }
+            // Reset challenge state
+            this.currentDifficulty = null;
+            this.currentChallenge = null;
+            this.score = 0;
+            this.attempts = 0;
+            this.currentStep = 0;
+            this.challengeData = null;
+            this.executionHistory = [];
+            
+            // Redirect to difficulty selection screen
+            this.showDifficultySelection();
         }
     }
 

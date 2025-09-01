@@ -1379,100 +1379,19 @@ DOWNLOADED: 4612 - FOUND: 4`;
         }
     }
 
-    updateScore(points) {
-        this.score += points;
-        // Update progress based on score
-        const maxScore = 500; // Approximate max score per challenge
-        const progress = Math.min((this.score / maxScore) * 100, 100);
-        
-        const progressElement = this.container.querySelector('#mentor-progress');
-        if (progressElement) {
-            progressElement.style.width = `${progress}%`;
-        }
-        
-        const challengeProgress = this.container.querySelector('#challenge-progress');
-        if (challengeProgress) {
-            challengeProgress.textContent = `${Math.round(progress)}%`;
-        }
-    }
-
-    updateAIMessage(message) {
-        const aiMessageElement = this.container.querySelector('#ai-current-message');
-        if (aiMessageElement) {
-            aiMessageElement.textContent = message;
-        }
-        
-        // Add to conversation history
-        this.conversationHistory.push({
-            timestamp: new Date(),
-            message: message,
-            type: 'ai'
-        });
-    }
-
-    completeChallenge() {
-        if (this.score < 100) {
-            this.updateAIMessage("You're making good progress, but let's complete a few more tasks before finishing this challenge. Each step builds your IT knowledge!");
-            return;
-        }
-
-        this.updateAIMessage("Outstanding work! You've demonstrated excellent understanding of these IT concepts. Ready for the next challenge?");
-        
-        // Update room progress in command center if available
-        if (window.commandCenter && window.commandCenter.updateRoomProgress) {
-            window.commandCenter.updateRoomProgress('ai-training', this.currentChallenge, 5);
-        }
-        
-        if (this.currentChallenge < 5) {
-            setTimeout(() => {
-                this.startChallenge(this.currentChallenge + 1);
-            }, 2000);
-        } else {
-            setTimeout(() => {
-                if (window.commandCenter) {
-                    window.commandCenter.showCommandDashboard();
-                } else {
-                    this.showDifficultySelection();
-                }
-            }, 2000);
-        }
-    }
-
-    getHint() {
-        const hints = {
-            'IP Address Detective': "💡 For devices to communicate directly, they need to be on the same network. Try using IP addresses like 192.168.1.10 and 192.168.1.20 with subnet mask 255.255.255.0",
-            'Secure Your Passwords': "💡 Strong passwords have: 8+ characters, mixed case, numbers, special characters, and aren't common words or patterns",
-            'OS Matchmaker': "💡 Think about each OS's strengths: Windows for gaming/compatibility, macOS for creative work, Linux for servers/development",
-            'Build a Simple Network': "💡 Connect both PCs to the switch with cables, then configure them with IP addresses on the same network",
-            'Cyber Hygiene Quiz': "💡 When in doubt, choose the most secure option. Never click suspicious links or download unknown files",
-            'Network Segmentation': "💡 Use different subnets for different departments. HR might use 192.168.10.0/24, IT might use 192.168.20.0/24, and Guests 192.168.100.0/24",
-            'Ethical Hacker Simulation': "💡 Start with basic reconnaissance - use nmap to scan for open ports, then analyze what services are running",
-            'Database Doctor': "💡 Look for duplicate data, missing primary keys, and data that should be in separate tables. Apply 1NF, 2NF, then 3NF rules",
-            'OS Command Duel': "💡 Remember basic Linux commands: ls (list), cd (change directory), mkdir (create directory), chmod (change permissions)",
-            'Cloud Architect Challenge': "💡 Think scalability! Use load balancers, auto-scaling groups, and separate tiers (web, app, database) for robust architecture"
-        };
-        
-        const hint = hints[this.challengeData.name] || "💡 Follow the AI guidance and think about IT best practices. You're doing great!";
-        this.updateAIMessage(hint);
-    }
-
-    resetChallenge() {
-        if (confirm('Are you sure you want to reset this challenge? Your progress will be lost.')) {
-            this.score = 0;
-            this.attempts = 0;
-            this.loadChallengeInterface();
-            this.startAIConversation();
-            this.updateAIMessage('Challenge reset! Let\'s start fresh and build those IT skills step by step.');
-        }
-    }
-
     abortMission() {
         if (confirm('Are you sure you want to abort this mission? Your progress will be lost.')) {
-            if (window.commandCenter) {
-                window.commandCenter.showCommandDashboard();
-            } else {
-                this.showDifficultySelection();
-            }
+            // Reset challenge state
+            this.currentDifficulty = null;
+            this.currentChallenge = null;
+            this.score = 0;
+            this.attempts = 0;
+            this.currentStep = 0;
+            this.challengeData = null;
+            this.conversationHistory = [];
+            
+            // Redirect to difficulty selection screen
+            this.showDifficultySelection();
         }
     }
 

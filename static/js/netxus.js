@@ -2349,9 +2349,9 @@ Router# show access-lists 100
                         const networks = pcs.map(pc => 
                             pc.configuration.ipAddress ? 
                             this.getNetworkAddress(pc.configuration.ipAddress, pc.configuration.subnetMask) : null
-                        );
+                        ).filter(net => net);
                         
-                        return networks.every(net => net && net === networks[0]);
+                        return networks.length >= 2 && networks[0] !== networks[1];
                     }
                 }
             ],
@@ -3058,14 +3058,20 @@ Router# show access-lists 100
     }
 
     abortMission() {
-        if (confirm('Are you sure you want to abort this lab? Your progress will be lost.')) {
-            // Check if we're in command center mode
-            if (window.commandCenter) {
-                window.commandCenter.showCommandDashboard();
-            } else {
-                // Fallback navigation
-                this.showDifficultySelection();
-            }
+        if (confirm('Are you sure you want to abort this mission? Your progress will be lost.')) {
+            // Reset lab state
+            this.currentDifficulty = null;
+            this.currentLab = null;
+            this.devices = [];
+            this.cables = [];
+            this.selectedDevice = null;
+            this.connectionMode = false;
+            this.connectionSource = null;
+            this.deviceCounter = 0;
+            this.clearCanvas();
+            
+            // Redirect to difficulty selection screen
+            this.showDifficultySelection();
         }
     }
 

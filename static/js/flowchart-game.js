@@ -1348,13 +1348,18 @@ class FlowByteGame {
 
     abortMission() {
         if (confirm('Are you sure you want to abort this mission? Your progress will be lost.')) {
-            // Check if we're in command center mode
-            if (window.commandCenter) {
-                window.commandCenter.showCommandDashboard();
-            } else {
-                // Fallback navigation
-                this.showRoomSelection();
-            }
+            // Reset game state
+            this.currentDifficulty = null;
+            this.currentLevel = null;
+            this.nodes = [];
+            this.connections = [];
+            this.selectedNode = null;
+            this.connectionSource = null;
+            this.mistakeCount = 0;
+            this.resetCanvas();
+            
+            // Redirect to difficulty selection screen
+            this.showRoomSelection();
         }
     }
 
