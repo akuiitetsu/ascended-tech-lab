@@ -212,189 +212,11 @@ def generate_session_token():
     """Generate a secure session token"""
     return secrets.token_urlsafe(32)
 
-def generate_verification_code():
-    """Generate a 6-digit verification code"""
-    return f"{secrets.randbelow(1000000):06d}"
-
-def send_verification_email(email, verification_code, username):
-    """Send verification email using Resend"""
-    if not RESEND_AVAILABLE:
-        print("⚠️ Resend not available, skipping email verification")
-        return False
-    
-    try:
-        print(f"📧 Attempting to send verification email to: {email}")
-        print(f"🔑 Using API key: {RESEND_API_KEY[:10]}...")
-        
-        # For debugging: Skip actual email sending and just simulate success
-        DEBUG_MODE = os.environ.get('DEBUG_EMAIL', 'false').lower() == 'true'
-        if DEBUG_MODE:
-            print(f"🧪 DEBUG MODE: Simulating email send to {email}")
-            print(f"🧪 DEBUG MODE: Verification code would be: {verification_code}")
-            return True
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Verify Your Account - Ascended Tech Lab</title>
-            <style>
-                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a0a0a; color: #ffffff; margin: 0; padding: 20px; }}
-                .container {{ max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 12px; padding: 30px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }}
-                .header {{ text-align: center; margin-bottom: 30px; }}
-                .logo {{ font-size: 32px; font-weight: bold; background: linear-gradient(45deg, #00d4ff, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }}
-                .subtitle {{ color: #888; font-size: 16px; }}
-                .verification-code {{ background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); color: white; font-size: 36px; font-weight: bold; text-align: center; padding: 20px; border-radius: 8px; margin: 30px 0; letter-spacing: 8px; }}
-                .message {{ font-size: 16px; line-height: 1.6; margin-bottom: 25px; }}
-                .highlight {{ color: #00d4ff; font-weight: bold; }}
-                .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-size: 14px; color: #888; text-align: center; }}
-                .warning {{ background-color: rgba(255, 107, 107, 0.1); border-left: 4px solid #ff6b6b; padding: 15px; margin: 20px 0; border-radius: 4px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <div class="logo">🚀 ASCENDED TECH LAB</div>
-                    <div class="subtitle">Welcome to the Future of Learning</div>
-                </div>
-                
-                <div class="message">
-                    <p>Hello <span class="highlight">{username}</span>,</p>
-                    <p>Welcome to Ascended Tech Lab! You're just one step away from accessing our cutting-edge learning platform.</p>
-                    <p>Please use the verification code below to complete your account setup:</p>
-                </div>
-                
-                <div class="verification-code">
-                    {verification_code}
-                </div>
-                
-                <div class="message">
-                    <p>Enter this code in the verification field to activate your account and start your journey through our interactive learning rooms:</p>
-                    <ul style="color: #ccc; margin: 15px 0;">
-                        <li><strong>Aitrix Room</strong> - Master AI fundamentals</li>
-                        <li><strong>CodeVance Room</strong> - Advanced programming challenges</li>
-                        <li><strong>Flowchart Room</strong> - Logic and algorithm design</li>
-                        <li><strong>NetXus Room</strong> - Network and system administration</li>
-                        <li><strong>SchemaX Room</strong> - Database design and management</li>
-                    </ul>
-                </div>
-                
-                <div class="warning">
-                    <strong>⚠️ Security Notice:</strong> This verification code will expire in 15 minutes. If you didn't request this verification, please ignore this email.
-                </div>
-                
-                <div class="footer">
-                    <p>This email was sent from Ascended Tech Lab</p>
-                    <p>If you have any questions, contact our support team.</p>
-                    <p style="margin-top: 15px; color: #555;">© 2025 Ascended Tech Lab. All rights reserved.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-        
-        print(f"📤 Sending email via Resend...")
-        result = resend.Emails.send({
-            "from": "onboarding@resend.dev",  # Using Resend's test domain
-            "to": email,
-            "subject": f"🚀 Verify Your Ascended Tech Lab Account - Code: {verification_code}",
-            "html": html_content
-        })
-        
-        print(f"✅ Verification email sent successfully to {email}")
-        print(f"📧 Resend response: {result}")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Failed to send verification email: {str(e)}")
-        print(f"📋 Error type: {type(e)}")
-        import traceback
-        print(f"📋 Full traceback: {traceback.format_exc()}")
-        return False
-
-def store_verification_code(email, code):
-    """Store verification code in database with expiration"""
-    try:
-        # Use UTC for consistent timezone handling
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)  # 15 minute expiration
-        
-        # Delete any existing verification codes for this email
-        sb_delete('verification_codes', filters={'email': email})
-        
-        # Store new verification code
-        verification_data = {
-            'email': email,
-            'code': code,
-            'expires_at': expires_at.isoformat(),
-            'used': False,
-            'created_at': datetime.now(timezone.utc).isoformat()
-        }
-        
-        sb_insert('verification_codes', verification_data)
-        return True
-        
-    except Exception as e:
-        print(f"❌ Failed to store verification code: {str(e)}")
-        return False
-
-def verify_code(email, provided_code):
-    """Verify the provided code against stored code"""
-    try:
-        # Find valid verification code
-        codes = sb_select('verification_codes', filters={
-            'email': email,
-            'code': provided_code,
-            'used': False
-        })
-        
-        if not codes:
-            return False
-        
-        code_data = codes[0]
-        
-        # Check if expired - handle timezone properly
-        expires_at_str = code_data['expires_at']
-        
-        # Parse the expiration time
-        try:
-            if expires_at_str.endswith('Z'):
-                # UTC timestamp with Z suffix
-                expires_at = datetime.fromisoformat(expires_at_str[:-1] + '+00:00')
-            elif '+' in expires_at_str or expires_at_str.endswith('+00:00'):
-                # Already has timezone info
-                expires_at = datetime.fromisoformat(expires_at_str)
-            else:
-                # No timezone info, assume UTC
-                expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
-        except ValueError:
-            # Fallback: try parsing without timezone and assume UTC
-            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '')).replace(tzinfo=timezone.utc)
-            
-        # Compare with current UTC time
-        current_time = datetime.now(timezone.utc)
-        if current_time > expires_at:
-            # Mark as used to prevent reuse
-            sb_update('verification_codes', {'used': True}, 
-                     match_column='id', match_value=code_data['id'])
-            return False
-        
-        # Mark code as used
-        sb_update('verification_codes', {'used': True}, 
-                 match_column='id', match_value=code_data['id'])
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Failed to verify code: {str(e)}")
-        import traceback
-        print(f"📋 Full traceback: {traceback.format_exc()}")
-        return False
 
 # Authentication endpoints
 @app.route('/api/auth/register', methods=['POST'])
 def register_user():
-    """First step: Send verification code to email"""
+    """Direct user registration without email verification"""
     try:
         data = request.get_json()
         if not data:
@@ -426,38 +248,30 @@ def register_user():
         if existing_name:
             return jsonify({'error': 'Username already exists'}), 400
 
-        # Generate and send verification code
-        verification_code = generate_verification_code()
-        
-        # Store user data temporarily (we'll create the actual user after verification)
-        temp_user_data = {
-            'username': username,
+        # Create the user account directly (no email verification required)
+        user_row = {
+            'name': username,
             'email': email,
             'password_hash': hash_password(password),
-            'verification_code': verification_code,
-            'expires_at': (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
-            'created_at': datetime.now(timezone.utc).isoformat()
+            'role': 'user',
+            'is_active': True,
+            'total_score': 0,
+            'current_streak': 0,
+            'email_verified': True,  # Mark as verified since we're bypassing email
+            'created_at': datetime.now().isoformat()
         }
         
-        # Delete any existing temp registration for this email
-        sb_delete('temp_registrations', filters={'email': email})
-        
-        # Store temporary registration
-        sb_insert('temp_registrations', temp_user_data)
-        
-        # Store verification code
-        if store_verification_code(email, verification_code):
-            # Send verification email
-            if send_verification_email(email, verification_code, username):
-                return jsonify({
-                    'message': 'Verification code sent to your email',
-                    'email': email,
-                    'requires_verification': True
-                }), 200
-            else:
-                return jsonify({'error': 'Failed to send verification email. Please try again.'}), 500
-        else:
-            return jsonify({'error': 'Failed to generate verification code. Please try again.'}), 500
+        inserted = sb_insert('users', user_row)
+        user_id = inserted[0].get('id') if inserted else None
+
+        return jsonify({
+            'message': 'Registration completed successfully!',
+            'user': {
+                'id': user_id,
+                'username': username,
+                'email': email
+            }
+        }), 201
     
     except Exception as e:
         print(f"Registration error: {str(e)}")
@@ -466,7 +280,7 @@ def register_user():
 
 @app.route('/api/auth/verify-email', methods=['POST'])
 def verify_email():
-    """Second step: Verify code and complete registration"""
+    """Dummy endpoint - email verification disabled"""
     try:
         data = request.get_json()
         if not data:
@@ -478,70 +292,21 @@ def verify_email():
         if not email or not verification_code:
             return jsonify({'error': 'Email and verification code are required'}), 400
 
-        # Verify the code
-        if not verify_code(email, verification_code):
-            return jsonify({'error': 'Invalid or expired verification code'}), 400
-
-        # Get temporary registration data
-        temp_registrations = sb_select('temp_registrations', filters={'email': email})
-        if not temp_registrations:
-            return jsonify({'error': 'No pending registration found for this email'}), 400
-
-        temp_data = temp_registrations[0]
-        
-        # Check if temporary registration expired
-        expires_at_str = temp_data['expires_at']
-        try:
-            if expires_at_str.endswith('Z'):
-                expires_at = datetime.fromisoformat(expires_at_str[:-1] + '+00:00')
-            elif '+' in expires_at_str:
-                expires_at = datetime.fromisoformat(expires_at_str)
-            else:
-                expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=timezone.utc)
-        except ValueError:
-            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '')).replace(tzinfo=timezone.utc)
-            
-        if datetime.now(timezone.utc) > expires_at:
-            # Clean up expired registration
-            sb_delete('temp_registrations', filters={'email': email})
-            return jsonify({'error': 'Registration session expired. Please start registration again.'}), 400
-
-        # Create the actual user account
-        user_row = {
-            'name': temp_data['username'],
-            'email': temp_data['email'],
-            'password_hash': temp_data['password_hash'],
-            'role': 'user',
-            'is_active': True,
-            'total_score': 0,
-            'current_streak': 0,
-            'email_verified': True,
-            'created_at': datetime.now().isoformat()
-        }
-        
-        inserted = sb_insert('users', user_row)
-        user_id = inserted[0].get('id') if inserted else None
-
-        # Clean up temporary registration
-        sb_delete('temp_registrations', filters={'email': email})
-
+        # Since email verification is disabled, just return success
         return jsonify({
-            'message': 'Email verified and registration completed successfully!',
+            'message': 'Email verification bypassed - registration already completed',
             'user': {
-                'id': user_id,
-                'username': temp_data['username'],
-                'email': temp_data['email']
+                'email': email
             }
-        }), 201
+        }), 200
     
     except Exception as e:
-        print(f"Email verification error: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': f'Email verification failed: {str(e)}'}), 500
+        print(f"Verify email error: {str(e)}")
+        return jsonify({'error': f'Verification failed: {str(e)}'}), 500
 
 @app.route('/api/auth/resend-code', methods=['POST'])
 def resend_verification_code():
-    """Resend verification code"""
+    """Dummy endpoint - email verification disabled"""
     try:
         data = request.get_json()
         if not data:
@@ -552,31 +317,8 @@ def resend_verification_code():
         if not email:
             return jsonify({'error': 'Email is required'}), 400
 
-        # Check if there's a pending registration
-        temp_registrations = sb_select('temp_registrations', filters={'email': email})
-        if not temp_registrations:
-            return jsonify({'error': 'No pending registration found for this email'}), 400
-
-        temp_data = temp_registrations[0]
-        
-        # Generate new verification code
-        verification_code = generate_verification_code()
-        
-        # Update temporary registration with new code and extended expiry
-        sb_update('temp_registrations', {
-            'verification_code': verification_code,
-            'expires_at': (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
-        }, filters={'email': email})
-        
-        # Store new verification code
-        if store_verification_code(email, verification_code):
-            # Send verification email
-            if send_verification_email(email, verification_code, temp_data['username']):
-                return jsonify({'message': 'New verification code sent to your email'}), 200
-            else:
-                return jsonify({'error': 'Failed to send verification email. Please try again.'}), 500
-        else:
-            return jsonify({'error': 'Failed to generate verification code. Please try again.'}), 500
+        # Since email verification is disabled, just return success
+        return jsonify({'message': 'Email verification is disabled - no code needed'}), 200
     
     except Exception as e:
         print(f"Resend code error: {str(e)}")
