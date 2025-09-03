@@ -12,6 +12,10 @@
     {
       "src": "static/**",
       "use": "@vercel/static"
+    },
+    {
+      "src": "src/**/*.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
