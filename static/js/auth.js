@@ -44,6 +44,63 @@ class AuthService {
         }
     }
 
+    async verifyEmail(email, verificationCode) {
+        try {
+            console.log('Attempting email verification:', { email, code: verificationCode });
+            
+            const response = await fetch(`${this.baseURL}/verify-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    code: verificationCode
+                })
+            });
+
+            const result = await response.json();
+            console.log('Email verification response:', result);
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Email verification failed');
+            }
+
+            return result;
+        } catch (error) {
+            console.error('Email verification error:', error);
+            throw error;
+        }
+    }
+
+    async resendVerificationCode(email) {
+        try {
+            console.log('Resending verification code to:', email);
+            
+            const response = await fetch(`${this.baseURL}/resend-code`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email
+                })
+            });
+
+            const result = await response.json();
+            console.log('Resend verification response:', result);
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to resend verification code');
+            }
+
+            return result;
+        } catch (error) {
+            console.error('Resend verification error:', error);
+            throw error;
+        }
+    }
+
     async login(username, password = '') {
         try {
             console.log(`Attempting login for: ${username}, with password: ${password ? 'yes' : 'no'}`);
