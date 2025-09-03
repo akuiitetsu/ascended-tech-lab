@@ -2197,6 +2197,85 @@ DOWNLOADED: 4612 - FOUND: 4`;
             this.updateAIMessage("Good start on the cloud design! Remember the key principles: scalability, security, and high availability. Each tier needs the right AWS services to handle growth.");
         }
     }
+
+    updateAIMessage(message) {
+        // Update AI message display
+        const aiMessageElement = this.container?.querySelector('#ai-message') || 
+                                this.container?.querySelector('.ai-message') ||
+                                document.querySelector('#ai-message') ||
+                                document.querySelector('.ai-message');
+        
+        if (aiMessageElement) {
+            aiMessageElement.textContent = message;
+        } else {
+            console.log('🤖 AI Message:', message);
+        }
+
+        // Add to conversation history
+        this.conversationHistory.push({
+            role: 'assistant',
+            message: message,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    updateScore(points) {
+        // Update score
+        this.score += points;
+        
+        // Update score display
+        const scoreElement = this.container?.querySelector('#current-score') ||
+                           this.container?.querySelector('.current-score') ||
+                           document.querySelector('#current-score') ||
+                           document.querySelector('.current-score');
+        
+        if (scoreElement) {
+            scoreElement.textContent = this.score.toString();
+        }
+
+        console.log(`🎯 Score updated: +${points} points (Total: ${this.score})`);
+    }
+
+    completeChallenge() {
+        // Mark challenge as completed
+        const completionMessage = `🎉 Challenge Complete! You scored ${this.score} points with ${this.attempts} attempts.`;
+        this.updateAIMessage(completionMessage);
+        
+        // Show completion feedback
+        setTimeout(() => {
+            if (confirm('Challenge completed! Return to level selection?')) {
+                this.showChallengeSelection();
+            }
+        }, 2000);
+    }
+
+    getHint() {
+        // Provide context-specific hints
+        const hintMessages = {
+            'network_config': 'Remember: devices need to be on the same subnet to communicate directly. Try using IP addresses like 192.168.1.10 and 192.168.1.20.',
+            'security_quiz': 'Think about password complexity: length, mixed case, numbers, and special characters make passwords stronger.',
+            'matching': 'Consider what each operating system is typically used for: gaming, servers, or creative work.',
+            'network_builder': 'Follow the steps in order: physical connections first, then IP configuration, finally connectivity testing.',
+            'scenario_quiz': 'When in doubt about security, always choose the safest option that verifies through official channels.'
+        };
+        
+        const challengeType = this.challengeData?.type;
+        const hint = hintMessages[challengeType] || 'Review the challenge requirements and think about the best approach.';
+        
+        this.updateAIMessage(`💡 Hint: ${hint}`);
+    }
+
+    resetChallenge() {
+        // Reset challenge state
+        this.score = 0;
+        this.attempts = 0;
+        this.currentStep = 0;
+        
+        // Reload the challenge interface
+        this.initChallengeInterface();
+        
+        this.updateAIMessage('Challenge reset! You can start fresh with your learning journey.');
+    }
 }
 
 // Export the class for use by command center
