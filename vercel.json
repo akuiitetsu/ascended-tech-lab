@@ -2,11 +2,20 @@
   "version": 2,
   "name": "ascended-tech-lab",
   "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "static/**", "use": "@vercel/static" }
+    { "src": "app.py", "use": "@vercel/python" },
+    { "src": "static/**", "use": "@vercel/static" },
+    { "src": "src/**", "use": "@vercel/static" },
+    { "src": "index.html", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/static/(.*)", "dest": "/static/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+    { "src": "/src/(.*)", "dest": "/src/$1" },
+    { "src": "/api/(.*)", "dest": "/app.py" },
+    { "src": "/(.*)", "dest": "/app.py" }
+  ],
+  "env": {
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+    "SECRET_KEY": "@secret_key"
+  }
 }
