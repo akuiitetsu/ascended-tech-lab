@@ -124,6 +124,51 @@ body {
     box-shadow: 0 5px 15px rgba(161, 9, 248, 0.3);
 }
 
+/* Send Code Button */
+.send-code-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #10a1fa 0%, #A069FF 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 2;
+    min-width: 80px;
+}
+
+.send-code-btn:hover {
+    background: linear-gradient(135deg, #A069FF 0%, #10a1fa 100%);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.send-code-btn:disabled {
+    background: rgba(255, 255, 255, 0.2);
+    cursor: not-allowed;
+    transform: translateY(-50%);
+}
+
+/* Verification Help Text */
+.verification-help {
+    position: absolute;
+    top: 100%;
+    left: 45px;
+    font-size: 0.75rem;
+    color: rgba(16, 161, 250, 0.8);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Adjust input when there's a button */
+.input-group:has(.send-code-btn) input {
+    padding-right: 100px;
+}
+
 
 /* ============================================
    REGISTER STYLES
