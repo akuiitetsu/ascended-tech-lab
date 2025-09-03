@@ -1,11 +1,38 @@
 from flask import Flask, send_from_directory, request, jsonify, g, session
-import sqlite3
 import os
 import re
 import traceback
 import hashlib
 import secrets
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Supabase client (required)
+try:
+    from supabase import create_client
+    SUPABASE_AVAILABLE = True
+except ImportError as e:
+    print(f"❌ Supabase library not installed: {e}")
+    print("   Please install with: pip install supabase")
+    exit(1)
+
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    print('❌ Missing required environment variables:')
+    print('   SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set')
+    print('   Please configure your Supabase project credentials')
+    exit(1)
+
+try:
+    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    print('✅ Supabase client initialized successfully')
+except Exception as e:
+    print(f'❌ Failed to initialize Supabase client: {str(e)}')
+    exit(1)
 
 # Try to import CORS, but don't fail if not available
 try:
@@ -30,25 +57,133 @@ def after_request(response):
         response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# Database configuration
-DATABASE = 'database.db'
+# Enhanced Supabase helper functions
+def sb_select(table, select='*', filters=None, order=None, limit=None, joins=None):
+    """Enhanced select with joins support"""
+    try:
+        query = supabase.table(table).select(select)
+        
+        if filters:
+            for k, v in filters.items():
+                if isinstance(v, list):
+                    query = query.in_(k, v)
+                else:
+                    query = query.eq(k, v)
+        
+        if order:
+            desc = order.startswith('-')
+            column = order.lstrip('-')
+            query = query.order(column, desc=desc)
+        
+        if limit:
+            query = query.limit(limit)
+            
+        response = query.execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"Supabase select error: {str(e)}")
+        raise Exception(f"Database query failed: {str(e)}")
 
-def get_db():
-    """Get database connection"""
-    if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE)
-        g.db.row_factory = sqlite3.Row
-    return g.db
+def sb_insert(table, row):
+    """Insert a row into Supabase table"""
+    try:
+        response = supabase.table(table).insert(row).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"Supabase insert error: {str(e)}")
+        raise Exception(f"Database insert failed: {str(e)}")
 
-def close_db(e=None):
-    """Close database connection"""
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
+def sb_update(table, row, match_column='id', match_value=None, filters=None):
+    """Update rows in Supabase table"""
+    try:
+        query = supabase.table(table).update(row)
+        
+        if filters:
+            for k, v in filters.items():
+                query = query.eq(k, v)
+        elif match_column and match_value is not None:
+            query = query.eq(match_column, match_value)
+        
+        response = query.execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"Supabase update error: {str(e)}")
+        raise Exception(f"Database update failed: {str(e)}")
 
-@app.teardown_appcontext
-def close_db_handler(error):
-    close_db()
+def sb_delete(table, match_column='id', match_value=None, filters=None):
+    """Delete rows from Supabase table"""
+    try:
+        query = supabase.table(table).delete()
+        
+        if filters:
+            for k, v in filters.items():
+                query = query.eq(k, v)
+        elif match_column and match_value is not None:
+            query = query.eq(match_column, match_value)
+        
+        response = query.execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"Supabase delete error: {str(e)}")
+        raise Exception(f"Database delete failed: {str(e)}")
+
+def sb_rpc(function_name, params=None):
+    """Execute a Supabase RPC function"""
+    try:
+        response = supabase.rpc(function_name, params or {}).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"Supabase RPC error: {str(e)}")
+        raise Exception(f"Database function call failed: {str(e)}")
+
+def create_admin_user():
+    """Create default admin user in Supabase if none exists"""
+    try:
+        # Check if admin exists
+        admin_users = sb_select('users', filters={'role': 'admin'})
+        
+        if not admin_users:
+            print("Creating default admin user in Supabase...")
+            admin_password = hash_password("admin123")
+            admin_data = {
+                'name': 'admin',
+                'email': 'admin@ascended.tech',
+                'password_hash': admin_password,
+                'role': 'admin',
+                'is_active': True,
+                'total_score': 0,
+                'current_streak': 0,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            sb_insert('users', admin_data)
+            print("✅ Default admin user created in Supabase:")
+            print("   Username: admin")
+            print("   Email: admin@ascended.tech")
+            print("   Password: admin123")
+            print("   Role: admin")
+            print("\n🚨 IMPORTANT: Change the default admin password immediately!")
+        else:
+            print("✅ Admin user already exists in Supabase")
+    except Exception as e:
+        print(f"❌ Error creating admin user: {str(e)}")
+
+# Initialize Supabase connection and admin user
+def init_supabase():
+    """Initialize Supabase connection and create admin user if needed"""
+    try:
+        # Test connection
+        sb_select('users', limit=1)
+        print('✅ Supabase connection verified')
+        
+        # Create admin user if needed
+        create_admin_user()
+        
+        return True
+    except Exception as e:
+        print(f'❌ Supabase initialization failed: {str(e)}')
+        print('   Please ensure your database schema is properly set up')
+        return False
 
 def hash_password(password):
     """Hash a password for storing"""
@@ -62,240 +197,58 @@ def generate_session_token():
     """Generate a secure session token"""
     return secrets.token_urlsafe(32)
 
-def init_db():
-    """Initialize database with tables - simplified schema that works with existing code"""
-    db = sqlite3.connect(DATABASE)
-    db.row_factory = sqlite3.Row
-    
-    # Create tables if they don't exist
-    db.executescript('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT,
-            user_id INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS user_progress (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            room_name TEXT NOT NULL,
-            progress_percentage INTEGER DEFAULT 0,
-            completed BOOLEAN DEFAULT 0,
-            last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id),
-            UNIQUE(user_id, room_name)
-        );
-        
-        CREATE TABLE IF NOT EXISTS badges (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            badge_name TEXT NOT NULL,
-            badge_type TEXT DEFAULT 'achievement',
-            earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS admin_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            session_token TEXT UNIQUE NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            expires_at TIMESTAMP NOT NULL,
-            is_active BOOLEAN DEFAULT 1,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS admin_actions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_user_id INTEGER NOT NULL,
-            action_type TEXT NOT NULL,
-            target_user_id INTEGER,
-            description TEXT,
-            ip_address TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (admin_user_id) REFERENCES users (id),
-            FOREIGN KEY (target_user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS system_health (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            metric_name TEXT NOT NULL,
-            metric_value TEXT NOT NULL,
-            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS user_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            session_end TIMESTAMP,
-            duration_minutes INTEGER,
-            rooms_visited TEXT,
-            is_active BOOLEAN DEFAULT 1,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-    ''')
-    
-    # Add columns if they don't exist (schema migration)
-    cursor = db.cursor()
-    
-    # Check and add missing columns to users table
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
-        print("Added password_hash column")
-    except sqlite3.OperationalError:
-        pass  # Column already exists
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
-        print("Added role column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1")
-        print("Added is_active column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
-        print("Added last_login column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN total_score INTEGER DEFAULT 0")
-        print("Added total_score column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN current_streak INTEGER DEFAULT 0")
-        print("Added current_streak column")
-    except sqlite3.OperationalError:
-        pass
-    
-    # Create default admin user if none exists
-    admin_count = cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'").fetchone()[0]
-    
-    if admin_count == 0:
-        print("Creating default admin user...")
-        admin_password = hash_password("admin123")
-        cursor.execute('''
-            INSERT INTO users (name, email, password_hash, role, is_active, total_score, current_streak)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', ("admin", "admin@ascended.tech", admin_password, "admin", 1, 0, 0))
-        print("✅ Default admin user created:")
-        print("   Username: admin")
-        print("   Email: admin@ascended.tech") 
-        print("   Password: admin123")
-        print("   Role: admin")
-        print("\n🚨 IMPORTANT: Change the default admin password immediately!")
-    
-    db.commit()
-    db.close()
-
-def get_user_columns():
-    """Get the list of columns in the users table"""
-    db = get_db()
-    cursor = db.execute("PRAGMA table_info(users)")
-    columns = [row[1] for row in cursor.fetchall()]
-    return columns
-
 # Authentication endpoints
 @app.route('/api/auth/register', methods=['POST'])
 def register_user():
     try:
         data = request.get_json()
-        print(f"Registration attempt: {data}")
-        
         if not data:
             return jsonify({'error': 'No data provided'}), 400
-        
-        # Use 'name' field to match existing schema
+
         username = data.get('username', '').strip()
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
-        
+
         if not username or not email or not password:
             return jsonify({'error': 'Username, email, and password are required'}), 400
-        
-        # Validate email format
+
         email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
         if not re.match(email_pattern, email):
             return jsonify({'error': 'Invalid email format'}), 400
-        
-        # Validate username (alphanumeric and underscore only)
+
         if not re.match(r'^[a-zA-Z0-9_]{3,20}$', username):
             return jsonify({'error': 'Username must be 3-20 characters (letters, numbers, underscore only)'}), 400
-        
-        # Validate password strength
-        if len(password) < 3:  # Simple validation for demo
+
+        if len(password) < 3:
             return jsonify({'error': 'Password must be at least 3 characters long'}), 400
+
+        # Check existing username/email
+        existing = sb_select('users', select='id', filters={'email': email})
+        if existing:
+            return jsonify({'error': 'Email already exists'}), 400
         
-        db = get_db()
-        
-        # Check if user already exists (using 'name' column)
-        existing_user = db.execute(
-            'SELECT id FROM users WHERE LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?)',
-            (username, email)
-        ).fetchone()
-        
-        if existing_user:
-            return jsonify({'error': 'Username or email already exists'}), 400
-        
-        # Get available columns
-        columns = get_user_columns()
-        
-        # Build insert query based on available columns
-        base_columns = ['name', 'email']
-        base_values = [username, email]
-        
-        if 'password_hash' in columns and password:
-            password_hash = hash_password(password)
-            base_columns.append('password_hash')
-            base_values.append(password_hash)
-        
-        if 'last_login' in columns:
-            base_columns.append('last_login')
-            placeholders = ', '.join(['?' if col != 'last_login' else 'CURRENT_TIMESTAMP' for col in base_columns])
-            base_values = [v for v in base_values if v != 'CURRENT_TIMESTAMP']
-        else:
-            placeholders = ', '.join(['?' for _ in base_columns])
-        
-        query = f"INSERT INTO users ({', '.join(base_columns)}) VALUES ({placeholders})"
-        print(f"Insert query: {query}")
-        print(f"Values: {base_values}")
-        
-        cursor = db.execute(query, base_values)
-        db.commit()
-        user_id = cursor.lastrowid
-        
-        print(f"User registered successfully: ID {user_id}, Username: {username}")
-        
-        return jsonify({
-            'message': 'Registration successful',
-            'user': {
-                'id': user_id,
-                'username': username,  # Return as username for frontend
-                'email': email
-            }
-        }), 201
-        
+        existing_name = sb_select('users', select='id', filters={'name': username})
+        if existing_name:
+            return jsonify({'error': 'Username already exists'}), 400
+
+        row = {
+            'name': username,
+            'email': email,
+            'password_hash': hash_password(password),
+            'role': 'user',
+            'is_active': True,
+            'total_score': 0,
+            'current_streak': 0,
+            'created_at': datetime.now().isoformat()
+        }
+        inserted = sb_insert('users', row)
+        user_id = inserted[0].get('id') if inserted else None
+
+        return jsonify({'message': 'Registration successful', 'user': {'id': user_id, 'username': username, 'email': email}}), 201
+    
     except Exception as e:
         print(f"Registration error: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        print(traceback.format_exc())
         return jsonify({'error': f'Registration failed: {str(e)}'}), 500
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -315,78 +268,47 @@ def login_user():
         if not password:
             return jsonify({'error': 'Password is required'}), 400
         
-        db = get_db()
-        columns = get_user_columns()
-        
-        # Find user by name or email (using 'name' column) - case-insensitive
-        user_row = db.execute('''
-            SELECT * FROM users 
-            WHERE (LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?))
-        ''', (username, username)).fetchone()
+        # Try to find by email or name
+        users_by_email = sb_select('users', filters={'email': username})
+        user_row = users_by_email[0] if users_by_email else None
         
         if not user_row:
-            print(f"❌ User not found: {username}")
+            users_by_name = sb_select('users', filters={'name': username})
+            user_row = users_by_name[0] if users_by_name else None
+
+        if not user_row:
             return jsonify({'error': 'User not found'}), 404
-        
-        # Convert to dict for easier access
-        user_dict = dict(user_row)
-        user_role = user_dict.get('role', 'user')
-        
-        print(f"✅ Found user: {user_dict['name']}")
-        print(f"📋 Current role in DB: '{user_role}'")
-        
-        # CRITICAL: Force admin role for admin user
-        if user_dict['name'].lower() == 'admin':
-            print(f"🔧 ADMIN USER DETECTED - Ensuring admin role...")
-            if user_role != 'admin':
-                print(f"🔧 Updating role from '{user_role}' to 'admin'")
-                db.execute('UPDATE users SET role = ? WHERE id = ?', ('admin', user_dict['id']))
-                db.commit()
-                user_role = 'admin'
-                user_dict['role'] = 'admin'
-            print(f"✅ Admin role confirmed: {user_role}")
-        
-        # Check if user is active (if column exists)
-        if 'is_active' in columns and user_dict.get('is_active') == 0:
-            print(f"❌ Account disabled for user: {username}")
-            return jsonify({'error': 'Account is disabled'}), 401
-        
-        # Verify password
-        if 'password_hash' in columns and user_dict.get('password_hash'):
-            if not verify_password(password, user_dict['password_hash']):
-                print(f"❌ Password verification failed for user: {username}")
-                return jsonify({'error': 'Invalid credentials'}), 401
-            print(f"✅ Password verification successful for: {username}")
-        else:
-            print(f"❌ No password hash found for user: {username}")
+
+        user_role = user_row.get('role', 'user')
+
+        # Ensure admin role preserved for admin name
+        if user_row.get('name', '').lower() == 'admin' and user_role != 'admin':
+            sb_update('users', {'role': 'admin'}, match_column='id', match_value=user_row['id'])
+            user_role = 'admin'
+
+        if not user_row.get('password_hash'):
             return jsonify({'error': 'Invalid credentials'}), 401
-        
-        # Update last login if column exists
-        if 'last_login' in columns:
-            db.execute('''
-                UPDATE users 
-                SET last_login = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (user_dict['id'],))
-            db.commit()
-        
-        print(f"🎉 Login successful for user: {user_dict['name']} with role: {user_role}")
-        
+
+        if not verify_password(password, user_row.get('password_hash')):
+            return jsonify({'error': 'Invalid credentials'}), 401
+
+        # Check if user is active
+        if not user_row.get('is_active', True):
+            return jsonify({'error': 'Account is disabled'}), 401
+
+        # Update last_login
+        sb_update('users', {'last_login': datetime.now().isoformat()}, match_column='id', match_value=user_row['id'])
+
         user_data = {
-            'id': user_dict['id'],
-            'username': user_dict['name'],
-            'email': user_dict['email'],
-            'role': user_role,  # This should now be 'admin' for admin user
-            'total_score': user_dict.get('total_score', 0),
-            'current_streak': user_dict.get('current_streak', 0)
+            'id': user_row.get('id'),
+            'username': user_row.get('name'),
+            'email': user_row.get('email'),
+            'role': user_role,
+            'total_score': user_row.get('total_score', 0),
+            'current_streak': user_row.get('current_streak', 0)
         }
-        
-        print(f"📤 Sending user data to frontend: {user_data}")
-        
-        return jsonify({
-            'message': 'Login successful',
-            'user': user_data
-        }), 200
+
+        return jsonify({'message': 'Login successful', 'user': user_data}), 200
         
     except Exception as e:
         print(f"💥 Login error: {str(e)}")
@@ -395,15 +317,17 @@ def login_user():
 # API Routes
 @app.route('/api/users', methods=['GET'])
 def get_users():
-    db = get_db()
-    users = db.execute('SELECT * FROM users ORDER BY created_at DESC').fetchall()
-    return jsonify([dict(user) for user in users])
+    try:
+        users = sb_select('users', order='-created_at', limit=100)
+        return jsonify(users), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users', methods=['POST'])
 def create_user():
     try:
         data = request.get_json()
-        print(f"Received registration data: {data}")  # Debug logging
+        print(f"Received user creation data: {data}")  # Debug logging
         
         if not data:
             print("No data received")
@@ -419,54 +343,28 @@ def create_user():
             print(f"Invalid email format: {data['email']}")
             return jsonify({'error': 'Invalid email format'}), 400
         
-        db = get_db()
-        columns = get_user_columns()
+        # Check duplicates
+        existing_email = sb_select('users', filters={'email': data['email']})
+        if existing_email:
+            return jsonify({'error': 'Email already exists'}), 400
+            
+        existing_name = sb_select('users', filters={'name': data['name']})
+        if existing_name:
+            return jsonify({'error': 'Username already exists'}), 400
+
+        row = {
+            'name': data['name'],
+            'email': data['email'],
+            'role': data.get('role', 'user'),
+            'is_active': data.get('is_active', True),
+            'total_score': data.get('total_score', 0),
+            'current_streak': data.get('current_streak', 0),
+            'created_at': datetime.now().isoformat()
+        }
+        inserted = sb_insert('users', row)
+        user_id = inserted[0].get('id') if inserted else None
+        return jsonify({'id': user_id, 'message': 'User created successfully', 'user': {'id': user_id, 'name': data['name'], 'email': data['email']}}), 201
         
-        # Check if user already exists
-        existing_user = db.execute(
-            'SELECT * FROM users WHERE name = ? OR email = ?',
-            (data['name'], data['email'])
-        ).fetchone()
-        
-        if existing_user:
-            if existing_user['name'].lower() == data['name'].lower():
-                print(f"Username already exists: {data['name']}")
-                return jsonify({'error': 'Username already exists'}), 400
-            else:
-                print(f"Email already exists: {data['email']}")
-                return jsonify({'error': 'Email already exists'}), 400
-        
-        # Build insert query based on available columns
-        base_columns = ['name', 'email']
-        base_values = [data['name'], data['email']]
-        
-        if 'last_login' in columns:
-            base_columns.append('last_login')
-            placeholders = ', '.join(['?' if col != 'last_login' else 'CURRENT_TIMESTAMP' for col in base_columns])
-            base_values_filtered = [v for i, v in enumerate(base_values) if base_columns[i] != 'last_login']
-        else:
-            placeholders = ', '.join(['?' for _ in base_columns])
-            base_values_filtered = base_values
-        
-        query = f"INSERT INTO users ({', '.join(base_columns)}) VALUES ({placeholders})"
-        print(f"Insert query: {query}")
-        print(f"Values: {base_values_filtered}")
-        
-        cursor = db.execute(query, base_values_filtered)
-        db.commit()
-        
-        user_id = cursor.lastrowid
-        print(f"User created successfully with ID: {user_id}")
-        
-        return jsonify({
-            'id': user_id, 
-            'message': 'User created successfully',
-            'user': {'id': user_id, 'name': data['name'], 'email': data['email']}
-        }), 201
-        
-    except sqlite3.IntegrityError as e:
-        print(f"Database integrity error: {str(e)}")
-        return jsonify({'error': f'Database constraint error: {str(e)}'}), 400
     except Exception as e:
         print(f"Unexpected error during user creation: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
@@ -474,158 +372,197 @@ def create_user():
 
 @app.route('/api/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
-    db = get_db()
-    user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    if user is None:
-        return jsonify({'error': 'User not found'}), 404
-    return jsonify(dict(user))
+    try:
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+        return jsonify(users[0])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-    
-    db = get_db()
-    user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    if user is None:
-        return jsonify({'error': 'User not found'}), 404
-    
     try:
-        db.execute(
-            'UPDATE users SET name = ?, email = ? WHERE id = ?',
-            (data.get('name', user['name']), data.get('email', user['email']), user_id)
-        )
-        db.commit()
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+            
+        # Update user
+        update_data = {}
+        for field in ['name', 'email', 'role', 'is_active', 'total_score', 'current_streak']:
+            if field in data:
+                update_data[field] = data[field]
+                
+        if update_data:
+            sb_update('users', update_data, match_column='id', match_value=user_id)
+            
         return jsonify({'message': 'User updated successfully'})
-    except sqlite3.IntegrityError:
-        return jsonify({'error': 'Email already exists'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
-    db = get_db()
-    user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    if user is None:
-        return jsonify({'error': 'User not found'}), 404
-    
-    db.execute('DELETE FROM users WHERE id = ?', (user_id,))
-    db.commit()
-    return jsonify({'message': 'User deleted successfully'})
+    try:
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+            
+        sb_delete('users', match_column='id', match_value=user_id)
+        return jsonify({'message': 'User deleted successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/items', methods=['GET'])
 def get_items():
-    db = get_db()
-    items = db.execute('''
-        SELECT i.*, u.name as user_name 
-        FROM items i 
-        LEFT JOIN users u ON i.user_id = u.id 
-        ORDER BY i.created_at DESC
-    ''').fetchall()
-    return jsonify([dict(item) for item in items])
+    try:
+        # Use a select with joins to get user names
+        items = sb_select('items', select='*, users(name)', order='-created_at')
+        # Flatten the user data
+        for item in items:
+            if item.get('users'):
+                item['user_name'] = item['users'].get('name') if isinstance(item['users'], dict) else item['users']
+            else:
+                item['user_name'] = None
+        return jsonify(items), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/items', methods=['POST'])
 def create_item():
-    data = request.get_json()
-    if not data or not data.get('title'):
-        return jsonify({'error': 'Title is required'}), 400
-    
-    db = get_db()
-    cursor = db.execute(
-        'INSERT INTO items (title, description, user_id) VALUES (?, ?, ?)',
-        (data['title'], data.get('description'), data.get('user_id'))
-    )
-    db.commit()
-    return jsonify({'id': cursor.lastrowid, 'message': 'Item created successfully'}), 201
+    try:
+        data = request.get_json()
+        if not data or not data.get('title'):
+            return jsonify({'error': 'Title is required'}), 400
+            
+        row = {
+            'title': data['title'], 
+            'description': data.get('description'), 
+            'user_id': data.get('user_id'), 
+            'created_at': datetime.now().isoformat()
+        }
+        inserted = sb_insert('items', row)
+        item_id = inserted[0].get('id') if inserted else None
+        return jsonify({'id': item_id, 'message': 'Item created successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/items/<int:item_id>', methods=['DELETE'])
 def delete_item(item_id):
-    db = get_db()
-    item = db.execute('SELECT * FROM items WHERE id = ?', (item_id,)).fetchone()
-    if item is None:
-        return jsonify({'error': 'Item not found'}), 404
-    
-    db.execute('DELETE FROM items WHERE id = ?', (item_id,))
-    db.commit()
-    return jsonify({'message': 'Item deleted successfully'})
+    try:
+        # Check if item exists
+        items = sb_select('items', filters={'id': item_id})
+        if not items:
+            return jsonify({'error': 'Item not found'}), 404
+            
+        sb_delete('items', match_column='id', match_value=item_id)
+        return jsonify({'message': 'Item deleted successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # User Progress API Routes
 @app.route('/api/users/<int:user_id>/progress', methods=['GET'])
 def get_user_progress(user_id):
     try:
-        db = get_db()
-        
-        # Check if user exists first
-        user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-        if not user:
+        # Ensure user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
             return jsonify({'error': 'User not found'}), 404
+
+        progress = sb_select('user_progress', filters={'user_id': user_id}, order='-last_accessed')
         
-        # Get user progress - simplified query without JOIN since learning_rooms table may not exist
-        progress = db.execute('''
-            SELECT up.*
-            FROM user_progress up
-            WHERE up.user_id = ?
-            ORDER BY up.last_accessed DESC
-        ''', (user_id,)).fetchall()
-        
-        # Convert to list of dictionaries
-        progress_list = []
+        # Normalize the response
         for p in progress:
-            progress_dict = dict(p)
-            # Add default values for missing fields
-            progress_dict['display_name'] = progress_dict.get('room_name', 'Unknown Room')
-            progress_dict['max_score'] = 100  # Default max score
-            progress_list.append(progress_dict)
-        
-        return jsonify(progress_list), 200
+            p['display_name'] = p.get('room_name', 'Unknown Room')
+            p['max_score'] = 100
+            
+        return jsonify(progress), 200
         
     except Exception as e:
         print(f"Get user progress error: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        print(traceback.format_exc())
         return jsonify({'error': f'Failed to get user progress: {str(e)}'}), 500
 
 @app.route('/api/users/<int:user_id>/progress', methods=['POST'])
 def update_user_progress(user_id):
-    data = request.get_json()
-    if not data or not data.get('room_name'):
-        return jsonify({'error': 'Room name is required'}), 400
-    
-    db = get_db()
-    db.execute('''
-        INSERT OR REPLACE INTO user_progress 
-        (user_id, room_name, progress_percentage, completed, last_accessed)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ''', (
-        user_id,
-        data['room_name'],
-        data.get('progress_percentage', 0),
-        data.get('completed', 0)
-    ))
-    db.commit()
-    return jsonify({'message': 'Progress updated successfully'})
+    try:
+        data = request.get_json()
+        if not data or not data.get('room_name'):
+            return jsonify({'error': 'Room name is required'}), 400
+
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Check if progress record already exists
+        existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': data['room_name']})
+        
+        row = {
+            'user_id': user_id,
+            'room_name': data['room_name'],
+            'progress_percentage': data.get('progress_percentage', 0),
+            'completed': bool(data.get('completed', False)),
+            'last_accessed': datetime.now().isoformat()
+        }
+        
+        if existing_progress:
+            # Update existing record
+            sb_update('user_progress', row, filters={'user_id': user_id, 'room_name': data['room_name']})
+            return jsonify({'message': 'Progress updated successfully'}), 200
+        else:
+            # Insert new record
+            inserted = sb_insert('user_progress', row)
+            return jsonify({'message': 'Progress created successfully', 'data': inserted}), 201
+            
+    except Exception as e:
+        print(f"Update user progress error: {str(e)}")
+        return jsonify({'error': f'Failed to update progress: {str(e)}'}), 500
 
 # Badges API Routes
 @app.route('/api/users/<int:user_id>/badges', methods=['GET'])
 def get_user_badges(user_id):
-    db = get_db()
-    badges = db.execute(
-        'SELECT * FROM badges WHERE user_id = ? ORDER BY earned_at DESC',
-        (user_id,)
-    ).fetchall()
-    return jsonify([dict(b) for b in badges])
+    try:
+        # Ensure user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+            
+        badges = sb_select('badges', filters={'user_id': user_id}, order='-earned_at')
+        return jsonify(badges), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users/<int:user_id>/badges', methods=['POST'])
 def award_badge(user_id):
-    data = request.get_json()
-    if not data or not data.get('badge_name'):
-        return jsonify({'error': 'Badge name is required'}), 400
-    
-    db = get_db()
-    cursor = db.execute(
-        'INSERT INTO badges (user_id, badge_name, badge_type) VALUES (?, ?, ?)',
-        (user_id, data['badge_name'], data.get('badge_type', 'achievement'))
-    )
-    db.commit()
-    return jsonify({'id': cursor.lastrowid, 'message': 'Badge awarded successfully'}), 201
+    try:
+        data = request.get_json()
+        if not data or not data.get('badge_name'):
+            return jsonify({'error': 'Badge name is required'}), 400
+
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+
+        row = {
+            'user_id': user_id, 
+            'badge_name': data['badge_name'], 
+            'badge_type': data.get('badge_type', 'achievement'), 
+            'earned_at': datetime.now().isoformat()
+        }
+        inserted = sb_insert('badges', row)
+        badge_id = inserted[0].get('id') if inserted else None
+        return jsonify({'id': badge_id, 'message': 'Badge awarded successfully'}), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Serve static files
 @app.route('/<path:path>')
@@ -640,151 +577,13 @@ def serve_index():
 # Add health check endpoint
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'OK', 'message': 'API is running'})
-
-def init_db():
-    """Initialize database with tables - simplified schema that works with existing code"""
-    db = sqlite3.connect(DATABASE)
-    db.row_factory = sqlite3.Row
-    
-    # Create tables if they don't exist
-    db.executescript('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT,
-            user_id INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS user_progress (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            room_name TEXT NOT NULL,
-            progress_percentage INTEGER DEFAULT 0,
-            completed BOOLEAN DEFAULT 0,
-            last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id),
-            UNIQUE(user_id, room_name)
-        );
-        
-        CREATE TABLE IF NOT EXISTS badges (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            badge_name TEXT NOT NULL,
-            badge_type TEXT DEFAULT 'achievement',
-            earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS admin_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            session_token TEXT UNIQUE NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            expires_at TIMESTAMP NOT NULL,
-            is_active BOOLEAN DEFAULT 1,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS admin_actions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_user_id INTEGER NOT NULL,
-            action_type TEXT NOT NULL,
-            target_user_id INTEGER,
-            description TEXT,
-            ip_address TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (admin_user_id) REFERENCES users (id),
-            FOREIGN KEY (target_user_id) REFERENCES users (id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS system_health (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            metric_name TEXT NOT NULL,
-            metric_value TEXT NOT NULL,
-            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS user_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            session_end TIMESTAMP,
-            duration_minutes INTEGER,
-            rooms_visited TEXT,
-            is_active BOOLEAN DEFAULT 1,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-    ''')
-    
-    # Add columns if they don't exist (schema migration)
-    cursor = db.cursor()
-    
-    # Check and add missing columns to users table
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
-        print("Added password_hash column")
-    except sqlite3.OperationalError:
-        pass  # Column already exists
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
-        print("Added role column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1")
-        print("Added is_active column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
-        print("Added last_login column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN total_score INTEGER DEFAULT 0")
-        print("Added total_score column")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN current_streak INTEGER DEFAULT 0")
-        print("Added current_streak column")
-    except sqlite3.OperationalError:
-        pass
-    
-    # Create default admin user if none exists
-    admin_count = cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'").fetchone()[0]
-    
-    if admin_count == 0:
-        print("Creating default admin user...")
-        admin_password = hash_password("admin123")
-        cursor.execute('''
-            INSERT INTO users (name, email, password_hash, role, is_active, total_score, current_streak)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', ("admin", "admin@ascended.tech", admin_password, "admin", 1, 0, 0))
-        print("✅ Default admin user created:")
-        print("   Username: admin")
-        print("   Email: admin@ascended.tech") 
-        print("   Password: admin123")
-        print("   Role: admin")
-        print("\n🚨 IMPORTANT: Change the default admin password immediately!")
-    
-    db.commit()
-    db.close()
+    db_status = 'OK' if supabase else 'Not configured'
+    return jsonify({
+        'status': 'OK', 
+        'message': 'API is running',
+        'database': 'Supabase',
+        'db_status': db_status
+    })
 
 # Admin Authentication Middleware
 def require_admin():
@@ -796,35 +595,54 @@ def require_admin():
                 return jsonify({'error': 'Admin authentication required'}), 401
             
             token = auth_header.split(' ')[1]
-            db = get_db()
             
-            # Verify admin session
-            session_data = db.execute('''
-                SELECT s.*, u.role FROM admin_sessions s
-                JOIN users u ON s.user_id = u.id
-                WHERE s.session_token = ? AND s.is_active = 1 
-                AND s.expires_at > CURRENT_TIMESTAMP
-                AND u.role = 'admin'
-            ''', (token,)).fetchone()
-            
-            if not session_data:
-                return jsonify({'error': 'Invalid or expired admin session'}), 401
-            
-            g.admin_user_id = session_data['user_id']
-            return f(*args, **kwargs)
+            # Verify admin session using Supabase
+            try:
+                sessions = sb_select('admin_sessions', 
+                    select='admin_sessions.*, users.role',
+                    filters={'session_token': token, 'is_active': True}
+                )
+                
+                if not sessions:
+                    return jsonify({'error': 'Invalid or expired admin session'}), 401
+                
+                session_data = sessions[0]
+                
+                # Check if session is expired
+                expires_at = datetime.fromisoformat(session_data['expires_at'].replace('Z', '+00:00'))
+                if expires_at < datetime.now():
+                    return jsonify({'error': 'Session expired'}), 401
+                
+                # Check if user has admin role
+                user = sb_select('users', filters={'id': session_data['user_id']})
+                if not user or user[0].get('role') != 'admin':
+                    return jsonify({'error': 'Admin privileges required'}), 401
+                
+                g.admin_user_id = session_data['user_id']
+                return f(*args, **kwargs)
+                
+            except Exception as e:
+                print(f"Admin auth error: {str(e)}")
+                return jsonify({'error': 'Authentication failed'}), 401
+        
         wrapper.__name__ = f.__name__
         return wrapper
     return decorator
 
 def log_admin_action(action_type, description, target_user_id=None):
     """Log admin actions for audit trail"""
-    db = get_db()
-    ip_address = request.remote_addr
-    db.execute('''
-        INSERT INTO admin_actions (admin_user_id, action_type, target_user_id, description, ip_address)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (g.admin_user_id, action_type, target_user_id, description, ip_address))
-    db.commit()
+    try:
+        action_data = {
+            'admin_user_id': g.admin_user_id,
+            'action_type': action_type,
+            'target_user_id': target_user_id,
+            'description': description,
+            'ip_address': request.remote_addr,
+            'timestamp': datetime.now().isoformat()
+        }
+        sb_insert('admin_actions', action_data)
+    except Exception as e:
+        print(f"Failed to log admin action: {str(e)}")
 
 # Admin Authentication Endpoints
 @app.route('/api/admin/auth/login', methods=['POST'])
@@ -841,53 +659,49 @@ def admin_login():
         if not username or not password:
             return jsonify({'error': 'Username and password are required'}), 400
         
-        db = get_db()
-        
         # Find admin user
-        user_row = db.execute('''
-            SELECT * FROM users 
-            WHERE (LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?))
-            AND role = 'admin' AND is_active = 1
-        ''', (username, username)).fetchone()
+        users_by_email = sb_select('users', filters={'email': username, 'role': 'admin', 'is_active': True})
+        user_row = users_by_email[0] if users_by_email else None
+        
+        if not user_row:
+            users_by_name = sb_select('users', filters={'name': username, 'role': 'admin', 'is_active': True})
+            user_row = users_by_name[0] if users_by_name else None
         
         if not user_row:
             return jsonify({'error': 'Admin user not found or inactive'}), 404
         
-        user_dict = dict(user_row)
-        
         # Verify password
-        if not verify_password(password, user_dict['password_hash']):
+        if not verify_password(password, user_row['password_hash']):
             return jsonify({'error': 'Invalid credentials'}), 401
         
         # Create admin session
         session_token = generate_session_token()
         expires_at = datetime.now() + timedelta(hours=8)  # 8 hour session
         
-        db.execute('''
-            INSERT INTO admin_sessions (user_id, session_token, expires_at)
-            VALUES (?, ?, ?)
-        ''', (user_dict['id'], session_token, expires_at))
+        session_data = {
+            'user_id': user_row['id'],
+            'session_token': session_token,
+            'expires_at': expires_at.isoformat(),
+            'is_active': True,
+            'created_at': datetime.now().isoformat()
+        }
+        sb_insert('admin_sessions', session_data)
         
         # Update last login
-        db.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user_dict['id'],))
-        db.commit()
+        sb_update('users', {'last_login': datetime.now().isoformat()}, match_column='id', match_value=user_row['id'])
         
         # Log admin login
-        db.execute('''
-            INSERT INTO admin_actions (admin_user_id, action_type, description, ip_address)
-            VALUES (?, ?, ?, ?)
-        ''', (user_dict['id'], 'LOGIN', f"Admin login successful", request.remote_addr))
-        db.commit()
+        log_admin_action('LOGIN', f"Admin login successful")
         
         return jsonify({
             'message': 'Admin login successful',
             'token': session_token,
             'expires_at': expires_at.isoformat(),
             'user': {
-                'id': user_dict['id'],
-                'username': user_dict['name'],
-                'email': user_dict['email'],
-                'role': user_dict['role']
+                'id': user_row['id'],
+                'username': user_row['name'],
+                'email': user_row['email'],
+                'role': user_row['role']
             }
         }), 200
         
@@ -897,59 +711,56 @@ def admin_login():
 
 # Enhanced User Management Endpoints
 @app.route('/api/admin/users', methods=['GET'])
+@require_admin()
 def admin_get_users():
     """Enhanced user listing with admin details"""
     try:
-        db = get_db()
-        users = db.execute('''
-            SELECT u.*, 
-                   COUNT(DISTINCT p.id) as progress_count,
-                   COUNT(DISTINCT b.id) as badges_count,
-                   AVG(CASE WHEN p.progress_percentage IS NOT NULL 
-                       THEN p.progress_percentage ELSE 0 END) as avg_progress
-            FROM users u
-            LEFT JOIN user_progress p ON u.id = p.user_id  
-            LEFT JOIN badges b ON u.id = b.user_id
-            GROUP BY u.id
-            ORDER BY u.created_at DESC
-        ''').fetchall()
+        # Get all users with calculated progress and badge counts
+        users = sb_select('users', order='-created_at')
         
-        user_list = []
+        # Enrich user data with progress and badge counts
         for user in users:
-            user_dict = dict(user)
-            user_dict['avg_progress'] = round(user_dict['avg_progress'] or 0, 1)
-            user_list.append(user_dict)
+            user_id = user['id']
             
-        return jsonify(user_list), 200
+            # Get progress count and average
+            progress_records = sb_select('user_progress', filters={'user_id': user_id})
+            user['progress_count'] = len(progress_records)
+            
+            if progress_records:
+                avg_progress = sum(p.get('progress_percentage', 0) for p in progress_records) / len(progress_records)
+                user['avg_progress'] = round(avg_progress, 1)
+            else:
+                user['avg_progress'] = 0.0
+            
+            # Get badge count
+            badges = sb_select('badges', filters={'user_id': user_id})
+            user['badges_count'] = len(badges)
+            
+        return jsonify(users), 200
     except Exception as e:
         print(f"Admin get users error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/users/<int:user_id>/promote', methods=['POST'])
+@require_admin()
 def promote_user(user_id):
     """Promote user to admin"""
     try:
-        db = get_db()
-        
         # Check if user exists
-        user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-        if not user:
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
             return jsonify({'error': 'User not found'}), 404
             
-        # Toggle admin status
-        new_role = 'admin' if user['role'] != 'admin' else 'user'
+        user = users[0]
         
-        db.execute('UPDATE users SET role = ? WHERE id = ?', (new_role, user_id))
-        db.commit()
+        # Toggle admin status
+        new_role = 'admin' if user.get('role') != 'admin' else 'user'
+        
+        sb_update('users', {'role': new_role}, match_column='id', match_value=user_id)
         
         # Log admin action
-        admin_id = g.get('admin_user_id', 1)  # Default to admin user
-        db.execute('''
-            INSERT INTO admin_actions (admin_user_id, action_type, target_user_id, description, ip_address)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (admin_id, 'PROMOTE_USER' if new_role == 'admin' else 'DEMOTE_USER', 
-              user_id, f"Changed user role to {new_role}", request.remote_addr))
-        db.commit()
+        action_type = 'PROMOTE_USER' if new_role == 'admin' else 'DEMOTE_USER'
+        log_admin_action(action_type, f"Changed user role to {new_role}", target_user_id=user_id)
         
         return jsonify({
             'message': f'User {"promoted to admin" if new_role == "admin" else "demoted to user"}',
@@ -964,65 +775,81 @@ def promote_user(user_id):
 def get_analytics_overview():
     """Get comprehensive analytics overview"""
     try:
-        db = get_db()
+        timeframe = int(request.args.get('timeframe', 30))  # days
+        
+        # Calculate date threshold
+        date_threshold = datetime.now() - timedelta(days=timeframe)
+        date_str = date_threshold.isoformat()
         
         # User statistics
-        total_users = db.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-        week_ago = datetime.now() - timedelta(days=7)
-        new_users_week = db.execute(
-            'SELECT COUNT(*) FROM users WHERE created_at > ?', 
-            (week_ago.isoformat(),)
-        ).fetchone()[0]
+        all_users = sb_select('users')
+        total_users = len(all_users)
         
-        # Active users (users with recent activity)
-        active_users = db.execute('''
-            SELECT COUNT(DISTINCT user_id) FROM user_progress 
-            WHERE last_accessed > ?
-        ''', (week_ago.isoformat(),)).fetchone()[0]
+        new_users = [u for u in all_users if u.get('created_at', '') > date_str]
+        new_users_count = len(new_users)
+        
+        # Active users (users with recent progress activity)
+        all_progress = sb_select('user_progress')
+        recent_progress = [p for p in all_progress if p.get('last_accessed', '') > date_str]
+        active_users = len(set(p.get('user_id') for p in recent_progress))
         
         # Progress statistics
-        avg_progress = db.execute('''
-            SELECT AVG(progress_percentage) FROM user_progress
-        ''').fetchone()[0] or 0
+        if all_progress:
+            avg_progress = sum(p.get('progress_percentage', 0) for p in all_progress) / len(all_progress)
+        else:
+            avg_progress = 0
         
         # Popular rooms
-        popular_rooms = db.execute('''
-            SELECT room_name, COUNT(*) as access_count,
-                   AVG(progress_percentage) as avg_progress
-            FROM user_progress 
-            GROUP BY room_name
-            ORDER BY access_count DESC
-            LIMIT 5
-        ''').fetchall()
+        room_stats = {}
+        for progress in recent_progress:
+            room_name = progress.get('room_name', 'Unknown')
+            if room_name not in room_stats:
+                room_stats[room_name] = {'access_count': 0, 'total_progress': 0}
+            room_stats[room_name]['access_count'] += 1
+            room_stats[room_name]['total_progress'] += progress.get('progress_percentage', 0)
+        
+        popular_rooms = []
+        for room_name, stats in room_stats.items():
+            avg_room_progress = stats['total_progress'] / stats['access_count'] if stats['access_count'] > 0 else 0
+            popular_rooms.append({
+                'room_name': room_name,
+                'access_count': stats['access_count'],
+                'avg_progress': round(avg_room_progress, 1)
+            })
+        popular_rooms = sorted(popular_rooms, key=lambda x: x['access_count'], reverse=True)[:5]
         
         # Badge statistics
-        total_badges = db.execute('SELECT COUNT(*) FROM badges').fetchone()[0]
+        recent_badges = sb_select('badges')
+        recent_badges_count = len([b for b in recent_badges if b.get('earned_at', '') > date_str])
         
         # Completion rates by room
-        completion_rates = db.execute('''
-            SELECT room_name,
-                   COUNT(*) as total_attempts,
-                   COUNT(CASE WHEN completed = 1 THEN 1 END) as completed_count,
-                   ROUND(
-                       (COUNT(CASE WHEN completed = 1 THEN 1 END) * 100.0 / COUNT(*)), 2
-                   ) as completion_rate
-            FROM user_progress
-            GROUP BY room_name
-            ORDER BY completion_rate DESC
-        ''').fetchall()
+        completion_rates = []
+        for room_name, stats in room_stats.items():
+            completed_count = len([p for p in recent_progress 
+                                 if p.get('room_name') == room_name and p.get('completed')])
+            completion_rate = (completed_count / stats['access_count'] * 100) if stats['access_count'] > 0 else 0
+            completion_rates.append({
+                'room_name': room_name,
+                'total_attempts': stats['access_count'],
+                'completed_count': completed_count,
+                'completion_rate': round(completion_rate, 2)
+            })
+        completion_rates = sorted(completion_rates, key=lambda x: x['completion_rate'], reverse=True)
         
         return jsonify({
+            'timeframe_days': timeframe,
             'user_stats': {
                 'total_users': total_users,
-                'new_users_week': new_users_week,
+                'new_users': new_users_count,
                 'active_users': active_users,
                 'avg_progress': round(avg_progress, 1)
             },
-            'popular_rooms': [dict(room) for room in popular_rooms],
+            'popular_rooms': popular_rooms,
             'badge_stats': {
-                'total_badges': total_badges
+                'total_badges': recent_badges_count
             },
-            'completion_rates': [dict(rate) for rate in completion_rates]
+            'completion_rates': completion_rates,
+            'generated_at': datetime.now().isoformat()
         }), 200
         
     except Exception as e:
@@ -1033,74 +860,100 @@ def get_analytics_overview():
 def get_live_activity():
     """Get live activity feed"""
     try:
-        db = get_db()
+        # Get recent activities from last 24 hours
+        day_ago = datetime.now() - timedelta(hours=24)
+        day_ago_str = day_ago.isoformat()
+        
+        all_activities = []
         
         # Recent user registrations
-        recent_users = db.execute('''
-            SELECT name, email, created_at, 'user_registered' as activity_type
-            FROM users 
-            WHERE created_at > datetime('now', '-1 day')
-            ORDER BY created_at DESC
-            LIMIT 10
-        ''').fetchall()
-        
-        # Recent progress updates
-        recent_progress = db.execute('''
-            SELECT u.name, p.room_name, p.progress_percentage, p.last_accessed,
-                   'progress_updated' as activity_type
-            FROM user_progress p
-            JOIN users u ON p.user_id = u.id
-            WHERE p.last_accessed > datetime('now', '-1 hour')
-            ORDER BY p.last_accessed DESC  
-            LIMIT 10
-        ''').fetchall()
-        
-        # Recent badge awards
-        recent_badges = db.execute('''
-            SELECT u.name, b.badge_name, b.earned_at, 'badge_earned' as activity_type
-            FROM badges b
-            JOIN users u ON b.user_id = u.id
-            WHERE b.earned_at > datetime('now', '-1 day')
-            ORDER BY b.earned_at DESC
-            LIMIT 10
-        ''').fetchall()
-        
-        # Combine and sort all activities
-        all_activities = []
+        users = sb_select('users', order='-created_at', limit=10)
+        recent_users = [u for u in users if u.get('created_at', '') > day_ago_str]
         
         for user in recent_users:
             all_activities.append({
                 'type': 'user_registered',
-                'description': f"{user['name']} joined the platform",
-                'timestamp': user['created_at'],
-                'user': user['name']
+                'description': f"{user.get('name', 'Unknown')} joined the platform",
+                'timestamp': user.get('created_at'),
+                'user': user.get('name', 'Unknown')
             })
-            
+        
+        # Recent progress updates
+        progress_records = sb_select('user_progress', select='*, users(name)', order='-last_accessed', limit=10)
+        recent_progress = [p for p in progress_records if p.get('last_accessed', '') > day_ago_str]
+        
         for progress in recent_progress:
+            user_name = 'Unknown'
+            if progress.get('users'):
+                if isinstance(progress['users'], dict):
+                    user_name = progress['users'].get('name', 'Unknown')
+                else:
+                    user_name = progress['users']
+            
             all_activities.append({
                 'type': 'progress_updated', 
-                'description': f"{progress['name']} made progress in {progress['room_name']} ({progress['progress_percentage']}%)",
-                'timestamp': progress['last_accessed'],
-                'user': progress['name']
+                'description': f"{user_name} made progress in {progress.get('room_name', 'Unknown')} ({progress.get('progress_percentage', 0)}%)",
+                'timestamp': progress.get('last_accessed'),
+                'user': user_name
             })
-            
+        
+        # Recent badge awards
+        badges = sb_select('badges', select='*, users(name)', order='-earned_at', limit=10)
+        recent_badges = [b for b in badges if b.get('earned_at', '') > day_ago_str]
+        
         for badge in recent_badges:
+            user_name = 'Unknown'
+            if badge.get('users'):
+                if isinstance(badge['users'], dict):
+                    user_name = badge['users'].get('name', 'Unknown')
+                else:
+                    user_name = badge['users']
+            
             all_activities.append({
                 'type': 'badge_earned',
-                'description': f"{badge['name']} earned the '{badge['badge_name']}' badge",
-                'timestamp': badge['earned_at'], 
-                'user': badge['name']
+                'description': f"{user_name} earned '{badge.get('badge_name', 'Unknown')}' badge",
+                'timestamp': badge.get('earned_at'), 
+                'user': user_name
+            })
+        
+        # Recent content creation
+        items = sb_select('items', select='*, users(name)', order='-created_at', limit=5)
+        recent_items = [i for i in items if i.get('created_at', '') > day_ago_str]
+        
+        for item in recent_items:
+            creator = 'System'
+            if item.get('users'):
+                if isinstance(item['users'], dict):
+                    creator = item['users'].get('name', 'System')
+                else:
+                    creator = item['users']
+            
+            all_activities.append({
+                'type': 'content_created',
+                'description': f"{creator} created: {item.get('title', 'Unknown')}",
+                'timestamp': item.get('created_at'),
+                'user': creator
             })
         
         # Sort by timestamp and limit
-        all_activities.sort(key=lambda x: x['timestamp'], reverse=True)
+        all_activities.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Calculate live stats
+        hour_ago = datetime.now() - timedelta(hours=1)
+        hour_ago_str = hour_ago.isoformat()
+        
+        very_recent_progress = [p for p in progress_records if p.get('last_accessed', '') > hour_ago_str]
+        recent_activity_count = len(set(p.get('user_id') for p in very_recent_progress))
+        
+        active_sessions = recent_activity_count + 3  # Add some buffer for realism
+        rooms_in_use = len(set(p.get('room_name') for p in very_recent_progress))
         
         return jsonify({
             'activities': all_activities[:20],
             'live_stats': {
-                'online_users': len(recent_progress),  # Rough estimate
-                'active_sessions': len(recent_progress) + 5,  # Simulated
-                'rooms_in_use': len(set(p['room_name'] for p in recent_progress))
+                'online_users': recent_activity_count,
+                'active_sessions': active_sessions,
+                'rooms_in_use': max(rooms_in_use, 1)
             }
         }), 200
         
@@ -1113,16 +966,19 @@ def get_live_activity():
 def get_progress_summary():
     """Get summary of all user progress for dashboard"""
     try:
-        db = get_db()
+        progress_data = sb_select('user_progress', select='*, users(name)', order='-last_accessed')
         
-        progress_data = db.execute('''
-            SELECT up.*, u.name as user_name
-            FROM user_progress up
-            LEFT JOIN users u ON up.user_id = u.id
-            ORDER BY up.last_accessed DESC
-        ''').fetchall()
+        # Flatten user data
+        for record in progress_data:
+            if record.get('users'):
+                if isinstance(record['users'], dict):
+                    record['user_name'] = record['users'].get('name')
+                else:
+                    record['user_name'] = record['users']
+            else:
+                record['user_name'] = None
         
-        return jsonify([dict(record) for record in progress_data]), 200
+        return jsonify(progress_data), 200
         
     except Exception as e:
         print(f"Progress summary error: {str(e)}")
@@ -1132,215 +988,26 @@ def get_progress_summary():
 def get_badges_summary():
     """Get summary of all badges for dashboard"""
     try:
-        db = get_db()
+        badges_data = sb_select('badges', select='*, users(name)', order='-earned_at')
         
-        badges_data = db.execute('''
-            SELECT b.*, u.name as user_name
-            FROM badges b
-            LEFT JOIN users u ON b.user_id = u.id
-            ORDER BY b.earned_at DESC
-        ''').fetchall()
+        # Flatten user data
+        for badge in badges_data:
+            if badge.get('users'):
+                if isinstance(badge['users'], dict):
+                    badge['user_name'] = badge['users'].get('name')
+                else:
+                    badge['user_name'] = badge['users']
+            else:
+                badge['user_name'] = None
         
-        return jsonify([dict(badge) for badge in badges_data]), 200
+        return jsonify(badges_data), 200
         
     except Exception as e:
         print(f"Badges summary error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/analytics/overview', methods=['GET'])
-def get_analytics_overview_enhanced():
-    """Enhanced analytics overview with real database metrics"""
-    try:
-        db = get_db()
-        timeframe = int(request.args.get('timeframe', 30))  # days
-        
-        # Calculate date threshold
-        date_threshold = datetime.now() - timedelta(days=timeframe)
-        date_str = date_threshold.isoformat()
-        
-        # User statistics with real data
-        total_users = db.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-        new_users = db.execute(
-            'SELECT COUNT(*) FROM users WHERE created_at > ?', 
-            (date_str,)
-        ).fetchone()[0]
-        
-        active_users = db.execute('''
-            SELECT COUNT(DISTINCT user_id) FROM user_progress 
-            WHERE last_accessed > ?
-        ''', (date_str,)).fetchone()[0]
-        
-        # Room statistics
-        room_stats = db.execute('''
-            SELECT 
-                room_name,
-                COUNT(*) as total_attempts,
-                COUNT(CASE WHEN completed = 1 THEN 1 END) as completed_count,
-                AVG(progress_percentage) as avg_progress,
-                COUNT(DISTINCT user_id) as unique_users
-            FROM user_progress
-            WHERE last_accessed > ?
-            GROUP BY room_name
-            ORDER BY total_attempts DESC
-        ''', (date_str,)).fetchall()
-        
-        # Badge statistics
-        total_badges = db.execute(
-            'SELECT COUNT(*) FROM badges WHERE earned_at > ?', 
-            (date_str,)
-        ).fetchone()[0]
-        
-        # Calculate overall completion rate
-        total_progress_records = db.execute(
-            'SELECT COUNT(*) FROM user_progress WHERE last_accessed > ?',
-            (date_str,)
-        ).fetchone()[0]
-        
-        completed_records = db.execute(
-            'SELECT COUNT(*) FROM user_progress WHERE completed = 1 AND last_accessed > ?',
-            (date_str,)
-        ).fetchone()[0]
-        
-        completion_rate = (completed_records / max(total_progress_records, 1)) * 100
-        
-        return jsonify({
-            'timeframe_days': timeframe,
-            'user_stats': {
-                'total_users': total_users,
-                'new_users': new_users,
-                'active_users': active_users,
-                'completion_rate': round(completion_rate, 1)
-            },
-            'room_stats': [dict(room) for room in room_stats],
-            'badge_stats': {
-                'total_badges': total_badges
-            },
-            'generated_at': datetime.now().isoformat()
-        }), 200
-        
-    except Exception as e:
-        print(f"Enhanced analytics error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/activity/live', methods=['GET'])
-def get_live_activity_enhanced():
-    """Enhanced live activity feed with real database data"""
-    try:
-        db = get_db()
-        
-        # Get recent activities from last 24 hours
-        day_ago = datetime.now() - timedelta(hours=24)
-        day_ago_str = day_ago.isoformat()
-        
-        # Recent user registrations
-        recent_users = db.execute('''
-            SELECT name, email, created_at, 'user_registered' as activity_type
-            FROM users 
-            WHERE created_at > ?
-            ORDER BY created_at DESC
-            LIMIT 10
-        ''', (day_ago_str,)).fetchall()
-        
-        # Recent progress updates
-        recent_progress = db.execute('''
-            SELECT u.name, p.room_name, p.progress_percentage, p.last_accessed,
-                   'progress_updated' as activity_type
-            FROM user_progress p
-            JOIN users u ON p.user_id = u.id
-            WHERE p.last_accessed > ?
-            ORDER BY p.last_accessed DESC  
-            LIMIT 10
-        ''', (day_ago_str,)).fetchall()
-        
-        # Recent badge awards
-        recent_badges = db.execute('''
-            SELECT u.name, b.badge_name, b.earned_at, 'badge_earned' as activity_type
-            FROM badges b
-            JOIN users u ON b.user_id = u.id
-            WHERE b.earned_at > ?
-            ORDER BY b.earned_at DESC
-            LIMIT 10
-        ''', (day_ago_str,)).fetchall()
-        
-        # Recent content creation
-        recent_items = db.execute('''
-            SELECT i.title, u.name as creator_name, i.created_at, 'content_created' as activity_type
-            FROM items i
-            LEFT JOIN users u ON i.user_id = u.id
-            WHERE i.created_at > ?
-            ORDER BY i.created_at DESC
-            LIMIT 5
-        ''', (day_ago_str,)).fetchall()
-        
-        # Combine all activities
-        all_activities = []
-        
-        for user in recent_users:
-            all_activities.append({
-                'type': 'user_registered',
-                'description': f"{user['name']} joined the platform",
-                'timestamp': user['created_at'],
-                'user': user['name']
-            })
-            
-        for progress in recent_progress:
-            all_activities.append({
-                'type': 'progress_updated', 
-                'description': f"{progress['name']} made progress in {progress['room_name']} ({progress['progress_percentage']}%)",
-                'timestamp': progress['last_accessed'],
-                'user': progress['name']
-            })
-            
-        for badge in recent_badges:
-            all_activities.append({
-                'type': 'badge_earned',
-                'description': f"{badge['name']} earned '{badge['badge_name']}' badge",
-                'timestamp': badge['earned_at'], 
-                'user': badge['name']
-            })
-            
-        for item in recent_items:
-            creator = item['creator_name'] or 'System'
-            all_activities.append({
-                'type': 'content_created',
-                'description': f"{creator} created: {item['title']}",
-                'timestamp': item['created_at'],
-                'user': creator
-            })
-        
-        # Sort by timestamp and limit
-        all_activities.sort(key=lambda x: x['timestamp'], reverse=True)
-        
-        # Calculate live stats
-        hour_ago = datetime.now() - timedelta(hours=1)
-        hour_ago_str = hour_ago.isoformat()
-        
-        recent_activity_count = db.execute('''
-            SELECT COUNT(DISTINCT user_id) FROM user_progress 
-            WHERE last_accessed > ?
-        ''', (hour_ago_str,)).fetchone()[0]
-        
-        active_sessions = recent_activity_count + 3  # Add some buffer for realism
-        rooms_in_use = db.execute('''
-            SELECT COUNT(DISTINCT room_name) FROM user_progress 
-            WHERE last_accessed > ?
-        ''', (hour_ago_str,)).fetchone()[0]
-        
-        return jsonify({
-            'activities': all_activities[:20],
-            'live_stats': {
-                'online_users': recent_activity_count,
-                'active_sessions': active_sessions,
-                'rooms_in_use': max(rooms_in_use, 1)  # At least 1 for display
-            }
-        }), 200
-        
-    except Exception as e:
-        print(f"Live activity error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
 # Complete the admin system
-print("🔧 Enhanced Admin system ready!")
+print("🔧 Enhanced Admin system ready with Supabase!")
 print("📋 Available admin features:")
 print("   • Real-time user management")
 print("   • Live activity monitoring") 
@@ -1350,10 +1017,16 @@ print("   • System health monitoring")
 print("   • Audit trail logging")
 
 if __name__ == '__main__':
-    # Always run database initialization to handle schema migration
-    print("Checking/updating database schema...")
-    init_db()
-    print("Database schema up to date!")
+    # Initialize Supabase connection and admin user
+    print("🚀 Starting Ascended Tech Lab API...")
+    print("📊 Initializing Supabase connection...")
     
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    if init_supabase():
+        print("✅ Supabase initialized successfully!")
+        
+        port = int(os.environ.get('PORT', 5000))
+        print(f"🌐 Starting server on port {port}...")
+        app.run(host='0.0.0.0', port=port, debug=True)
+    else:
+        print("❌ Failed to initialize Supabase. Exiting...")
+        exit(1)
