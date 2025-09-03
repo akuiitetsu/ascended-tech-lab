@@ -3,6 +3,8 @@
 -- Updated to match application expectations
 
 -- Drop tables if they exist (fresh setup)
+DROP TABLE IF EXISTS verification_codes CASCADE;
+DROP TABLE IF EXISTS temp_registrations CASCADE;
 DROP TABLE IF EXISTS admin_actions CASCADE;
 DROP TABLE IF EXISTS admin_sessions CASCADE;
 DROP TABLE IF EXISTS user_item_completions CASCADE;
@@ -40,6 +42,27 @@ CREATE TABLE users (
     last_login TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email verification codes table
+CREATE TABLE verification_codes (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Temporary registrations table (stores user data until email is verified)
+CREATE TABLE temp_registrations (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    verification_code TEXT NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- User sessions for login management
@@ -271,6 +294,11 @@ CREATE INDEX IF NOT EXISTS idx_badges_user_id ON badges(user_id);
 CREATE INDEX IF NOT EXISTS idx_items_user_id ON items(user_id);
 CREATE INDEX IF NOT EXISTS idx_leaderboard_category ON leaderboard(category);
 CREATE INDEX IF NOT EXISTS idx_learning_items_room_id ON learning_items(room_id);
+CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email);
+CREATE INDEX IF NOT EXISTS idx_verification_codes_code ON verification_codes(code);
+CREATE INDEX IF NOT EXISTS idx_verification_codes_used ON verification_codes(used);
+CREATE INDEX IF NOT EXISTS idx_temp_registrations_email ON temp_registrations(email);
+CREATE INDEX IF NOT EXISTS idx_temp_registrations_expires ON temp_registrations(expires_at);
 
 -- Triggers: use PL/pgSQL functions and triggers in PostgreSQL
 -- Update 'updated_at' BEFORE UPDATE on users
@@ -392,6 +420,10 @@ ALTER TABLE achievements DISABLE ROW LEVEL SECURITY;
 ALTER TABLE items DISABLE ROW LEVEL SECURITY;
 ALTER TABLE badges DISABLE ROW LEVEL SECURITY;
 ALTER TABLE system_config DISABLE ROW LEVEL SECURITY;
+
+-- Email verification tables - disable RLS for service role access
+ALTER TABLE verification_codes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE temp_registrations DISABLE ROW LEVEL SECURITY;
 
 -- Refresh permissions for any new objects
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
