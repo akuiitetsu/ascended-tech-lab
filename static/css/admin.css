@@ -398,7 +398,7 @@ header {
 /* User Management Section */
 .user-controls {
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
     align-items: center;
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
@@ -407,7 +407,8 @@ header {
 .search-box {
     position: relative;
     flex: 1;
-    min-width: 250px;
+    min-width: 300px;
+    max-width: 500px;
 }
 
 .search-box i {
@@ -426,6 +427,7 @@ header {
     border-radius: 8px;
     color: var(--admin-text);
     font-size: 0.9rem;
+    box-sizing: border-box;
 }
 
 .search-box input:focus {
@@ -445,11 +447,98 @@ header {
     color: var(--admin-text);
     padding: 0.8rem 1rem;
     font-size: 0.9rem;
+    min-width: 150px;
+    flex-shrink: 0;
 }
 
 .user-controls select:focus {
     outline: none;
     border-color: var(--admin-primary);
+}
+
+.user-controls select option {
+    background: var(--admin-dark);
+    color: var(--admin-text);
+    padding: 0.5rem;
+}
+
+/* Global Select and Option Styling for All Admin Dropdowns */
+select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: var(--admin-text);
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 10px rgba(160, 105, 255, 0.3);
+}
+
+select option {
+    background: var(--admin-dark);
+    color: var(--admin-text);
+    padding: 0.5rem;
+    border: none;
+}
+
+/* Specific styling for different select contexts */
+.analytics-controls select,
+.config-group select,
+.audit-controls select,
+.setting-item select,
+#reportType,
+#reportDateRange,
+#exportFormat,
+#analyticsTimeframe,
+#activityTimeframe,
+#auditActionFilter,
+#defaultUserRole,
+#roleFilter {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: var(--admin-text);
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+}
+
+.analytics-controls select:focus,
+.config-group select:focus,
+.audit-controls select:focus,
+.setting-item select:focus,
+#reportType:focus,
+#reportDateRange:focus,
+#exportFormat:focus,
+#analyticsTimeframe:focus,
+#activityTimeframe:focus,
+#auditActionFilter:focus,
+#defaultUserRole:focus,
+#roleFilter:focus {
+    outline: none;
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 10px rgba(160, 105, 255, 0.3);
+}
+
+.analytics-controls select option,
+.config-group select option,
+.audit-controls select option,
+.setting-item select option,
+#reportType option,
+#reportDateRange option,
+#exportFormat option,
+#analyticsTimeframe option,
+#activityTimeframe option,
+#auditActionFilter option,
+#defaultUserRole option,
+#roleFilter option {
+    background: var(--admin-dark);
+    color: var(--admin-text);
+    padding: 0.5rem;
+    border: none;
 }
 
 .users-stats-bar {
@@ -1218,9 +1307,16 @@ header {
     .user-controls {
         flex-direction: column;
         align-items: stretch;
+        gap: 1rem;
     }
     
     .search-box {
+        min-width: auto;
+        max-width: none;
+    }
+    
+    .user-controls select {
+        width: 100%;
         min-width: auto;
     }
     
