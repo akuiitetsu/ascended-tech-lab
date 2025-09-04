@@ -809,6 +809,43 @@ def get_user_progress_summary(user_id):
         print(traceback.format_exc())
         return jsonify({'error': f'Failed to get progress summary: {str(e)}'}), 500
 
+@app.route('/api/users/<int:user_id>/progress/reset', methods=['POST'])
+def reset_user_progress(user_id):
+    """Reset all progress for a specific user - Admin only"""
+    try:
+        # Check admin authorization (you can add proper admin token verification here)
+        # For now, we'll assume the request is authorized
+        
+        # Ensure user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Delete all progress records for this user
+        result = sb_delete('user_progress', filters={'user_id': user_id})
+        
+        # Reset user's total score and streak
+        sb_update('users', 
+                 filters={'id': user_id}, 
+                 data={
+                     'total_score': 0,
+                     'current_streak': 0,
+                     'longest_streak': 0
+                 })
+        
+        print(f"✅ Reset all progress for user {user_id}")
+        
+        return jsonify({
+            'message': 'User progress reset successfully',
+            'user_id': user_id,
+            'reset_at': datetime.utcnow().isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"Reset user progress error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Failed to reset user progress: {str(e)}'}), 500
+
 # New endpoint for batch progress tracking
 @app.route('/api/progress/batch-update', methods=['POST'])
 def batch_update_progress():
