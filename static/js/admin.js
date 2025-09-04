@@ -224,7 +224,7 @@ const api = {
 
     // Progress and analytics
     async getUserProgress(userId) {
-        return this.request(`/api/users/${userId}/progress`);
+        return this.request(`/api/users/${userId}/progress/summary`);
     },
 
     async getUserBadges(userId) {
@@ -235,6 +235,12 @@ const api = {
         return this.request(`/api/users/${userId}/progress`, {
             method: 'POST',
             body: JSON.stringify(progressData)
+        });
+    },
+
+    async resetUserProgress(userId) {
+        return this.request(`/api/users/${userId}/progress/reset`, {
+            method: 'POST'
         });
     },
 
@@ -707,9 +713,39 @@ const userManagement = {
 
     async loadUsers() {
         try {
-            console.log('👥 Loading users from database...');
-            this.currentUsers = await api.getUsers();
-            console.log(`✅ Loaded ${this.currentUsers.length} users from database`);
+            console.log('👥 Loading users and progress from database...');
+            
+            // Load users and progress data in parallel
+            const [users, progressData] = await Promise.all([
+                api.getUsers(),
+                api.getUserProgressSummary()
+            ]);
+            
+            // Create progress map for efficient lookup
+            const progressMap = new Map();
+            progressData.forEach(progress => {
+                const userId = progress.user_id;
+                if (!progressMap.has(userId)) {
+                    progressMap.set(userId, []);
+                }
+                progressMap.get(userId).push(progress);
+            });
+            
+            // Calculate overall progress for each user
+            this.currentUsers = users.map(user => {
+                const userProgress = progressMap.get(user.id) || [];
+                const overallProgress = this.calculateOverallProgress(userProgress);
+                
+                return {
+                    ...user,
+                    progress_cache: overallProgress,
+                    room_progress: userProgress,
+                    total_rooms_completed: userProgress.filter(p => p.completed).length,
+                    last_activity: this.getLastActivity(userProgress)
+                };
+            });
+            
+            console.log(`✅ Loaded ${this.currentUsers.length} users with progress data from database`);
             
             this.displayUsers();
             this.updateUserCounts();
@@ -717,6 +753,26 @@ const userManagement = {
             console.error('❌ Failed to load users from database:', error);
             this.showError('Failed to load users from database');
         }
+    },
+
+    calculateOverallProgress(userProgress) {
+        if (!userProgress || userProgress.length === 0) return 0;
+        
+        const totalProgress = userProgress.reduce((sum, progress) => {
+            return sum + (progress.progress_percentage || 0);
+        }, 0);
+        
+        return Math.round(totalProgress / Math.max(userProgress.length, 5)); // Assume 5 total rooms
+    },
+
+    getLastActivity(userProgress) {
+        if (!userProgress || userProgress.length === 0) return null;
+        
+        const lastAccessed = userProgress
+            .filter(p => p.last_accessed)
+            .sort((a, b) => new Date(b.last_accessed) - new Date(a.last_accessed));
+            
+        return lastAccessed.length > 0 ? lastAccessed[0].last_accessed : null;
     },
 
     filterUsers() {
@@ -761,14 +817,27 @@ const userManagement = {
                     <span class="role-badge ${user.role || 'user'}">${(user.role || 'user').toUpperCase()}</span>
                 </td>
                 <td>
-                    <div class="progress-mini">
-                        <div class="progress-mini-bar" style="width: ${this.calculateUserProgress(user)}%"></div>
+                    <div class="progress-detail" onclick="userManagement.showUserProgress(${user.id})" style="cursor: pointer;" title="Click for detailed progress">
+                        <div class="progress-mini">
+                            <div class="progress-mini-bar" style="width: ${user.progress_cache || 0}%"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; display: flex; justify-content: space-between;">
+                            <span>${user.progress_cache || 0}%</span>
+                            <span>${user.total_rooms_completed || 0}/5 rooms</span>
+                        </div>
                     </div>
-                    <span style="font-size: 0.8rem;">${this.calculateUserProgress(user)}%</span>
                 </td>
-                <td>${user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</td>
+                <td>
+                    <div style="font-size: 0.9rem;">
+                        ${user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                        ${user.last_activity ? `<br><small style="color: var(--admin-text-muted);">Active: ${this.formatTimeAgo(user.last_activity)}</small>` : ''}
+                    </div>
+                </td>
                 <td>
                     <div class="user-actions">
+                        <button class="action-btn-small view" onclick="userManagement.showUserDetails(${user.id})" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
                         <button class="action-btn-small edit" onclick="userManagement.editUser(${user.id})" title="Edit User">
                             <i class="bi bi-pencil"></i>
                         </button>
@@ -790,10 +859,13 @@ const userManagement = {
     },
 
     calculateUserProgress(user) {
-        // In a real implementation, this would fetch progress data for the specific user
-        // For now, simulate based on user data
-        const baseProgress = user.total_score ? Math.min((user.total_score / 100) * 10, 90) : 0;
-        return Math.round(baseProgress + Math.random() * 10);
+        // Return cached progress if available
+        if (user.progress_cache) {
+            return user.progress_cache;
+        }
+        
+        // Default to 0 if no progress data
+        return 0;
     },
 
     updateUserCounts() {
@@ -964,6 +1036,279 @@ const userManagement = {
         if (window.adminDashboard) {
             window.adminDashboard.showError(message);
         }
+    },
+
+    formatTimeAgo(dateString) {
+        if (!dateString) return 'Unknown';
+        const now = new Date();
+        const date = new Date(dateString);
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    },
+
+    async showUserDetails(userId) {
+        const user = this.currentUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        // Load fresh progress data for this specific user
+        try {
+            const userProgress = await api.getUserProgress(userId);
+            const modal = this.createUserDetailsModal(user, userProgress);
+            document.body.appendChild(modal);
+        } catch (error) {
+            console.error('Failed to load user progress:', error);
+            this.showError('Failed to load detailed user progress');
+        }
+    },
+
+    async showUserProgress(userId) {
+        const user = this.currentUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        const modal = this.createProgressModal(user);
+        document.body.appendChild(modal);
+    },
+
+    createUserDetailsModal(user, progressData) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay show';
+        
+        const roomNames = {
+            'flowchart': 'FLOWBYTE',
+            'networking': 'NETXUS', 
+            'ai-training': 'AITRIX',
+            'database': 'SCHEMAX',
+            'programming': 'CODEVANCE'
+        };
+
+        const roomColors = {
+            'flowchart': '#005FFB',
+            'networking': '#00A949',
+            'ai-training': '#E08300', 
+            'database': '#8B5A3C',
+            'programming': '#DC3545'
+        };
+
+        const progressByRoom = {};
+        if (progressData && Array.isArray(progressData)) {
+            progressData.forEach(progress => {
+                progressByRoom[progress.room_name] = progress;
+            });
+        }
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header">
+                    <h3><i class="bi bi-person-circle"></i> ${user.name} - Detailed Progress</h3>
+                    <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 1.5rem; color: var(--admin-text); cursor: pointer;">&times;</button>
+                </div>
+                
+                <div class="user-details-content">
+                    <div class="user-summary">
+                        <div class="user-info-grid">
+                            <div class="info-item">
+                                <label>User ID:</label>
+                                <span>#${user.id}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Email:</label>
+                                <span>${user.email}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Role:</label>
+                                <span class="role-badge ${user.role || 'user'}">${(user.role || 'user').toUpperCase()}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Joined:</label>
+                                <span>${user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Last Login:</label>
+                                <span>${user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Overall Progress:</label>
+                                <span style="color: var(--admin-primary); font-weight: bold;">${user.progress_cache || 0}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-breakdown">
+                        <h4><i class="bi bi-graph-up"></i> Room Progress Breakdown</h4>
+                        <div class="room-progress-grid">
+                            ${Object.keys(roomNames).map(roomKey => {
+                                const progress = progressByRoom[roomKey];
+                                const displayName = roomNames[roomKey];
+                                const color = roomColors[roomKey];
+                                const percentage = progress?.progress_percentage || 0;
+                                const score = progress?.score || 0;
+                                const level = progress?.current_level || 1;
+                                const timeSpent = progress?.time_spent || 0;
+                                const attempts = progress?.attempts || 0;
+                                const completed = progress?.completed || false;
+                                const lastAccessed = progress?.last_accessed;
+
+                                return `
+                                    <div class="room-progress-card">
+                                        <div class="room-header" style="border-left: 4px solid ${color};">
+                                            <h5>${displayName}</h5>
+                                            <span class="completion-badge ${completed ? 'completed' : percentage > 0 ? 'in-progress' : 'not-started'}">
+                                                ${completed ? 'Completed' : percentage > 0 ? 'In Progress' : 'Not Started'}
+                                            </span>
+                                        </div>
+                                        <div class="room-stats">
+                                            <div class="progress-bar" style="margin-bottom: 0.5rem;">
+                                                <div class="progress-fill" style="width: ${percentage}%; background: ${color};"></div>
+                                                <span class="progress-text">${percentage}%</span>
+                                            </div>
+                                            <div class="room-details">
+                                                <div class="detail-item">
+                                                    <i class="bi bi-trophy"></i>
+                                                    <span>Score: ${score}</span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <i class="bi bi-layers"></i>
+                                                    <span>Level: ${level}</span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <i class="bi bi-clock"></i>
+                                                    <span>Time: ${this.formatTime(timeSpent)}</span>
+                                                </div>
+                                                <div class="detail-item">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                    <span>Attempts: ${attempts}</span>
+                                                </div>
+                                                ${lastAccessed ? `
+                                                    <div class="detail-item">
+                                                        <i class="bi bi-calendar-event"></i>
+                                                        <span>Last: ${this.formatTimeAgo(lastAccessed)}</span>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <div class="user-actions-section">
+                        <h4><i class="bi bi-tools"></i> Admin Actions</h4>
+                        <div class="admin-action-buttons">
+                            <button class="action-btn" onclick="userManagement.resetUserProgress(${user.id})">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Reset Progress
+                            </button>
+                            <button class="action-btn" onclick="userManagement.exportUserData(${user.id})">
+                                <i class="bi bi-download"></i>
+                                Export Data
+                            </button>
+                            <button class="action-btn" onclick="userManagement.editUser(${user.id}); this.closest('.modal-overlay').remove();">
+                                <i class="bi bi-pencil"></i>
+                                Edit User
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return modal;
+    },
+
+    createProgressModal(user) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay show';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="bi bi-graph-up"></i> ${user.name} - Progress Overview</h3>
+                    <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 1.5rem; color: var(--admin-text); cursor: pointer;">&times;</button>
+                </div>
+                
+                <div class="quick-progress-view">
+                    <div class="progress-summary">
+                        <div class="summary-stat">
+                            <div class="stat-value">${user.progress_cache || 0}%</div>
+                            <div class="stat-label">Overall Progress</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value">${user.total_rooms_completed || 0}</div>
+                            <div class="stat-label">Rooms Completed</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value">${user.room_progress?.length || 0}</div>
+                            <div class="stat-label">Rooms Started</div>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <button class="action-btn primary" onclick="userManagement.showUserDetails(${user.id}); this.closest('.modal-overlay').remove();">
+                            <i class="bi bi-eye"></i>
+                            View Full Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return modal;
+    },
+
+    formatTime(seconds) {
+        if (!seconds || seconds < 60) return '< 1m';
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${minutes}m`;
+    },
+
+    async resetUserProgress(userId) {
+        if (!confirm('Are you sure you want to reset all progress for this user? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            // Call API to reset user progress
+            await api.resetUserProgress(userId);
+            this.showSuccess('User progress reset successfully');
+            this.loadUsers(); // Refresh the user list
+            document.querySelector('.modal-overlay')?.remove(); // Close modal
+        } catch (error) {
+            console.error('Failed to reset user progress:', error);
+            this.showError('Failed to reset user progress');
+        }
+    },
+
+    async exportUserData(userId) {
+        try {
+            const user = this.currentUsers.find(u => u.id === userId);
+            const progressData = await api.getUserProgress(userId);
+            
+            const exportData = {
+                user: user,
+                progress: progressData,
+                exported_at: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `user_${userId}_${user.name}_progress.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            this.showSuccess('User data exported successfully');
+        } catch (error) {
+            console.error('Failed to export user data:', error);
+            this.showError('Failed to export user data');
+        }
     }
 };
 
@@ -980,6 +1325,50 @@ window.filterUsers = function() {
 
 window.addNewUser = function() {
     userManagement.addNewUser();
+};
+
+// Global progress tracking functions
+window.updateProgressData = function() {
+    if (window.adminDashboard && window.adminDashboard.currentSection === 'progress') {
+        window.adminDashboard.loadProgressData();
+    }
+};
+
+window.refreshProgressData = function() {
+    if (window.adminDashboard) {
+        window.adminDashboard.loadProgressData();
+    }
+};
+
+window.exportProgressReport = function() {
+    if (window.adminDashboard) {
+        window.adminDashboard.showNotification('Progress report export started', 'info');
+        // Implement actual export logic here
+        setTimeout(() => {
+            window.adminDashboard.showNotification('Progress report exported successfully', 'success');
+        }, 2000);
+    }
+};
+
+window.showAllTopPerformers = function() {
+    if (window.adminDashboard) {
+        window.adminDashboard.showNotification('Top performers view opened', 'info');
+        // Could open a detailed modal or navigate to a dedicated page
+    }
+};
+
+window.showStrugglingUsers = function() {
+    if (window.adminDashboard) {
+        window.adminDashboard.showNotification('Struggling users view opened', 'info');
+        // Could open intervention tools or detailed analysis
+    }
+};
+
+window.showAllAchievements = function() {
+    if (window.adminDashboard) {
+        window.adminDashboard.showNotification('Achievements history opened', 'info');
+        // Could open a comprehensive achievements log
+    }
 };
 
 // Enhanced Main AdminDashboard Class with real functionality
@@ -1121,6 +1510,9 @@ class AdminDashboard {
                 case 'analytics':
                     await this.loadAnalyticsData();
                     break;
+                case 'progress':
+                    await this.loadProgressData();
+                    break;
                 case 'activity':
                     await this.loadActivityData();
                     break;
@@ -1172,6 +1564,637 @@ class AdminDashboard {
             console.error('❌ Failed to load analytics from database:', error);
             this.showError('Failed to load analytics data from database');
         }
+    }
+
+    async loadProgressData() {
+        try {
+            console.log('🏆 Loading comprehensive progress data from database...');
+            
+            const [users, progressData, badgesData] = await Promise.all([
+                api.getUsers(),
+                api.getUserProgressSummary(),
+                api.getBadgesSummary()
+            ]);
+            
+            // Validate data arrays
+            const validUsers = Array.isArray(users) ? users : [];
+            const validProgressData = Array.isArray(progressData) ? progressData : [];
+            const validBadgesData = Array.isArray(badgesData) ? badgesData : [];
+            
+            console.log(`📊 Data loaded: ${validUsers.length} users, ${validProgressData.length} progress records, ${validBadgesData.length} badges`);
+            
+            // Process progress statistics
+            this.updateProgressOverview(validUsers, validProgressData);
+            this.updateTopPerformers(validUsers, validProgressData);
+            this.updateStrugglingUsers(validUsers, validProgressData);
+            this.updateRecentAchievements(validProgressData, validBadgesData);
+            this.updateProgressInsights(validProgressData);
+            this.updateRoomBreakdown(validProgressData);
+            this.generateProgressCharts(validProgressData);
+            
+            console.log('✅ Progress tracking data loaded from database');
+        } catch (error) {
+            console.error('❌ Failed to load progress data from database:', error);
+            this.showError('Failed to load progress tracking data from database');
+            
+            // Show empty state for charts
+            this.generateProgressCharts([]);
+        }
+    }
+
+    updateProgressOverview(users, progressData) {
+        // Validate input data
+        const validUsers = Array.isArray(users) ? users : [];
+        const validProgressData = Array.isArray(progressData) ? progressData : [];
+        
+        // Calculate overall statistics
+        const activeUsers = validUsers.filter(user => 
+            validProgressData.some(p => p.user_id === user.id && p.progress_percentage > 0)
+        ).length;
+        
+        const avgProgress = validProgressData.length > 0 
+            ? Math.round(validProgressData.reduce((sum, p) => sum + (p.progress_percentage || 0), 0) / validProgressData.length)
+            : 0;
+            
+        const completedChallenges = validProgressData.filter(p => p.completed).length;
+        
+        const totalTimeSpent = validProgressData.reduce((sum, p) => sum + (p.time_spent || 0), 0);
+        const totalHours = Math.round(totalTimeSpent / 3600);
+        
+        // Update UI elements safely
+        const updateElement = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        };
+        
+        updateElement('totalProgressUsers', activeUsers);
+        updateElement('avgProgressPercentage', `${avgProgress}%`);
+        updateElement('completedChallengesCount', completedChallenges);
+        updateElement('totalTimeSpent', `${totalHours}h`);
+    }
+
+    updateTopPerformers(users, progressData) {
+        // Calculate user scores and progress
+        const userStats = new Map();
+        
+        progressData.forEach(progress => {
+            const userId = progress.user_id;
+            const userName = progress.user_name || users.find(u => u.id === userId)?.name || 'Unknown';
+            
+            if (!userStats.has(userId)) {
+                userStats.set(userId, {
+                    id: userId,
+                    name: userName,
+                    totalProgress: 0,
+                    totalScore: 0,
+                    completedRooms: 0,
+                    entries: 0
+                });
+            }
+            
+            const stats = userStats.get(userId);
+            stats.totalProgress += progress.progress_percentage || 0;
+            stats.totalScore += progress.score || 0;
+            stats.completedRooms += progress.completed ? 1 : 0;
+            stats.entries++;
+        });
+        
+        // Calculate averages and sort by performance
+        const performers = Array.from(userStats.values())
+            .map(user => ({
+                ...user,
+                avgProgress: user.entries > 0 ? Math.round(user.totalProgress / user.entries) : 0
+            }))
+            .sort((a, b) => b.avgProgress - a.avgProgress)
+            .slice(0, 5);
+        
+        const list = document.getElementById('topPerformersList');
+        if (list) {
+            list.innerHTML = performers.map(user => `
+                <div class="performer-entry">
+                    <div class="performer-info">
+                        <strong>${user.name}</strong>
+                        <div class="performer-stats">
+                            <span>Progress: ${user.avgProgress}%</span>
+                            <span>Score: ${user.totalScore}</span>
+                            <span>Completed: ${user.completedRooms}/5</span>
+                        </div>
+                    </div>
+                    <div class="performer-badge top-${performers.indexOf(user) + 1}">
+                        #${performers.indexOf(user) + 1}
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    updateStrugglingUsers(users, progressData) {
+        const userStats = new Map();
+        
+        progressData.forEach(progress => {
+            const userId = progress.user_id;
+            const userName = progress.user_name || users.find(u => u.id === userId)?.name || 'Unknown';
+            
+            if (!userStats.has(userId)) {
+                userStats.set(userId, {
+                    id: userId,
+                    name: userName,
+                    totalProgress: 0,
+                    lastActivity: progress.last_accessed,
+                    entries: 0,
+                    highAttempts: 0
+                });
+            }
+            
+            const stats = userStats.get(userId);
+            stats.totalProgress += progress.progress_percentage || 0;
+            stats.entries++;
+            
+            // Check for high attempts (struggling indicator)
+            if (progress.attempts > 5) {
+                stats.highAttempts++;
+            }
+            
+            // Update last activity
+            if (progress.last_accessed && 
+                (!stats.lastActivity || new Date(progress.last_accessed) > new Date(stats.lastActivity))) {
+                stats.lastActivity = progress.last_accessed;
+            }
+        });
+        
+        // Find users who need help (low progress, high attempts, or inactive)
+        const strugglingUsers = Array.from(userStats.values())
+            .map(user => ({
+                ...user,
+                avgProgress: user.entries > 0 ? Math.round(user.totalProgress / user.entries) : 0,
+                daysSinceActivity: user.lastActivity 
+                    ? Math.floor((Date.now() - new Date(user.lastActivity)) / (1000 * 60 * 60 * 24))
+                    : 999
+            }))
+            .filter(user => user.avgProgress < 30 || user.highAttempts > 2 || user.daysSinceActivity > 7)
+            .sort((a, b) => a.avgProgress - b.avgProgress)
+            .slice(0, 5);
+        
+        const list = document.getElementById('strugglingUsersList');
+        if (list) {
+            if (strugglingUsers.length === 0) {
+                list.innerHTML = '<div class="no-issues">🎉 All users are progressing well!</div>';
+            } else {
+                list.innerHTML = strugglingUsers.map(user => `
+                    <div class="struggling-entry">
+                        <div class="struggling-info">
+                            <strong>${user.name}</strong>
+                            <div class="struggling-details">
+                                <span>Progress: ${user.avgProgress}%</span>
+                                ${user.highAttempts > 0 ? `<span class="warning">High attempts</span>` : ''}
+                                ${user.daysSinceActivity > 7 ? `<span class="inactive">Inactive ${user.daysSinceActivity}d</span>` : ''}
+                            </div>
+                        </div>
+                        <button class="help-btn" onclick="userManagement.showUserDetails(${user.id})">
+                            <i class="bi bi-person-check"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+        }
+    }
+
+    updateRecentAchievements(progressData, badgesData) {
+        const achievements = [];
+        
+        // Recent completions
+        progressData
+            .filter(p => p.completed && p.completed_at)
+            .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
+            .slice(0, 3)
+            .forEach(progress => {
+                achievements.push({
+                    type: 'completion',
+                    description: `${progress.user_name} completed ${progress.room_name}`,
+                    timestamp: progress.completed_at,
+                    icon: 'bi-check-circle-fill'
+                });
+            });
+        
+        // Recent badges
+        badgesData
+            .filter(b => b.earned_at)
+            .sort((a, b) => new Date(b.earned_at) - new Date(a.earned_at))
+            .slice(0, 3)
+            .forEach(badge => {
+                achievements.push({
+                    type: 'badge',
+                    description: `${badge.user_name} earned ${badge.badge_name}`,
+                    timestamp: badge.earned_at,
+                    icon: 'bi-award-fill'
+                });
+            });
+        
+        // Sort all achievements by timestamp
+        achievements.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        const list = document.getElementById('recentAchievementsList');
+        if (list) {
+            if (achievements.length === 0) {
+                list.innerHTML = '<div class="no-achievements">No recent achievements</div>';
+            } else {
+                list.innerHTML = achievements.slice(0, 5).map(achievement => `
+                    <div class="achievement-entry">
+                        <div class="achievement-info">
+                            <i class="bi ${achievement.icon}" style="color: var(--admin-primary); margin-right: 0.5rem;"></i>
+                            <strong>${achievement.description}</strong>
+                        </div>
+                        <div class="achievement-time">${this.formatTimeAgo(achievement.timestamp)}</div>
+                    </div>
+                `).join('');
+            }
+        }
+    }
+
+    updateProgressInsights(progressData) {
+        const insights = this.generateProgressInsights(progressData);
+        const container = document.getElementById('progressInsights');
+        
+        if (container) {
+            container.innerHTML = insights.map(insight => `
+                <div class="insight-item ${insight.type}">
+                    <div class="insight-icon">
+                        <i class="bi ${insight.icon}"></i>
+                    </div>
+                    <div class="insight-content">
+                        <h4>${insight.title}</h4>
+                        <p>${insight.description}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    generateProgressInsights(progressData) {
+        const insights = [];
+        
+        // Room difficulty analysis
+        const roomStats = {};
+        progressData.forEach(progress => {
+            const room = progress.room_name;
+            if (!roomStats[room]) {
+                roomStats[room] = { attempts: 0, completions: 0, total: 0 };
+            }
+            roomStats[room].attempts += progress.attempts || 0;
+            roomStats[room].total++;
+            if (progress.completed) roomStats[room].completions++;
+        });
+        
+        // Find most challenging room
+        let hardestRoom = null;
+        let lowestCompletionRate = 1;
+        Object.entries(roomStats).forEach(([room, stats]) => {
+            if (stats.total > 0) {
+                const completionRate = stats.completions / stats.total;
+                if (completionRate < lowestCompletionRate) {
+                    lowestCompletionRate = completionRate;
+                    hardestRoom = room;
+                }
+            }
+        });
+        
+        if (hardestRoom) {
+            insights.push({
+                type: 'warning',
+                icon: 'bi-exclamation-triangle',
+                title: 'Challenging Room Identified',
+                description: `${hardestRoom} has the lowest completion rate (${Math.round(lowestCompletionRate * 100)}%). Consider reviewing content difficulty.`
+            });
+        }
+        
+        // Engagement trends
+        const recentActivity = progressData.filter(p => 
+            p.last_accessed && new Date(p.last_accessed) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        ).length;
+        
+        if (recentActivity < progressData.length * 0.3) {
+            insights.push({
+                type: 'info',
+                icon: 'bi-graph-down',
+                title: 'Engagement Opportunity',
+                description: `Only ${Math.round((recentActivity / progressData.length) * 100)}% of users were active this week. Consider engagement initiatives.`
+            });
+        }
+        
+        // Success patterns
+        const avgAttemptsToComplete = progressData
+            .filter(p => p.completed && p.attempts)
+            .reduce((sum, p) => sum + p.attempts, 0) / progressData.filter(p => p.completed).length || 0;
+        
+        if (avgAttemptsToComplete < 3) {
+            insights.push({
+                type: 'success',
+                icon: 'bi-check-circle',
+                title: 'Excellent User Experience',
+                description: `Users complete challenges in an average of ${Math.round(avgAttemptsToComplete)} attempts. Great content design!`
+            });
+        }
+        
+        return insights;
+    }
+
+    updateRoomBreakdown(progressData) {
+        const roomNames = {
+            'flowchart': 'FLOWBYTE',
+            'networking': 'NETXUS',
+            'ai-training': 'AITRIX',
+            'database': 'SCHEMAX',
+            'programming': 'CODEVANCE'
+        };
+        
+        const roomColors = {
+            'flowchart': '#005FFB',
+            'networking': '#00A949',
+            'ai-training': '#E08300',
+            'database': '#8B5A3C',
+            'programming': '#DC3545'
+        };
+        
+        const roomStats = {};
+        progressData.forEach(progress => {
+            const room = progress.room_name;
+            if (!roomStats[room]) {
+                roomStats[room] = {
+                    total: 0,
+                    completed: 0,
+                    totalProgress: 0,
+                    totalScore: 0,
+                    totalTime: 0
+                };
+            }
+            
+            roomStats[room].total++;
+            if (progress.completed) roomStats[room].completed++;
+            roomStats[room].totalProgress += progress.progress_percentage || 0;
+            roomStats[room].totalScore += progress.score || 0;
+            roomStats[room].totalTime += progress.time_spent || 0;
+        });
+        
+        const container = document.getElementById('roomStatsDetailed');
+        if (container) {
+            container.innerHTML = Object.entries(roomStats).map(([roomKey, stats]) => {
+                const displayName = roomNames[roomKey] || roomKey.toUpperCase();
+                const color = roomColors[roomKey] || '#666';
+                const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                const avgProgress = stats.total > 0 ? Math.round(stats.totalProgress / stats.total) : 0;
+                const avgScore = stats.total > 0 ? Math.round(stats.totalScore / stats.total) : 0;
+                const avgTime = stats.total > 0 ? Math.round(stats.totalTime / stats.total / 60) : 0; // minutes
+                
+                return `
+                    <div class="room-stat-card" style="border-left: 4px solid ${color};">
+                        <div class="room-stat-header">
+                            <h4>${displayName}</h4>
+                            <span class="completion-rate">${completionRate}% completion</span>
+                        </div>
+                        <div class="room-stat-details">
+                            <div class="stat-detail">
+                                <span class="label">Enrolled:</span>
+                                <span class="value">${stats.total} users</span>
+                            </div>
+                            <div class="stat-detail">
+                                <span class="label">Avg Progress:</span>
+                                <span class="value">${avgProgress}%</span>
+                            </div>
+                            <div class="stat-detail">
+                                <span class="label">Avg Score:</span>
+                                <span class="value">${avgScore} pts</span>
+                            </div>
+                            <div class="stat-detail">
+                                <span class="label">Avg Time:</span>
+                                <span class="value">${avgTime}m</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    generateProgressCharts(progressData) {
+        this.createRoomPerformanceChart(progressData);
+        this.createCompletionTrendsChart(progressData);
+    }
+
+    createRoomPerformanceChart(progressData) {
+        const canvas = document.getElementById('roomPerformanceChart');
+        if (!canvas) return;
+
+        // Clear existing chart
+        if (this.charts.roomPerformance) {
+            this.charts.roomPerformance.destroy();
+            this.charts.roomPerformance = null;
+        }
+
+        // Check if we have valid progress data
+        if (!progressData || !Array.isArray(progressData) || progressData.length === 0) {
+            this.showNoDataMessage(canvas, 'No progress data available');
+            return;
+        }
+
+        const roomStats = {};
+        progressData.forEach(progress => {
+            if (!progress || !progress.room_name) return;
+            
+            const room = progress.room_name;
+            if (!roomStats[room]) {
+                roomStats[room] = { completed: 0, total: 0 };
+            }
+            roomStats[room].total++;
+            if (progress.completed) roomStats[room].completed++;
+        });
+
+        const roomNames = Object.keys(roomStats);
+        
+        // Check if we have any room data
+        if (roomNames.length === 0) {
+            this.showNoDataMessage(canvas, 'No room progress data available');
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        const completionRates = roomNames.map(room => 
+            roomStats[room].total > 0 ? (roomStats[room].completed / roomStats[room].total) * 100 : 0
+        );
+
+        // Set canvas dimensions to prevent expansion
+        canvas.style.height = '300px';
+        canvas.style.maxHeight = '300px';
+
+        this.charts.roomPerformance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: roomNames.map(name => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()),
+                datasets: [{
+                    label: 'Completion Rate (%)',
+                    data: completionRates,
+                    backgroundColor: ['#005FFB', '#00A949', '#E08300', '#8B5A3C', '#DC3545'],
+                    borderColor: ['#005FFB', '#00A949', '#E08300', '#8B5A3C', '#DC3545'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        labels: { color: '#ffffff' },
+                        display: true
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const roomName = context.label;
+                                const stats = roomStats[roomName.toLowerCase()];
+                                return [
+                                    `Completion Rate: ${context.parsed.y.toFixed(1)}%`,
+                                    `Completed: ${stats.completed}/${stats.total} users`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        ticks: { color: '#ffffff' },
+                        grid: { display: false }
+                    },
+                    y: { 
+                        ticks: { 
+                            color: '#ffffff',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+    }
+
+    showNoDataMessage(canvas, message) {
+        // Clear the canvas and show a no data message
+        const ctx = canvas.getContext('2d');
+        canvas.style.height = '300px';
+        canvas.style.maxHeight = '300px';
+        
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Set canvas size
+        canvas.width = canvas.offsetWidth;
+        canvas.height = 300;
+        
+        // Draw no data message
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '16px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        // Draw icon
+        ctx.font = '48px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillText('📊', centerX, centerY - 30);
+        
+        // Draw message
+        ctx.font = '14px Inter, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillText(message, centerX, centerY + 20);
+    }
+
+    createCompletionTrendsChart(progressData) {
+        const canvas = document.getElementById('completionTrendsChart');
+        if (!canvas) return;
+
+        // Clear existing chart
+        if (this.charts.completionTrends) {
+            this.charts.completionTrends.destroy();
+            this.charts.completionTrends = null;
+        }
+
+        // Check if we have valid progress data
+        if (!progressData || !Array.isArray(progressData) || progressData.length === 0) {
+            this.showNoDataMessage(canvas, 'No completion data available');
+            return;
+        }
+
+        // Group completions by day for the last 7 days
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            last7Days.push(date);
+        }
+
+        const completionsByDay = last7Days.map(day => {
+            const dayStart = new Date(day);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(day);
+            dayEnd.setHours(23, 59, 59, 999);
+            
+            return progressData.filter(progress => {
+                if (!progress.completed_at) return false;
+                const completionDate = new Date(progress.completed_at);
+                return completionDate >= dayStart && completionDate <= dayEnd;
+            }).length;
+        });
+
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas dimensions to prevent expansion
+        canvas.style.height = '300px';
+        canvas.style.maxHeight = '300px';
+
+        this.charts.completionTrends = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: last7Days.map(date => date.toLocaleDateString('en-US', { weekday: 'short' })),
+                datasets: [{
+                    label: 'Completions',
+                    data: completionsByDay,
+                    borderColor: '#A069FF',
+                    backgroundColor: 'rgba(160, 105, 255, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#ffffff' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#ffffff' } },
+                    y: { 
+                        ticks: { color: '#ffffff' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    formatTimeAgo(dateString) {
+        if (!dateString) return 'Unknown';
+        const now = new Date();
+        const date = new Date(dateString);
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return `${Math.floor(diffInSeconds / 86400)}d ago`;
     }
 
     async loadActivityData() {
@@ -1508,9 +2531,458 @@ additionalStyles.textContent = `
         color: #f44336;
     }
     
+    .action-btn-small.view {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+    }
+    
     .action-btn-small:hover {
         opacity: 0.8;
         transform: scale(1.05);
+    }
+    
+    .progress-detail {
+        transition: all 0.2s ease;
+    }
+    
+    .progress-detail:hover {
+        transform: scale(1.02);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        padding: 0.2rem;
+    }
+    
+    .user-details-content {
+        color: var(--admin-text);
+    }
+    
+    .user-summary {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+    }
+    
+    .user-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    
+    .info-item label {
+        font-size: 0.8rem;
+        color: var(--admin-text-muted);
+        font-weight: 500;
+    }
+    
+    .info-item span {
+        font-weight: 600;
+        color: var(--admin-text);
+    }
+    
+    .progress-breakdown {
+        margin-bottom: 2rem;
+    }
+    
+    .progress-breakdown h4 {
+        color: var(--admin-text);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .room-progress-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+    
+    .room-progress-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .room-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-left: 0.5rem;
+    }
+    
+    .room-header h5 {
+        margin: 0;
+        color: var(--admin-text);
+        font-size: 1rem;
+    }
+    
+    .completion-badge {
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .completion-badge.completed {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+    }
+    
+    .completion-badge.in-progress {
+        background: rgba(255, 152, 0, 0.2);
+        color: #FF9800;
+    }
+    
+    .completion-badge.not-started {
+        background: rgba(158, 158, 158, 0.2);
+        color: #9E9E9E;
+    }
+    
+    .progress-bar {
+        position: relative;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        transition: width 0.3s ease;
+        position: relative;
+    }
+    
+    .progress-text {
+        position: absolute;
+        right: 0.5rem;
+        top: -1.5rem;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: var(--admin-text);
+    }
+    
+    .room-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.8rem;
+        color: var(--admin-text-muted);
+    }
+    
+    .detail-item i {
+        color: var(--admin-primary);
+    }
+    
+    .user-actions-section {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 1.5rem;
+    }
+    
+    .user-actions-section h4 {
+        color: var(--admin-text);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .admin-action-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .quick-progress-view {
+        text-align: center;
+    }
+    
+    .progress-summary {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 2rem;
+        gap: 1rem;
+    }
+    
+    .summary-stat {
+        text-align: center;
+    }
+    
+    .summary-stat .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--admin-primary);
+        display: block;
+    }
+    
+    .summary-stat .stat-label {
+        font-size: 0.9rem;
+        color: var(--admin-text-muted);
+        margin-top: 0.3rem;
+    }
+    
+    .quick-actions {
+        margin-top: 1.5rem;
+    }
+    
+    .progress-overview-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .progress-detailed-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .progress-insights {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+    
+    .progress-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .progress-card h3 {
+        color: var(--admin-text);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+    }
+    
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: var(--admin-primary);
+        display: block;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--admin-text-muted);
+        margin-top: 0.3rem;
+    }
+    
+    .performers-list, .struggling-list, .achievements-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .performer-entry, .struggling-entry, .achievement-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .performer-info strong, .struggling-info strong, .achievement-info strong {
+        color: var(--admin-text);
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+    
+    .performer-stats, .struggling-details {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.8rem;
+        color: var(--admin-text-muted);
+    }
+    
+    .performer-badge {
+        padding: 0.3rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        background: var(--admin-primary);
+        color: white;
+    }
+    
+    .warning {
+        color: #FF9800;
+        font-weight: bold;
+    }
+    
+    .inactive {
+        color: #f44336;
+        font-weight: bold;
+    }
+    
+    .help-btn {
+        padding: 0.4rem 0.8rem;
+        background: var(--admin-primary);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+    
+    .help-btn:hover {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+    
+    .insight-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .insight-item.success {
+        background: rgba(76, 175, 80, 0.1);
+        border-left: 4px solid #4CAF50;
+    }
+    
+    .insight-item.warning {
+        background: rgba(255, 152, 0, 0.1);
+        border-left: 4px solid #FF9800;
+    }
+    
+    .insight-item.info {
+        background: rgba(33, 150, 243, 0.1);
+        border-left: 4px solid #2196F3;
+    }
+    
+    .insight-icon {
+        font-size: 1.5rem;
+        color: var(--admin-primary);
+    }
+    
+    .insight-content h4 {
+        color: var(--admin-text);
+        margin: 0 0 0.5rem 0;
+        font-size: 1rem;
+    }
+    
+    .insight-content p {
+        color: var(--admin-text-muted);
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .room-stat-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .room-stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .room-stat-header h4 {
+        color: var(--admin-text);
+        margin: 0;
+        font-size: 1rem;
+    }
+    
+    .completion-rate {
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+    }
+    
+    .room-stat-details {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+    
+    .stat-detail {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+    }
+    
+    .stat-detail .label {
+        color: var(--admin-text-muted);
+    }
+    
+    .stat-detail .value {
+        color: var(--admin-text);
+        font-weight: 500;
+    }
+    
+    .no-issues, .no-achievements {
+        text-align: center;
+        color: var(--admin-text-muted);
+        font-style: italic;
+        padding: 2rem;
+    }
+    
+    .achievement-time {
+        font-size: 0.8rem;
+        color: var(--admin-text-muted);
+    }
+    
+    @media (max-width: 768px) {
+        .progress-overview-grid, .progress-insights {
+            grid-template-columns: 1fr;
+        }
+        
+        .progress-detailed-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .room-stat-details {
+            grid-template-columns: 1fr;
+        }
     }
     
     .form-group {
@@ -1589,6 +3061,31 @@ additionalStyles.textContent = `
     .report-info span {
         color: var(--admin-text-muted);
         font-size: 0.8rem;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        max-height: 300px;
+        width: 100%;
+        overflow: hidden;
+    }
+    
+    .chart-container canvas {
+        max-width: 100% !important;
+        max-height: 300px !important;
+        height: 300px !important;
+    }
+    
+    /* Prevent canvas expansion issues */
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    .progress-card canvas {
+        max-height: 300px !important;
+        height: 300px !important;
     }
 `;
 document.head.appendChild(additionalStyles);

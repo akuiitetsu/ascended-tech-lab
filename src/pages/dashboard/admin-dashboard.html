@@ -53,6 +53,10 @@
                         <i class="bi bi-graph-up"></i>
                         <span>Analytics</span>
                     </li>
+                    <li class="nav-item" data-section="progress">
+                        <i class="bi bi-trophy"></i>
+                        <span>Progress Tracking</span>
+                    </li>
                     <li class="nav-item" data-section="reports">
                         <i class="bi bi-file-earmark-text"></i>
                         <span>Reports</span>
@@ -304,6 +308,115 @@
                     <div class="metric-item">
                         <div class="metric-value" id="badgesMetric">0</div>
                         <div class="metric-label">Total Badges Earned</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Tracking Section -->
+            <div class="content-section" id="progress">
+                <div class="section-header">
+                    <h2>🏆 Progress Tracking & Analytics</h2>
+                    <div class="progress-controls">
+                        <select id="progressTimeframe" onchange="updateProgressData()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <button class="action-btn" onclick="refreshProgressData()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Refresh
+                        </button>
+                        <button class="action-btn primary" onclick="exportProgressReport()">
+                            <i class="bi bi-download"></i>
+                            Export Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="progress-overview-grid">
+                    <div class="progress-card overall-stats">
+                        <h3><i class="bi bi-speedometer2"></i> Overall Progress Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalProgressUsers">0</div>
+                                <div class="stat-label">Active Users</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="avgProgressPercentage">0%</div>
+                                <div class="stat-label">Avg Progress</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="completedChallengesCount">0</div>
+                                <div class="stat-label">Challenges Completed</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalTimeSpent">0h</div>
+                                <div class="stat-label">Total Time Spent</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card room-performance">
+                        <h3><i class="bi bi-trophy"></i> Room Performance</h3>
+                        <div class="chart-container">
+                            <canvas id="roomPerformanceChart" style="max-height: 300px; height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-detailed-grid">
+                    <div class="progress-card top-performers">
+                        <div class="card-header">
+                            <h3><i class="bi bi-star"></i> Top Performers</h3>
+                            <button class="btn-small" onclick="showAllTopPerformers()">View All</button>
+                        </div>
+                        <div class="performers-list" id="topPerformersList">
+                            <div class="loading">Loading top performers...</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card struggling-users">
+                        <div class="card-header">
+                            <h3><i class="bi bi-exclamation-triangle"></i> Users Needing Help</h3>
+                            <button class="btn-small" onclick="showStrugglingUsers()">View All</button>
+                        </div>
+                        <div class="struggling-list" id="strugglingUsersList">
+                            <div class="loading">Loading users needing assistance...</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card recent-achievements">
+                        <div class="card-header">
+                            <h3><i class="bi bi-award"></i> Recent Achievements</h3>
+                            <button class="btn-small" onclick="showAllAchievements()">View All</button>
+                        </div>
+                        <div class="achievements-list" id="recentAchievementsList">
+                            <div class="loading">Loading recent achievements...</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card completion-trends">
+                        <h3><i class="bi bi-graph-up-arrow"></i> Completion Trends</h3>
+                        <div class="chart-container">
+                            <canvas id="completionTrendsChart" style="max-height: 300px; height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-insights">
+                    <div class="insights-card">
+                        <h3><i class="bi bi-lightbulb"></i> Progress Insights</h3>
+                        <div class="insights-content" id="progressInsights">
+                            <div class="loading">Analyzing progress patterns...</div>
+                        </div>
+                    </div>
+
+                    <div class="room-breakdown-card">
+                        <h3><i class="bi bi-pie-chart"></i> Room Breakdown</h3>
+                        <div class="room-stats-detailed" id="roomStatsDetailed">
+                            <div class="loading">Loading room statistics...</div>
+                        </div>
                     </div>
                 </div>
             </div>
