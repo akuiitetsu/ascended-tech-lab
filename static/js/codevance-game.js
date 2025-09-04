@@ -1278,6 +1278,22 @@ print(counter)"></textarea>
         }
     }
 
+    // Helper method to validate list items with flexible matching
+    validateListItem(htmlCode, expectedItem) {
+        const lowerCode = htmlCode.toLowerCase();
+        const lowerItem = expectedItem.toLowerCase();
+        
+        // Check various formats: <li>item</li>, <li> item </li>, etc.
+        const patterns = [
+            `<li>${lowerItem}</li>`,
+            `<li> ${lowerItem} </li>`,
+            `<li>${lowerItem.trim()}</li>`,
+            `<li> ${lowerItem.trim()} </li>`
+        ];
+        
+        return patterns.some(pattern => lowerCode.includes(pattern));
+    }
+
     validateHTMLOutput(htmlCode) {
         const validationDiv = this.container.querySelector('#validation-output');
         if (!validationDiv) return;
@@ -1308,11 +1324,12 @@ print(counter)"></textarea>
                 break;
 
             case 'html_list':
+                const listItems = scenario?.items || ['Apple', 'Banana', 'Mango'];
                 validationResults = [
                     { test: 'UL tag present', passed: htmlCode.toLowerCase().includes('<ul>') },
-                    { test: 'Apple list item', passed: htmlCode.toLowerCase().includes('<li>apple</li>') },
-                    { test: 'Banana list item', passed: htmlCode.toLowerCase().includes('<li>banana</li>') },
-                    { test: 'Mango list item', passed: htmlCode.toLowerCase().includes('<li>mango</li>') }
+                    { test: `${listItems[0]} list item`, passed: this.validateListItem(htmlCode, listItems[0]) },
+                    { test: `${listItems[1]} list item`, passed: this.validateListItem(htmlCode, listItems[1]) },
+                    { test: `${listItems[2]} list item`, passed: this.validateListItem(htmlCode, listItems[2]) }
                 ];
                 break;
 
