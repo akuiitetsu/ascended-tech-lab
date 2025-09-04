@@ -870,6 +870,134 @@ main {
     color: rgba(255, 255, 255, 0.8);
 }
 
+.room-progress .progress-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.room-progress .progress-percentage {
+    font-weight: bold;
+    color: #10a1fa;
+}
+
+.room-progress .progress-score,
+.room-progress .progress-level {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Progress Stats */
+.progress-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    gap: 15px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+.stat-item i {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    color: #10a1fa;
+}
+
+.stat-item strong {
+    color: #ffffff;
+    font-size: 1.1rem;
+    margin-top: 5px;
+}
+
+.progress-text {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* Loading Indicator */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+}
+
+.loading-indicator i {
+    margin-right: 10px;
+    font-size: 1.2rem;
+    color: #10a1fa;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.loading-indicator.hidden {
+    display: none;
+}
+
+/* Enhanced room card styles */
+.room-card.completed {
+    border: 2px solid #38a169;
+    background: linear-gradient(135deg, rgba(56, 161, 105, 0.1) 0%, rgba(0, 0, 0, 0.3) 100%);
+}
+
+.room-card.completed h3::after {
+    content: " ✓";
+    color: #38a169;
+    font-size: 0.8em;
+}
+
+.room-card.not-started {
+    opacity: 0.6;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.room-card.not-started:hover {
+    opacity: 0.8;
+}
+
+.room-description {
+    margin: 8px 0;
+    text-align: center;
+}
+
+.room-description small {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+.progress-time {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
 .quick-stats {
     display: flex;
     gap: 30px;

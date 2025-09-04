@@ -4,6 +4,596 @@
 
 import auth from './auth.js';
 
+// Import progress tracker if available
+let progressTracker = null;
+if (window.progressTracker) {
+    progressTracker = window.progressTracker;
+}
+
+// Room mapping for dashboard display
+const ROOM_CONFIG = {
+    'flowchart': {
+        displayName: 'FLOWBYTE',
+        icon: 'bi-diagram-3',
+        color: '#005FFB',
+        description: 'Flowchart & Logic Design'
+    },
+    'netxus': {
+        displayName: 'NETXUS', 
+        icon: 'bi-hdd-network',
+        color: '#00A949',
+        description: 'Network Systems & Protocols'
+    },
+    'aitrix': {
+        displayName: 'AITRIX',
+        icon: 'bi-robot',
+        color: '#E08300', 
+        description: 'AI & Machine Learning'
+    },
+    'schemax': {
+        displayName: 'SCHEMAX',
+        icon: 'bi-database',
+        color: '#8B5A3C',
+        description: 'Database Design & Management'
+    },
+    'codevance': {
+        displayName: 'CODEVANCE',
+        icon: 'bi-code-slash',
+        color: '#DC3545',
+        description: 'Programming Challenges'
+    }
+};
+
+// Load and display user progress from database
+async function loadUserProgress() {
+    try {
+        const userId = localStorage.getItem('userId');
+        const username = localStorage.getItem('currentUser');
+        
+        if (!userId || !username) {
+            console.warn('No user ID found for progress loading');
+            loadLocalProgress(); // Show default state
+            return;
+        }
+
+        console.log('🔄 Loading progress for user:', username, 'ID:', userId);
+
+        // Show loading state
+        const progressText = document.querySelector('#overall-progress-text');
+        if (progressText) {
+            progressText.textContent = 'Loading...';
+        }
+
+        // Fetch user progress from backend
+        const response = await fetch(`/api/users/${userId}/progress/summary`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load progress: ${response.status} ${response.statusText}`);
+        }
+
+        const progressData = await response.json();
+        console.log('📊 Progress data loaded:', progressData);
+
+        // Update dashboard with real progress
+        updateDashboardProgress(progressData);
+        
+        // Trigger success event
+        const event = new CustomEvent('dashboard-updated', {
+            detail: { success: true, data: progressData }
+        });
+        document.dispatchEvent(event);
+        
+    } catch (error) {
+        console.error('❌ Error loading user progress:', error);
+        
+        // Show error state briefly, then fall back to local storage
+        const progressText = document.querySelector('#overall-progress-text');
+        if (progressText) {
+            progressText.textContent = 'Error';
+            setTimeout(() => {
+                loadLocalProgress();
+            }, 1000);
+        } else {
+            loadLocalProgress();
+        }
+        
+        // Trigger error event
+        const event = new CustomEvent('dashboard-error', {
+            detail: { error: error.message }
+        });
+        document.dispatchEvent(event);
+    }
+}
+
+// Update dashboard elements with progress data
+function updateDashboardProgress(progressData) {
+    // Convert API room data to frontend format if needed
+    const formattedData = formatProgressData(progressData);
+    
+    // Update overall progress
+    updateOverallProgress(formattedData);
+    
+    // Update room cards
+    updateRoomCards(formattedData);
+    
+    // Update room progress summary
+    updateRoomProgressSummary(formattedData);
+}
+
+// Convert API progress data format to frontend expected format
+function formatProgressData(progressData) {
+    // If progressData has room_progress array (from API), convert it
+    if (progressData.room_progress && Array.isArray(progressData.room_progress)) {
+        const formattedData = {};
+        
+        // Map API room names to frontend room names
+        const roomMapping = {
+            'flowchart': 'flowchart',
+            'networking': 'netxus',
+            'ai-training': 'aitrix', 
+            'database': 'schemax',
+            'programming': 'codevance'
+        };
+        
+        progressData.room_progress.forEach(roomData => {
+            const apiRoomName = roomData.room_name;
+            const frontendRoomName = roomMapping[apiRoomName] || apiRoomName;
+            
+            formattedData[frontendRoomName] = {
+                progress_percentage: roomData.progress_percentage || 0,
+                score: roomData.score || 0,
+                current_level: roomData.current_level || 1,
+                time_spent: roomData.time_spent || 0,
+                attempts: roomData.attempts || 0,
+                completed: roomData.completed || false,
+                last_accessed: roomData.last_accessed,
+                display_name: roomData.display_name,
+                description: roomData.description,
+                color: roomData.color,
+                icon: roomData.icon
+            };
+        });
+        
+        return formattedData;
+    }
+    
+    // If already in correct format, return as-is
+    return progressData;
+}
+
+// Update overall progress section
+function updateOverallProgress(progressData) {
+    // Handle both API format and local format
+    let overallProgress;
+    let overallStats;
+    
+    if (progressData.overall_stats) {
+        // API format with overall_stats
+        overallProgress = Math.round(progressData.overall_stats.total_progress || 0);
+        overallStats = progressData.overall_stats;
+    } else {
+        // Local format - calculate from room data
+        overallProgress = calculateOverallProgress(progressData);
+        overallStats = {
+            total_score: calculateTotalScore(progressData),
+            completed_rooms: calculateCompletedRooms(progressData),
+            total_rooms: Object.keys(ROOM_CONFIG).length
+        };
+    }
+    
+    // Update main progress bar
+    const progressBar = document.querySelector('.progress-section .progress-fill');
+    const progressText = document.querySelector('#overall-progress-text');
+    
+    if (progressBar) {
+        progressBar.style.width = `${overallProgress}%`;
+        progressBar.setAttribute('data-progress', `${overallProgress}%`);
+    }
+    
+    if (progressText) {
+        progressText.textContent = `${overallProgress}%`;
+    }
+    
+    // Update statistics with real data
+    updateProgressStats(progressData, overallStats);
+}
+
+// Update individual room cards
+function updateRoomCards(progressData) {
+    const roomsGrid = document.querySelector('.rooms-grid');
+    if (!roomsGrid) return;
+
+    // Update existing room cards instead of recreating them
+    const roomCards = roomsGrid.querySelectorAll('.room-card');
+    
+    roomCards.forEach((card, index) => {
+        const roomNames = Object.keys(ROOM_CONFIG);
+        const roomName = roomNames[index];
+        
+        if (!roomName || !ROOM_CONFIG[roomName]) return;
+        
+        const roomConfig = ROOM_CONFIG[roomName];
+        const roomProgress = progressData[roomName] || { 
+            progress_percentage: 0, 
+            score: 0, 
+            current_level: 1,
+            time_spent: 0,
+            completed: false,
+            attempts: 0
+        };
+        
+        console.log(`Updating room card for ${roomName}:`, roomProgress);
+        updateRoomCard(card, roomName, roomConfig, roomProgress);
+    });
+}
+
+// Update individual room card with progress data
+function updateRoomCard(card, roomName, config, progress) {
+    const progressPercentage = Math.round(progress.progress_percentage || 0);
+    const isCompleted = progressPercentage >= 100;
+    const isNotStarted = progressPercentage === 0;
+    
+    // Update progress bar
+    const progressFill = card.querySelector('.progress-fill');
+    const progressText = card.querySelector('.progress-text');
+    
+    if (progressFill) {
+        progressFill.style.width = `${progressPercentage}%`;
+        progressFill.style.background = config.color;
+    }
+    
+    if (progressText) {
+        progressText.textContent = `${progressPercentage}%`;
+    }
+    
+    // Update status icon and text
+    const statusIcon = card.querySelector('.progress-status i');
+    const statusText = card.querySelector('.progress-status span');
+    
+    if (statusIcon && statusText) {
+        if (isCompleted) {
+            statusIcon.className = 'bi bi-check-circle-fill';
+            statusText.textContent = 'Completed';
+            card.classList.add('completed');
+            card.classList.remove('not-started');
+        } else if (isNotStarted) {
+            statusIcon.className = 'bi bi-lock';
+            statusText.textContent = 'Not Started';
+            card.classList.add('not-started');
+            card.classList.remove('completed');
+        } else {
+            statusIcon.className = 'bi bi-play-circle-fill';
+            statusText.textContent = 'In Progress';
+            card.classList.remove('completed', 'not-started');
+        }
+    }
+    
+    // Update progress details
+    const scoreElement = card.querySelector('.progress-score');
+    const levelElement = card.querySelector('.progress-level');
+    
+    if (scoreElement) {
+        scoreElement.textContent = `Score: ${progress.score || 0}`;
+    }
+    
+    if (levelElement) {
+        levelElement.textContent = `Level: ${progress.current_level || 1}`;
+    }
+    
+    // Add time spent if available
+    if (progress.time_spent && progress.time_spent > 0) {
+        let timeElement = card.querySelector('.progress-time');
+        if (!timeElement) {
+            timeElement = document.createElement('span');
+            timeElement.className = 'progress-time';
+            card.querySelector('.progress-details').appendChild(timeElement);
+        }
+        timeElement.textContent = formatTime(progress.time_spent);
+    }
+    
+    // Check for last played room
+    const lastPlayed = getLastPlayedRoom();
+    if (lastPlayed === roomName) {
+        if (!card.querySelector('.last-played-badge')) {
+            const badge = document.createElement('div');
+            badge.className = 'last-played-badge';
+            badge.innerHTML = `
+                <i class="bi bi-clock-history"></i>
+                Last Played
+            `;
+            card.insertBefore(badge, card.firstChild);
+        }
+    } else {
+        const existingBadge = card.querySelector('.last-played-badge');
+        if (existingBadge) {
+            existingBadge.remove();
+        }
+    }
+}
+
+// Create individual room card element
+function createRoomCard(roomName, config, progress) {
+    const card = document.createElement('div');
+    card.className = 'room-card active';
+    card.onclick = () => navigateToRoom(roomName);
+    
+    const progressPercentage = Math.round(progress.progress_percentage || 0);
+    const isCompleted = progressPercentage >= 100;
+    const isNotStarted = progressPercentage === 0;
+    
+    // Add status classes
+    if (isCompleted) {
+        card.classList.add('completed');
+    } else if (isNotStarted) {
+        card.classList.add('not-started');
+    }
+    
+    // Get last played status
+    const lastPlayed = getLastPlayedRoom();
+    const isLastPlayed = lastPlayed === roomName;
+    
+    card.innerHTML = `
+        ${isLastPlayed ? `
+            <div class="last-played-badge">
+                <i class="bi bi-clock-history"></i>
+                Last Played
+            </div>
+        ` : ''}
+        <h3>${config.displayName}</h3>
+        <div class="room-description">
+            <small>${config.description}</small>
+        </div>
+        <div class="room-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progressPercentage}%; background: ${config.color};">
+                    <span class="progress-text">${progressPercentage}%</span>
+                </div>
+            </div>
+            <div class="progress-info">
+                <div class="progress-status">
+                    <i class="bi ${isCompleted ? 'bi-check-circle-fill' : isNotStarted ? 'bi-lock' : 'bi-play-circle-fill'}"></i>
+                    <span>${isCompleted ? 'Completed' : isNotStarted ? 'Not Started' : 'In Progress'}</span>
+                </div>
+                <div class="progress-details">
+                    <span class="progress-score">Score: ${progress.score || 0}</span>
+                    <span class="progress-level">Level: ${progress.current_level || 1}</span>
+                    ${progress.time_spent ? `<span class="progress-time">${formatTime(progress.time_spent)}</span>` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+// Update room progress summary in overview section
+function updateRoomProgressSummary(progressData) {
+    const summaryContainer = document.querySelector('.room-progress-summary');
+    if (!summaryContainer) return;
+
+    // Clear existing summary
+    summaryContainer.innerHTML = '';
+
+    // Create summary items for top 3 rooms
+    const topRooms = Object.keys(ROOM_CONFIG).slice(0, 3);
+    
+    topRooms.forEach(roomName => {
+        const roomConfig = ROOM_CONFIG[roomName];
+        const roomProgress = progressData[roomName] || { progress_percentage: 0 };
+        
+        const summaryItem = document.createElement('div');
+        summaryItem.className = 'room-progress-item';
+        
+        summaryItem.innerHTML = `
+            <i class="bi ${roomConfig.icon}" style="color: ${roomConfig.color};"></i>
+            <span>${roomConfig.displayName}</span>
+            <div class="mini-progress">
+                <div class="mini-fill" style="width: ${roomProgress.progress_percentage || 0}%; background: ${roomConfig.color};"></div>
+            </div>
+        `;
+        
+        summaryContainer.appendChild(summaryItem);
+    });
+}
+
+// Calculate overall progress across all rooms
+function calculateOverallProgress(progressData) {
+    const roomNames = Object.keys(ROOM_CONFIG);
+    const totalProgress = roomNames.reduce((sum, roomName) => {
+        const progress = progressData[roomName]?.progress_percentage || 0;
+        return sum + progress;
+    }, 0);
+    
+    return Math.round(totalProgress / roomNames.length);
+}
+
+// Load progress from local storage as fallback
+function loadLocalProgress() {
+    console.log('📦 Loading fallback progress from local storage');
+    
+    // Try to get existing progress from localStorage
+    const existingProgress = localStorage.getItem('userProgress');
+    let defaultProgress;
+    
+    if (existingProgress) {
+        try {
+            defaultProgress = JSON.parse(existingProgress);
+        } catch (e) {
+            console.warn('Failed to parse stored progress, using defaults');
+        }
+    }
+    
+    // Default progress for new users or fallback
+    if (!defaultProgress) {
+        defaultProgress = {
+            'flowchart': { progress_percentage: 0, score: 0, current_level: 1, time_spent: 0 },
+            'netxus': { progress_percentage: 0, score: 0, current_level: 1, time_spent: 0 },
+            'aitrix': { progress_percentage: 0, score: 0, current_level: 1, time_spent: 0 },
+            'schemax': { progress_percentage: 0, score: 0, current_level: 1, time_spent: 0 },
+            'codevance': { progress_percentage: 0, score: 0, current_level: 1, time_spent: 0 }
+        };
+    }
+    
+    updateDashboardProgress(defaultProgress);
+}
+
+// Listen for progress updates
+function setupProgressListeners() {
+    // Listen for progress updates from games
+    document.addEventListener('progress-updated', (event) => {
+        console.log('🔄 Progress update received:', event.detail);
+        // Refresh dashboard data
+        setTimeout(() => loadUserProgress(), 500);
+    });
+    
+    // Listen for progress loaded events
+    document.addEventListener('progress-loaded', (event) => {
+        console.log('📊 Progress loaded:', event.detail);
+        if (event.detail.progress) {
+            updateDashboardProgress(event.detail.progress);
+        }
+    });
+    
+    // Listen for room completions
+    document.addEventListener('roomCompleted', (event) => {
+        console.log('🎉 Room completion received:', event.detail);
+        // Refresh dashboard data
+        setTimeout(() => loadUserProgress(), 500);
+    });
+    
+    // Listen for level completions
+    document.addEventListener('levelCompleted', (event) => {
+        console.log('⭐ Level completion received:', event.detail);
+        // Refresh dashboard data 
+        setTimeout(() => loadUserProgress(), 300);
+    });
+}
+
+// Update progress statistics
+function updateProgressStats(progressData, overallStats = null) {
+    let totalScore, totalTime, completedRooms;
+    
+    if (overallStats) {
+        // Use provided overall stats (from API)
+        totalScore = overallStats.total_score || 0;
+        completedRooms = overallStats.completed_rooms || 0;
+        totalTime = calculateTotalTime(progressData); // Still need to calculate time
+    } else {
+        // Calculate from room data
+        totalScore = calculateTotalScore(progressData);
+        totalTime = calculateTotalTime(progressData);
+        completedRooms = calculateCompletedRooms(progressData);
+    }
+    
+    // Update DOM elements
+    const totalScoreElement = document.querySelector('#total-score');
+    const totalTimeElement = document.querySelector('#total-time');
+    const completedRoomsElement = document.querySelector('#completed-rooms');
+    
+    if (totalScoreElement) {
+        totalScoreElement.textContent = totalScore.toLocaleString();
+    }
+    
+    if (totalTimeElement) {
+        totalTimeElement.textContent = formatTime(totalTime);
+    }
+    
+    if (completedRoomsElement) {
+        const totalRooms = Object.keys(ROOM_CONFIG).length;
+        completedRoomsElement.textContent = `${completedRooms}/${totalRooms}`;
+    }
+}
+
+// Calculate total score across all rooms
+function calculateTotalScore(progressData) {
+    let total = 0;
+    
+    // Handle both API format and local format
+    if (progressData.room_progress && Array.isArray(progressData.room_progress)) {
+        total = progressData.room_progress.reduce((sum, room) => {
+            return sum + (room.score || 0);
+        }, 0);
+    } else {
+        total = Object.values(progressData).reduce((sum, room) => {
+            return sum + (room.score || 0);
+        }, 0);
+    }
+    
+    return total;
+}
+
+// Calculate total time spent
+function calculateTotalTime(progressData) {
+    let total = 0;
+    
+    // Handle both API format and local format
+    if (progressData.room_progress && Array.isArray(progressData.room_progress)) {
+        total = progressData.room_progress.reduce((sum, room) => {
+            return sum + (room.time_spent || 0);
+        }, 0);
+    } else {
+        total = Object.values(progressData).reduce((sum, room) => {
+            return sum + (room.time_spent || 0);
+        }, 0);
+    }
+    
+    return total;
+}
+
+// Calculate completed rooms
+function calculateCompletedRooms(progressData) {
+    let completed = 0;
+    
+    // Handle both API format and local format
+    if (progressData.room_progress && Array.isArray(progressData.room_progress)) {
+        completed = progressData.room_progress.filter(room => {
+            return room.completed || (room.progress_percentage || 0) >= 100;
+        }).length;
+    } else {
+        completed = Object.values(progressData).filter(room => {
+            return room.completed || (room.progress_percentage || 0) >= 100;
+        }).length;
+    }
+    
+    return completed;
+}
+
+// Format time in seconds to readable format
+function formatTime(seconds) {
+    if (!seconds || seconds < 60) {
+        return '< 1m';
+    }
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    } else {
+        return `${minutes}m`;
+    }
+}
+
+// Get last played room from local storage
+function getLastPlayedRoom() {
+    return localStorage.getItem('lastPlayedRoom') || null;
+}
+
+// Set last played room
+function setLastPlayedRoom(roomName) {
+    localStorage.setItem('lastPlayedRoom', roomName);
+}
+
+// Enhanced room navigation with tracking
+function navigateToRoom(roomType) {
+    // Update last played room
+    setLastPlayedRoom(roomType);
+    
+    // Navigate to command center and then to specific room
+    sessionStorage.setItem('targetRoom', roomType);
+    window.location.href = '/src/pages/command-center.html';
+}
+
 function toggleHelp() {
     const helpPanel = document.getElementById('helpPanel');
     helpPanel.classList.toggle('active');
@@ -67,7 +657,7 @@ function goToDashboard() {
 }
 
 // Add new function for room navigation from dashboard
-function navigateToRoom(roomType) {
+function originalNavigateToRoom(roomType) {
     // Navigate to command center and then to specific room
     sessionStorage.setItem('targetRoom', roomType);
     window.location.href = '/src/pages/command-center.html';
@@ -267,6 +857,18 @@ document.addEventListener('DOMContentLoaded', function() {
         welcomeUsernameElement.textContent = username;
     }
     
+    // Initialize progress tracking and load user progress
+    setupProgressListeners();
+    
+    // Load initial progress
+    loadUserProgress();
+    
+    // Set up periodic refresh every 30 seconds to catch any missed updates
+    setInterval(() => {
+        console.log('🔄 Periodic dashboard refresh...');
+        loadUserProgress();
+    }, 30000);
+    
     console.log('User dashboard initialized successfully for:', username);
 });
 
@@ -305,3 +907,6 @@ window.scrollBadges = scrollBadges;
 window.toggleBadgeFullscreen = toggleBadgeFullscreen;
 window.playCutscene = playCutscene;
 window.closeCutscene = closeCutscene;
+window.loadUserProgress = loadUserProgress;
+window.updateDashboardProgress = updateDashboardProgress;
+window.formatTime = formatTime;
