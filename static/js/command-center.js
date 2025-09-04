@@ -2,24 +2,30 @@ class CommandCenter {
     constructor() {
         // Core properties
         this.gameDisplay = document.getElementById('gameDisplay');
+        console.log('🎮 GameDisplay element found:', !!this.gameDisplay);
+        
+        if (!this.gameDisplay) {
+            console.error('❌ GameDisplay element not found! Command Center cannot initialize properly.');
+        }
+        
         this.currentRoom = null;
         this.roomStates = {};
         this.roomInstances = {};
         this.roomContainers = {};
+        this.progressTracker = null;
         
-        // Room progress data
-        this.roomProgress = {
-            'flowchart': { completion: 85, status: 'In Progress', lastPlayed: true },
-            'networking': { completion: 45, status: 'In Progress', lastPlayed: false },
-            'ai-training': { completion: 35, status: 'In Progress', lastPlayed: false },
-            'database': { completion: 25, status: 'In Progress', lastPlayed: false },
-            'programming': { completion: 15, status: 'In Progress', lastPlayed: false }
-        };
+        // Room progress data - will be populated from server
+        this.roomProgress = {};
         
         // Room configuration
         this.roomConfig = {
             names: {
                 'flowchart': 'FLOWBYTE',
+                'netxus': 'NETXUS', 
+                'aitrix': 'AITRIX',
+                'schemax': 'SCHEMAX',
+                'codevance': 'CODEVANCE',
+                // Legacy support
                 'networking': 'NETXUS', 
                 'ai-training': 'AITRIX',
                 'database': 'SCHEMAX',
@@ -27,10 +33,15 @@ class CommandCenter {
             },
             info: {
                 'flowchart': { name: 'FLOWBYTE', icon: 'bi-diagram-3', color: '#005FFB', description: 'Flowchart Logic' },
+                'netxus': { name: 'NETXUS', icon: 'bi-hdd-network', color: '#00A949', description: 'Network Engineering' },
+                'aitrix': { name: 'AITRIX', icon: 'bi-robot', color: '#E08300', description: 'AI & Machine Learning' },
+                'schemax': { name: 'SCHEMAX', icon: 'bi-database', color: '#8B5A3C', description: 'Database Management' },
+                'codevance': { name: 'CODEVANCE', icon: 'bi-code-slash', color: '#DC3545', description: 'Programming Challenges' },
+                // Legacy support
                 'networking': { name: 'NETXUS', icon: 'bi-hdd-network', color: '#00A949', description: 'Network Engineering' },
                 'ai-training': { name: 'AITRIX', icon: 'bi-robot', color: '#E08300', description: 'AI & Machine Learning' },
-                'database': { name: 'SCHEMAX', icon: 'bi-database', color: '#FF3600', description: 'Database Management' },
-                'programming': { name: 'CODEVANCE', icon: 'bi-code-slash', color: '#FF006D', description: 'Advanced Programming' }
+                'database': { name: 'SCHEMAX', icon: 'bi-database', color: '#8B5A3C', description: 'Database Management' },
+                'programming': { name: 'CODEVANCE', icon: 'bi-code-slash', color: '#DC3545', description: 'Programming Challenges' }
             }
         };
         
@@ -41,31 +52,227 @@ class CommandCenter {
     // INITIALIZATION METHODS
     // =============================================
 
-    initialize() {
+    async initialize() {
+        console.log('🚀 Initializing Command Center...');
+        
+        // Wait for progress tracker to be available
+        await this.waitForProgressTracker();
+        console.log('✅ Progress tracker loaded');
+        
         this.initializeModuleButtons();
+        console.log('✅ Module buttons initialized');
+        
         this.loadUserInfo();
+        console.log('✅ User info loaded');
+        
+        await this.loadUserProgress();
+        console.log('✅ User progress loaded');
+        
         this.initializeRoomContainers();
+        console.log('✅ Room containers initialized');
+        
+        this.setupProgressEventListeners();
+        console.log('✅ Progress event listeners setup');
+        
         this.showCommandDashboard();
+        console.log('✅ Command dashboard shown');
+        
+        console.log('🎉 Command Center initialization complete!');
+    }
+
+    async waitForProgressTracker() {
+        // Wait for progress tracker to be loaded
+        while (!window.progressTracker) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        this.progressTracker = window.progressTracker;
+        console.log('✅ Progress tracker connected to Command Center');
+    }
+
+    async loadUserProgress() {
+        console.log('📊 Loading user progress...');
+        try {
+            if (this.progressTracker) {
+                // Load progress data from tracker
+                const progressData = this.progressTracker.getAllProgress();
+                console.log('Progress data from tracker:', progressData);
+                
+                // Initialize room progress with default values
+                const defaultRooms = ['flowchart', 'netxus', 'aitrix', 'schemax', 'codevance'];
+                console.log('Initializing rooms:', defaultRooms);
+                
+                defaultRooms.forEach(roomType => {
+                    // Check for progress data with both new and legacy room names
+                    const roomProgress = progressData.find(p => 
+                        p.room_name === roomType || 
+                        (roomType === 'netxus' && p.room_name === 'networking') ||
+                        (roomType === 'aitrix' && p.room_name === 'ai-training') ||
+                        (roomType === 'schemax' && p.room_name === 'database') ||
+                        (roomType === 'codevance' && p.room_name === 'programming')
+                    );
+                    
+                    this.roomProgress[roomType] = {
+                        completion: roomProgress ? roomProgress.progress_percentage : 0,
+                        status: roomProgress?.completed ? 'Completed' : 'In Progress',
+                        lastPlayed: false,
+                        score: roomProgress ? roomProgress.score : 0,
+                        level: roomProgress ? roomProgress.current_level : 1,
+                        timeSpent: roomProgress ? roomProgress.time_spent : 0
+                    };
+                });
+                
+                // Mark most recently accessed room as last played
+                if (progressData.length > 0) {
+                    const mostRecent = progressData.reduce((latest, current) => {
+                        const currentTime = new Date(current.last_accessed || 0).getTime();
+                        const latestTime = new Date(latest.last_accessed || 0).getTime();
+                        return currentTime > latestTime ? current : latest;
+                    });
+                    
+                    // Map legacy room name to new room name
+                    const mapLegacyRoomName = (legacyName) => {
+                        const mapping = {
+                            'networking': 'netxus',
+                            'ai-training': 'aitrix',
+                            'database': 'schemax',
+                            'programming': 'codevance'
+                        };
+                        return mapping[legacyName] || legacyName;
+                    };
+                    
+                    const mappedRoomName = mapLegacyRoomName(mostRecent.room_name);
+                    if (this.roomProgress[mappedRoomName]) {
+                        this.roomProgress[mappedRoomName].lastPlayed = true;
+                    }
+                }
+                
+                console.log('📊 User progress loaded in Command Center:', this.roomProgress);
+            }
+        } catch (error) {
+            console.error('❌ Error loading user progress:', error);
+            // Initialize with default values
+            this.initializeDefaultProgress();
+        }
+    }
+
+    initializeDefaultProgress() {
+        const defaultRooms = ['flowchart', 'netxus', 'aitrix', 'schemax', 'codevance'];
+        
+        defaultRooms.forEach(roomType => {
+            this.roomProgress[roomType] = {
+                completion: 0,
+                status: 'Not Started',
+                lastPlayed: false,
+                score: 0,
+                level: 1,
+                timeSpent: 0
+            };
+        });
+        
+        // Set first room as last played
+        this.roomProgress['flowchart'].lastPlayed = true;
+    }
+
+    setupProgressEventListeners() {
+        // Listen for progress updates from the progress tracker
+        document.addEventListener('progress-updated', (event) => {
+            const { roomName, progress } = event.detail;
+            this.handleProgressUpdate(roomName, progress);
+        });
+        
+        document.addEventListener('progress-loaded', (event) => {
+            const { progress } = event.detail;
+            this.handleProgressLoaded(progress);
+        });
+    }
+
+    handleProgressUpdate(roomName, progress) {
+        // Update local room progress cache
+        if (this.roomProgress[roomName]) {
+            this.roomProgress[roomName] = {
+                completion: progress.progress_percentage || 0,
+                status: progress.completed ? 'Completed' : 'In Progress',
+                lastPlayed: this.roomProgress[roomName].lastPlayed,
+                score: progress.score || 0,
+                level: progress.current_level || 1,
+                timeSpent: progress.time_spent || 0
+            };
+            
+            // Update UI if we're on the dashboard
+            if (this.gameDisplay && this.gameDisplay.innerHTML.includes('command-dashboard')) {
+                this.refreshDashboardDisplay();
+            }
+            
+            console.log(`📈 Progress updated in Command Center for ${roomName}:`, this.roomProgress[roomName]);
+        }
+    }
+
+    handleProgressLoaded(progressData) {
+        console.log('📋 Progress data loaded in Command Center:', progressData);
+        // Refresh the dashboard if it's currently displayed
+        if (this.gameDisplay && this.gameDisplay.innerHTML.includes('command-dashboard')) {
+            this.refreshDashboardDisplay();
+        }
+    }
+
+    refreshDashboardDisplay() {
+        // Refresh the dashboard to show updated progress
+        setTimeout(() => {
+            this.showCommandDashboard();
+        }, 100);
     }
 
     initializeModuleButtons() {
         const moduleButtons = document.querySelectorAll('.module-nav-btn');
         moduleButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const roomType = button.classList[1];
-                this.navigateToRoom(roomType);
+                // Get room type from the button classes
+                const roomType = button.classList[1]; // Second class is the room type
+                console.log('🎯 Button clicked for room:', roomType);
+                
+                // Map the room type if needed for consistency
+                const mappedRoomType = this.mapRoomType(roomType);
+                console.log('🗺️ Mapped room type:', mappedRoomType);
+                
+                this.navigateToRoom(mappedRoomType);
             });
         });
     }
 
+    // Map room types for consistency between dashboard and command center
+    mapRoomType(roomType) {
+        const roomMapping = {
+            'flowchart': 'flowchart',
+            'networking': 'netxus',
+            'ai-training': 'aitrix', 
+            'database': 'schemax',
+            'programming': 'codevance'
+        };
+        
+        return roomMapping[roomType] || roomType;
+    }
+
     initializeRoomContainers() {
-        const roomTypes = ['flowchart', 'networking', 'ai-training', 'database', 'programming'];
+        console.log('🏗️ Initializing room containers...');
+        const roomTypes = ['flowchart', 'netxus', 'aitrix', 'schemax', 'codevance'];
         
         roomTypes.forEach(roomType => {
+            console.log(`Creating container for: ${roomType}`);
             const container = this.createRoomContainer(roomType);
             this.gameDisplay.appendChild(container);
             this.roomContainers[roomType] = container;
+            console.log(`✅ Container created and added for: ${roomType}`);
         });
+        
+        // Also create legacy containers for backward compatibility
+        const legacyRoomTypes = ['networking', 'ai-training', 'database', 'programming'];
+        legacyRoomTypes.forEach((legacyType, index) => {
+            const newType = ['netxus', 'aitrix', 'schemax', 'codevance'][index];
+            this.roomContainers[legacyType] = this.roomContainers[newType];
+            console.log(`🔗 Legacy mapping: ${legacyType} -> ${newType}`);
+        });
+        
+        console.log('🏁 All room containers initialized:', Object.keys(this.roomContainers));
     }
 
     createRoomContainer(roomType) {
@@ -94,15 +301,28 @@ class CommandCenter {
     // =============================================
 
     async navigateToRoom(roomType) {
+        console.log(`🔄 Navigating to room: ${roomType}`);
+        console.log('Available room containers:', Object.keys(this.roomContainers));
+        console.log('Available room progress:', Object.keys(this.roomProgress));
+        console.log('Room container exists:', !!this.roomContainers[roomType]);
+        
+        // Check if this is a legacy room type that needs mapping
+        const mappedRoomType = this.mapRoomType(roomType);
+        console.log(`Mapped room type: ${roomType} -> ${mappedRoomType}`);
+        
         this.updateNavigationButtons(roomType);
         this.showLoadingTransition(roomType);
         
-        if (!this.roomInstances[roomType]) {
-            await this.loadRoomInstance(roomType);
+        if (!this.roomInstances[mappedRoomType]) {
+            console.log(`📥 Loading room instance for: ${mappedRoomType}`);
+            await this.loadRoomInstance(mappedRoomType);
+        } else {
+            console.log(`✅ Room instance already exists for: ${mappedRoomType}`);
         }
         
-        this.switchToRoom(roomType);
-        this.updateRoomProgress(roomType);
+        console.log(`🎯 Switching to room: ${mappedRoomType}`);
+        this.switchToRoom(mappedRoomType);
+        this.updateRoomProgress(mappedRoomType);
     }
 
     updateNavigationButtons(activeRoom) {
@@ -182,8 +402,34 @@ class CommandCenter {
         const targetRoom = this.roomContainers[roomType];
         console.log(`🎯 Showing target room: ${roomType}`);
         console.log('Room container exists:', !!targetRoom);
+        console.log('All available room containers:', Object.keys(this.roomContainers));
         
         if (targetRoom) {
+            console.log('✅ Target room container found, showing it...');
+            
+            // Add simple test content to verify the room is working
+            if (!targetRoom.innerHTML.trim()) {
+                targetRoom.innerHTML = `
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100%;
+                        flex-direction: column;
+                        color: white;
+                        font-size: 24px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    ">
+                        <h1>${roomType.toUpperCase()} ROOM</h1>
+                        <p>Room successfully loaded and displayed!</p>
+                        <button onclick="window.commandCenter.showCommandDashboard()" 
+                                style="margin-top: 20px; padding: 10px 20px; font-size: 16px; background: #fff; color: #333; border: none; border-radius: 5px; cursor: pointer;">
+                            ← Back to Command Center
+                        </button>
+                    </div>
+                `;
+            }
+            
             // Force display properties
             targetRoom.classList.remove('hidden');
             targetRoom.style.display = 'block';
@@ -192,8 +438,10 @@ class CommandCenter {
                 targetRoom.style.opacity = '1';
                 targetRoom.style.visibility = 'visible';
                 targetRoom.style.zIndex = '10';
+                console.log('🎯 Room should now be visible');
+                
                 this.currentRoom = roomType;
-                console.log(`✅ Room ${roomType} should now be visible`);
+                console.log(`✅ Room ${roomType} is now the active room`);
                 console.log('Room container styles:', {
                     opacity: targetRoom.style.opacity,
                     visibility: targetRoom.style.visibility,
@@ -202,7 +450,8 @@ class CommandCenter {
                 });
             }, 100);
         } else {
-            console.error(`❌ Target room container not found: ${roomType}`);
+            console.error(`❌ Room container not found for: ${roomType}`);
+            console.error('Available containers:', Object.keys(this.roomContainers));
         }
     }
 
@@ -235,6 +484,19 @@ class CommandCenter {
             case 'flowchart':
                 await this.loadFlowchartRoom();
                 break;
+            case 'netxus':
+                await this.loadNetxusRoom();
+                break;
+            case 'aitrix':
+                await this.loadAitrixRoom();
+                break;
+            case 'schemax':
+                await this.loadSchemaxRoom();
+                break;
+            case 'codevance':
+                await this.loadCodevanceRoom();
+                break;
+            // Legacy room type support
             case 'networking':
                 await this.loadNetxusRoom();
                 break;
@@ -270,7 +532,10 @@ class CommandCenter {
                 const currentPath = window.location.pathname;
                 let scriptPath;
                 
-                if (currentPath.includes('/src/pages/')) {
+                // For file:// URLs, use simple relative paths
+                if (window.location.protocol === 'file:') {
+                    scriptPath = '../../static/js/flowchart-game.js';
+                } else if (currentPath.includes('/src/pages/')) {
                     // We're in a subfolder like /src/pages/command-center.html
                     scriptPath = '../../static/js/flowchart-game.js';
                 } else if (currentPath === '/' || currentPath.includes('index.html')) {
@@ -281,6 +546,8 @@ class CommandCenter {
                     scriptPath = '/static/js/flowchart-game.js';
                 }
                 
+                console.log('Current path:', currentPath);
+                console.log('Protocol:', window.location.protocol);
                 console.log('Attempting to load script from:', scriptPath);
                 await this.loadScript(scriptPath);
                 console.log('FlowByte game script loaded successfully');
@@ -506,7 +773,7 @@ class CommandCenter {
     // =============================================
 
     async loadNetxusRoom() {
-        const container = this.roomContainers['networking'];
+        const container = this.roomContainers['netxus'] || this.roomContainers['networking'];
         
         console.log('Loading NETXUS room...');
         
@@ -670,7 +937,7 @@ class CommandCenter {
             // Initialize the lab
             if (window.NetxusLab) {
                 console.log('✓ NetxusLab class available, initializing...');
-                this.roomInstances['networking'] = new NetxusLab();
+                this.roomInstances['netxus'] = new NetxusLab();
                 
                 // Setup integration after a short delay
                 setTimeout(() => {
@@ -687,8 +954,8 @@ class CommandCenter {
     }
 
     setupNetxusLabIntegration() {
-        const netxusLab = this.roomInstances['networking'];
-        const container = this.roomContainers['networking'];
+        const netxusLab = this.roomInstances['netxus'];
+        const container = this.roomContainers['netxus'];
         
         if (!netxusLab || !container) {
             console.error('✗ NETXUS lab or container not available for integration');
@@ -730,7 +997,7 @@ class CommandCenter {
     // =============================================
 
     async loadAitrixRoom() {
-        const container = this.roomContainers['ai-training'];
+        const container = this.roomContainers['aitrix'] || this.roomContainers['ai-training'];
         
         console.log('Loading AITRIX room...');
         
@@ -926,7 +1193,7 @@ class CommandCenter {
             // Initialize the lab
             if (window.AitrixLab) {
                 console.log('✓ AitrixLab class available, initializing...');
-                this.roomInstances['ai-training'] = new AitrixLab();
+                this.roomInstances['aitrix'] = new AitrixLab();
                 
                 // Setup integration after a short delay
                 setTimeout(() => {
@@ -943,8 +1210,8 @@ class CommandCenter {
     }
 
     setupAitrixLabIntegration() {
-        const aitrixLab = this.roomInstances['ai-training'];
-        const container = this.roomContainers['ai-training'];
+        const aitrixLab = this.roomInstances['aitrix'];
+        const container = this.roomContainers['aitrix'];
         
         if (!aitrixLab || !container) {
             console.error('✗ AITRIX lab or container not available for integration');
@@ -986,7 +1253,7 @@ class CommandCenter {
     // =============================================
 
     async loadSchemaxRoom() {
-        const container = this.roomContainers['database'];
+        const container = this.roomContainers['schemax'] || this.roomContainers['database'];
         
         console.log('Loading SCHEMAX room...');
         
@@ -1156,7 +1423,7 @@ class CommandCenter {
             // Initialize the lab
             if (window.SchemaxLab) {
                 console.log('✓ SchemaxLab class available, initializing...');
-                this.roomInstances['database'] = new SchemaxLab();
+                this.roomInstances['schemax'] = new SchemaxLab();
                 
                 // Setup integration after a short delay
                 setTimeout(() => {
@@ -1173,8 +1440,8 @@ class CommandCenter {
     }
 
     setupSchemaxLabIntegration() {
-        const schemaxLab = this.roomInstances['database'];
-        const container = this.roomContainers['database'];
+        const schemaxLab = this.roomInstances['schemax'];
+        const container = this.roomContainers['schemax'];
         
         if (!schemaxLab || !container) {
             console.error('✗ SCHEMAX lab or container not available for integration');
@@ -1216,7 +1483,7 @@ class CommandCenter {
     // =============================================
 
     async loadCodevanceRoom() {
-        const container = this.roomContainers['programming'];
+        const container = this.roomContainers['codevance'];
         
         console.log('Loading CODEVANCE room...');
         
@@ -1386,7 +1653,7 @@ class CommandCenter {
             // Initialize the lab
             if (window.CodevanceLab) {
                 console.log('✓ CodevanceLab class available, initializing...');
-                this.roomInstances['programming'] = new CodevanceLab();
+                this.roomInstances['codevance'] = new CodevanceLab();
                 
                 // Setup integration after a short delay
                 setTimeout(() => {
@@ -1403,8 +1670,8 @@ class CommandCenter {
     }
 
     setupCodevanceLabIntegration() {
-        const codevanceLab = this.roomInstances['programming'];
-        const container = this.roomContainers['programming'];
+        const codevanceLab = this.roomInstances['codevance'];
+        const container = this.roomContainers['codevance'];
         
         if (!codevanceLab || !container) {
             console.error('✗ CODEVANCE lab or container not available for integration');
@@ -1492,7 +1759,7 @@ class CommandCenter {
                 </div>
             </div>
         `;
-        this.roomInstances['networking'] = { type: 'fallback' };
+        this.roomInstances['netxus'] = { type: 'fallback' };
     }
 
     createAitrixFallback(container) {
@@ -1519,7 +1786,7 @@ class CommandCenter {
                 </div>
             </div>
         `;
-        this.roomInstances['ai-training'] = { type: 'fallback' };
+        this.roomInstances['aitrix'] = { type: 'fallback' };
     }
 
     // =============================================
@@ -1559,7 +1826,43 @@ class CommandCenter {
                 </div>
             </div>
         `;
-        this.roomInstances['database'] = { type: 'fallback' };
+        this.roomInstances['schemax'] = { type: 'fallback' };
+    }
+
+    createCodevanceFallback(container) {
+        console.log('Creating CODEVANCE fallback interface');
+        container.innerHTML = `
+            <div class="room-placeholder">
+                <button class="back-to-command" onclick="window.commandCenter.showCommandDashboard()">
+                    ← Back to Command Center
+                </button>
+                <div class="room-header" style="border-color: #DC3545;">
+                    <i class="bi bi-code-slash" style="color: #DC3545;"></i>
+                    <h2>CODEVANCE</h2>
+                </div>
+                <div class="room-description">
+                    <p>Programming Challenges Training Room</p>
+                </div>
+                <div class="coming-soon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h3>Script Loading Error</h3>
+                    <p>Unable to load the CODEVANCE game script. This might be due to:</p>
+                    <ul style="text-align: left; margin: 15px 0;">
+                        <li>Missing codevance-game.js file</li>
+                        <li>Incorrect file path configuration</li>
+                        <li>Network connectivity issues</li>
+                    </ul>
+                    <p><strong>Expected file location:</strong> /static/js/codevance-game.js</p>
+                    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #DC3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Refresh Page
+                    </button>
+                    <button onclick="window.commandCenter.loadCodevanceRoom()" style="margin-top: 5px; margin-left: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Retry Load
+                    </button>
+                </div>
+            </div>
+        `;
+        this.roomInstances['codevance'] = { type: 'fallback' };
     }
 
     // =============================================
@@ -1567,6 +1870,9 @@ class CommandCenter {
     // =============================================
 
     createCommandDashboard() {
+        console.log('🎮 Creating command dashboard...');
+        console.log('Room progress keys:', Object.keys(this.roomProgress));
+        
         const dashboard = document.createElement('div');
         dashboard.className = 'command-dashboard';
         dashboard.style.cssText = `
@@ -1587,6 +1893,18 @@ class CommandCenter {
     }
 
     generateDashboardHTML() {
+        const roomKeys = Object.keys(this.roomProgress);
+        console.log('🎯 Generating dashboard with room keys:', roomKeys);
+        
+        const roomCards = roomKeys.map(roomType => {
+            console.log(`Creating card for room: ${roomType}`);
+            const card = this.createRoomCard(roomType);
+            console.log(`Card created for ${roomType}:`, !!card);
+            return card;
+        }).join('');
+        
+        console.log('Total room cards HTML length:', roomCards.length);
+        
         return `
             <div class="dashboard-header">
                 <h2><i class="bi bi-command"></i> Command Center Overview</h2>
@@ -1594,7 +1912,7 @@ class CommandCenter {
             </div>
             
             <div class="room-grid">
-                ${Object.keys(this.roomProgress).map(roomType => this.createRoomCard(roomType)).join('')}
+                ${roomCards}
             </div>
             
             <div class="system-status">
@@ -1629,8 +1947,38 @@ class CommandCenter {
     }
 
     createRoomCard(roomType) {
+        console.log(`🃏 Creating room card for: ${roomType}`);
         const room = this.roomConfig.info[roomType];
-        const progress = this.roomProgress[roomType];
+        console.log(`Room config found:`, !!room, room);
+        
+        if (!room) {
+            console.error(`❌ No room config found for: ${roomType}`);
+            console.error('Available room configs:', Object.keys(this.roomConfig.info));
+            return '<div class="error">Room config not found</div>';
+        }
+        
+        const progress = this.roomProgress[roomType] || { completion: 0, status: 'Not Started', lastPlayed: false, score: 0, level: 1, timeSpent: 0 };
+        console.log(`Progress for ${roomType}:`, progress);
+        
+        // Format time spent
+        const formatTime = (seconds) => {
+            if (seconds < 60) return `${seconds}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+            return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+        };
+        
+        // Get completion status with more details
+        const getStatusDetails = () => {
+            if (progress.completion >= 100) {
+                return { text: 'Completed', color: '#4CAF50', icon: 'bi-check-circle-fill' };
+            } else if (progress.completion > 0) {
+                return { text: `Level ${progress.level}`, color: '#FFA726', icon: 'bi-play-circle-fill' };
+            } else {
+                return { text: 'Not Started', color: '#757575', icon: 'bi-circle' };
+            }
+        };
+        
+        const statusDetails = getStatusDetails();
         
         return `
             <div class="room-card ${roomType} ${progress.lastPlayed ? 'last-played' : ''}" 
@@ -1645,16 +1993,31 @@ class CommandCenter {
                     <p>${room.description}</p>
                     <div class="room-progress">
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progress.completion}%; background: ${room.color};"></div>
+                            <div class="progress-fill" style="width: ${progress.completion}%; background: linear-gradient(90deg, ${room.color} 0%, ${room.color}99 100%);"></div>
                         </div>
                         <div class="progress-text">
                             <span class="progress-percentage">${progress.completion}%</span>
-                            <span class="progress-status">${progress.status}</span>
+                            <span class="progress-status" style="color: ${statusDetails.color};">
+                                <i class="bi ${statusDetails.icon}"></i> ${statusDetails.text}
+                            </span>
+                        </div>
+                        <div class="room-stats">
+                            <div class="stat-item">
+                                <i class="bi bi-trophy"></i>
+                                <span>${progress.score || 0} pts</span>
+                            </div>
+                            ${progress.timeSpent > 0 ? `
+                            <div class="stat-item">
+                                <i class="bi bi-clock"></i>
+                                <span>${formatTime(progress.timeSpent)}</span>
+                            </div>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
-                <div class="room-status available" style="background: ${room.color};">
-                    ${(roomType === 'flowchart' || roomType === 'networking') ? 'Available' : 'Coming Soon'}
+                <div class="room-status ${progress.completion >= 100 ? 'completed' : 'available'}" style="background: ${statusDetails.color};">
+                    ${progress.completion >= 100 ? 'Completed' : 
+                      (roomType === 'flowchart' || roomType === 'netxus' || roomType === 'aitrix' || roomType === 'schemax' || roomType === 'codevance') ? 'Available' : 'Coming Soon'}
                 </div>
             </div>
         `;
@@ -1775,15 +2138,52 @@ class CommandCenter {
                 .progress-text {
                     display: flex;
                     justify-content: space-between;
+                    align-items: center;
                     font-size: 0.9em;
+                    margin-bottom: 10px;
                 }
                 
                 .progress-percentage {
                     font-weight: bold;
+                    color: white;
                 }
                 
                 .progress-status {
-                    color: rgba(255, 255, 255, 0.7);
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    font-size: 0.85em;
+                    font-weight: 500;
+                }
+                
+                .room-stats {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 8px;
+                    padding-top: 8px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                
+                .stat-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    font-size: 0.8em;
+                    color: rgba(255, 255, 255, 0.8);
+                }
+                
+                .stat-item i {
+                    font-size: 0.9em;
+                    opacity: 0.7;
+                }
+                
+                .room-status.completed {
+                    background: #4CAF50 !important;
+                }
+                
+                .room-status.available {
+                    background: #2196F3;
                 }
                 
                 .room-status {
@@ -1983,14 +2383,39 @@ class CommandCenter {
     // UTILITY METHODS
     // =============================================
 
-    updateRoomProgress(roomType) {
+    async updateRoomProgress(roomType, progressData = {}) {
+        // Update last played status locally
         Object.keys(this.roomProgress).forEach(room => {
             this.roomProgress[room].lastPlayed = room === roomType;
         });
-        this.saveRoomState(roomType);
+        
+        // Use progress tracker to update server and cache
+        if (this.progressTracker) {
+            try {
+                const updateData = {
+                    progress_percentage: progressData.progress || this.roomProgress[roomType]?.completion || 0,
+                    score: progressData.score || 0,
+                    current_level: progressData.level || 1,
+                    time_spent: progressData.timeSpent || 0,
+                    attempts: progressData.attempts || 1,
+                    ...progressData
+                };
+                
+                await this.progressTracker.updateProgress(roomType, updateData);
+                console.log(`✅ Progress updated for ${roomType}:`, updateData);
+            } catch (error) {
+                console.error(`❌ Failed to update progress for ${roomType}:`, error);
+                // Fall back to local storage
+                this.saveRoomStateLocal(roomType);
+            }
+        } else {
+            // Fallback to local storage
+            this.saveRoomStateLocal(roomType);
+        }
     }
 
-    saveRoomState(roomType) {
+    saveRoomStateLocal(roomType) {
+        // Legacy local storage save for backwards compatibility
         this.roomStates[roomType] = {
             lastAccessed: Date.now(),
             instance: this.roomInstances[roomType]
@@ -1998,6 +2423,74 @@ class CommandCenter {
         
         localStorage.setItem('commandCenterRoomStates', JSON.stringify(this.roomStates));
         localStorage.setItem('commandCenterRoomProgress', JSON.stringify(this.roomProgress));
+    }
+
+    // Method for games to call when user makes progress
+    async reportProgress(roomType, progressData) {
+        if (!roomType) {
+            console.warn('Room type is required for progress reporting');
+            return;
+        }
+        
+        try {
+            // Update progress via progress tracker
+            await this.updateRoomProgress(roomType, progressData);
+            
+            // Show progress notification
+            this.showProgressNotification(roomType, progressData);
+            
+            console.log(`📊 Progress reported for ${roomType}:`, progressData);
+        } catch (error) {
+            console.error(`❌ Error reporting progress for ${roomType}:`, error);
+        }
+    }
+
+    showProgressNotification(roomType, progressData) {
+        const roomDisplayName = this.roomConfig.names[roomType] || roomType;
+        let message = '';
+        
+        if (progressData.completed) {
+            message = `🎉 ${roomDisplayName} completed! Score: ${progressData.score || 0}`;
+        } else if (progressData.progress) {
+            message = `📈 ${roomDisplayName} progress: ${progressData.progress}%`;
+        } else if (progressData.score) {
+            message = `⭐ ${roomDisplayName} score: +${progressData.score} points`;
+        } else {
+            message = `✅ Progress saved for ${roomDisplayName}`;
+        }
+        
+        // Create and show notification
+        const notification = document.createElement('div');
+        notification.className = 'progress-notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(16, 161, 250, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
     }
 
     loadScript(src) {
@@ -2080,5 +2573,6 @@ class CommandCenter {
 // =============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🌟 DOM loaded, creating Command Center...');
     window.commandCenter = new CommandCenter();
 });
