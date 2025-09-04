@@ -549,10 +549,20 @@ def get_user_progress(user_id):
 
         progress = sb_select('user_progress', filters={'user_id': user_id}, order='-last_accessed')
         
-        # Normalize the response
+        # Normalize the response and enrich with room display names
+        room_display_names = {
+            'flowchart': 'FLOWBYTE',
+            'networking': 'NETXUS',
+            'ai-training': 'AITRIX',
+            'database': 'SCHEMAX',
+            'programming': 'CODEVANCE'
+        }
+        
         for p in progress:
-            p['display_name'] = p.get('room_name', 'Unknown Room')
+            room_name = p.get('room_name', 'Unknown')
+            p['display_name'] = room_display_names.get(room_name, room_name.upper())
             p['max_score'] = 100
+            p['room_type'] = room_name
             
         return jsonify(progress), 200
         
@@ -573,29 +583,297 @@ def update_user_progress(user_id):
         if not users:
             return jsonify({'error': 'User not found'}), 404
 
-        # Check if progress record already exists
-        existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': data['room_name']})
+        room_name = data['room_name']
+        progress_percentage = max(0, min(100, int(data.get('progress_percentage', 0))))
         
-        row = {
+        # Check if progress record already exists
+        existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': room_name})
+        
+        # Prepare progress data
+        progress_data = {
             'user_id': user_id,
-            'room_name': data['room_name'],
-            'progress_percentage': data.get('progress_percentage', 0),
-            'completed': bool(data.get('completed', False)),
-            'last_accessed': datetime.now().isoformat()
+            'room_name': room_name,
+            'progress_percentage': progress_percentage,
+            'current_level': data.get('current_level', 1),
+            'score': data.get('score', 0),
+            'time_spent': data.get('time_spent', 0),
+            'attempts': data.get('attempts', 1),
+            'completed': progress_percentage >= 100,
+            'last_accessed': datetime.now().isoformat(),
+            'notes': data.get('notes', '')
         }
         
+        # Set completion timestamp if completed
+        if progress_data['completed'] and not existing_progress:
+            progress_data['completed_at'] = datetime.now().isoformat()
+        elif progress_data['completed'] and existing_progress and not existing_progress[0].get('completed'):
+            progress_data['completed_at'] = datetime.now().isoformat()
+        
         if existing_progress:
+            # Update existing record, but keep higher progress
+            current_progress = existing_progress[0].get('progress_percentage', 0)
+            if progress_percentage > current_progress:
+                progress_data['progress_percentage'] = progress_percentage
+            else:
+                progress_data['progress_percentage'] = current_progress
+                
+            # Keep higher score
+            current_score = existing_progress[0].get('score', 0)
+            if data.get('score', 0) > current_score:
+                progress_data['score'] = data.get('score', 0)
+            else:
+                progress_data['score'] = current_score
+            
             # Update existing record
-            sb_update('user_progress', row, filters={'user_id': user_id, 'room_name': data['room_name']})
-            return jsonify({'message': 'Progress updated successfully'}), 200
+            sb_update('user_progress', progress_data, filters={'user_id': user_id, 'room_name': room_name})
+            message = 'Progress updated successfully'
         else:
             # Insert new record
-            inserted = sb_insert('user_progress', row)
-            return jsonify({'message': 'Progress created successfully', 'data': inserted}), 201
+            inserted = sb_insert('user_progress', progress_data)
+            message = 'Progress created successfully'
+        
+        # Update user's total score and last activity
+        user_updates = {
+            'last_activity': datetime.now().isoformat()
+        }
+        
+        # Recalculate total score from all room progress
+        all_user_progress = sb_select('user_progress', filters={'user_id': user_id})
+        total_score = sum(p.get('score', 0) for p in all_user_progress)
+        user_updates['total_score'] = total_score
+        
+        # Update current streak (simplified - if user made progress today)
+        current_user = users[0]
+        last_activity = current_user.get('last_activity')
+        today = datetime.now().date()
+        
+        if last_activity:
+            try:
+                last_date = datetime.fromisoformat(last_activity.replace('Z', '')).date()
+                if last_date == today:
+                    # Same day, maintain streak
+                    pass
+                elif (today - last_date).days == 1:
+                    # Next day, increment streak
+                    user_updates['current_streak'] = current_user.get('current_streak', 0) + 1
+                else:
+                    # Gap in activity, reset streak
+                    user_updates['current_streak'] = 1
+            except:
+                user_updates['current_streak'] = 1
+        else:
+            user_updates['current_streak'] = 1
+        
+        # Update longest streak if current is higher
+        if user_updates['current_streak'] > current_user.get('longest_streak', 0):
+            user_updates['longest_streak'] = user_updates['current_streak']
+        
+        sb_update('users', user_updates, match_column='id', match_value=user_id)
+        
+        return jsonify({
+            'message': message,
+            'progress': progress_data,
+            'user_stats': user_updates
+        }), 200 if existing_progress else 201
             
     except Exception as e:
         print(f"Update user progress error: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': f'Failed to update progress: {str(e)}'}), 500
+
+# New endpoint to get progress for all rooms for a user
+@app.route('/api/users/<int:user_id>/progress/summary', methods=['GET'])
+def get_user_progress_summary(user_id):
+    try:
+        # Ensure user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Get all progress for user
+        progress_records = sb_select('user_progress', filters={'user_id': user_id})
+        
+        # Initialize all rooms with default progress
+        all_rooms = {
+            'flowchart': {
+                'room_name': 'flowchart',
+                'display_name': 'FLOWBYTE',
+                'progress_percentage': 0,
+                'score': 0,
+                'completed': False,
+                'current_level': 1,
+                'time_spent': 0,
+                'attempts': 0,
+                'last_accessed': None,
+                'icon': 'bi-diagram-3',
+                'color': '#005FFB',
+                'description': 'Flowchart Logic'
+            },
+            'networking': {
+                'room_name': 'networking',
+                'display_name': 'NETXUS',
+                'progress_percentage': 0,
+                'score': 0,
+                'completed': False,
+                'current_level': 1,
+                'time_spent': 0,
+                'attempts': 0,
+                'last_accessed': None,
+                'icon': 'bi-hdd-network',
+                'color': '#00A949',
+                'description': 'Network Engineering'
+            },
+            'ai-training': {
+                'room_name': 'ai-training',
+                'display_name': 'AITRIX',
+                'progress_percentage': 0,
+                'score': 0,
+                'completed': False,
+                'current_level': 1,
+                'time_spent': 0,
+                'attempts': 0,
+                'last_accessed': None,
+                'icon': 'bi-robot',
+                'color': '#E08300',
+                'description': 'AI & Machine Learning'
+            },
+            'database': {
+                'room_name': 'database',
+                'display_name': 'SCHEMAX',
+                'progress_percentage': 0,
+                'score': 0,
+                'completed': False,
+                'current_level': 1,
+                'time_spent': 0,
+                'attempts': 0,
+                'last_accessed': None,
+                'icon': 'bi-database',
+                'color': '#FF3600',
+                'description': 'Database Management'
+            },
+            'programming': {
+                'room_name': 'programming',
+                'display_name': 'CODEVANCE',
+                'progress_percentage': 0,
+                'score': 0,
+                'completed': False,
+                'current_level': 1,
+                'time_spent': 0,
+                'attempts': 0,
+                'last_accessed': None,
+                'icon': 'bi-code-slash',
+                'color': '#FF006D',
+                'description': 'Advanced Programming'
+            }
+        }
+        
+        # Update with actual progress data
+        for record in progress_records:
+            room_name = record.get('room_name')
+            if room_name in all_rooms:
+                all_rooms[room_name].update({
+                    'progress_percentage': record.get('progress_percentage', 0),
+                    'score': record.get('score', 0),
+                    'completed': record.get('completed', False),
+                    'current_level': record.get('current_level', 1),
+                    'time_spent': record.get('time_spent', 0),
+                    'attempts': record.get('attempts', 0),
+                    'last_accessed': record.get('last_accessed'),
+                    'completed_at': record.get('completed_at')
+                })
+        
+        # Calculate overall stats
+        total_progress = sum(room['progress_percentage'] for room in all_rooms.values()) / len(all_rooms)
+        completed_rooms = sum(1 for room in all_rooms.values() if room['completed'])
+        total_score = sum(room['score'] for room in all_rooms.values())
+        
+        # Get user stats
+        user = users[0]
+        
+        return jsonify({
+            'user_id': user_id,
+            'username': user.get('name', 'Unknown'),
+            'room_progress': list(all_rooms.values()),
+            'overall_stats': {
+                'total_progress': round(total_progress, 1),
+                'completed_rooms': completed_rooms,
+                'total_rooms': len(all_rooms),
+                'total_score': total_score,
+                'current_streak': user.get('current_streak', 0),
+                'longest_streak': user.get('longest_streak', 0)
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Get user progress summary error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Failed to get progress summary: {str(e)}'}), 500
+
+# New endpoint for batch progress tracking
+@app.route('/api/progress/batch-update', methods=['POST'])
+def batch_update_progress():
+    try:
+        data = request.get_json()
+        if not data or not isinstance(data, list):
+            return jsonify({'error': 'Array of progress updates required'}), 400
+        
+        updated_count = 0
+        errors = []
+        
+        for progress_update in data:
+            try:
+                user_id = progress_update.get('user_id')
+                room_name = progress_update.get('room_name')
+                
+                if not user_id or not room_name:
+                    errors.append(f"Missing user_id or room_name in update: {progress_update}")
+                    continue
+                
+                # Check if user exists
+                users = sb_select('users', filters={'id': user_id})
+                if not users:
+                    errors.append(f"User {user_id} not found")
+                    continue
+                
+                # Update progress using existing logic
+                progress_percentage = max(0, min(100, int(progress_update.get('progress_percentage', 0))))
+                
+                existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': room_name})
+                
+                progress_data = {
+                    'user_id': user_id,
+                    'room_name': room_name,
+                    'progress_percentage': progress_percentage,
+                    'current_level': progress_update.get('current_level', 1),
+                    'score': progress_update.get('score', 0),
+                    'time_spent': progress_update.get('time_spent', 0),
+                    'attempts': progress_update.get('attempts', 1),
+                    'completed': progress_percentage >= 100,
+                    'last_accessed': datetime.now().isoformat()
+                }
+                
+                if progress_data['completed'] and (not existing_progress or not existing_progress[0].get('completed')):
+                    progress_data['completed_at'] = datetime.now().isoformat()
+                
+                if existing_progress:
+                    sb_update('user_progress', progress_data, filters={'user_id': user_id, 'room_name': room_name})
+                else:
+                    sb_insert('user_progress', progress_data)
+                
+                updated_count += 1
+                
+            except Exception as e:
+                errors.append(f"Error updating progress for user {progress_update.get('user_id', 'unknown')}: {str(e)}")
+        
+        return jsonify({
+            'message': f'Batch update completed',
+            'updated_count': updated_count,
+            'errors': errors
+        }), 200
+        
+    except Exception as e:
+        print(f"Batch update progress error: {str(e)}")
+        return jsonify({'error': f'Failed to batch update progress: {str(e)}'}), 500
 
 # Badges API Routes
 @app.route('/api/users/<int:user_id>/badges', methods=['GET'])
@@ -805,23 +1083,199 @@ def admin_get_users():
         for user in users:
             user_id = user['id']
             
-            # Get progress count and average
+            # Get progress records and calculate stats
             progress_records = sb_select('user_progress', filters={'user_id': user_id})
             user['progress_count'] = len(progress_records)
             
             if progress_records:
-                avg_progress = sum(p.get('progress_percentage', 0) for p in progress_records) / len(progress_records)
+                # Calculate average progress across all rooms
+                total_progress = sum(p.get('progress_percentage', 0) for p in progress_records)
+                avg_progress = total_progress / len(progress_records)
                 user['avg_progress'] = round(avg_progress, 1)
+                
+                # Calculate room-specific progress for admin view
+                room_progress = {}
+                for record in progress_records:
+                    room_name = record.get('room_name', 'unknown')
+                    room_progress[room_name] = {
+                        'progress': record.get('progress_percentage', 0),
+                        'score': record.get('score', 0),
+                        'completed': record.get('completed', False),
+                        'last_accessed': record.get('last_accessed')
+                    }
+                user['room_progress'] = room_progress
+                
+                # Count completed rooms
+                completed_rooms = sum(1 for p in progress_records if p.get('completed', False))
+                user['completed_rooms'] = completed_rooms
+                user['total_rooms'] = len(progress_records)
             else:
                 user['avg_progress'] = 0.0
+                user['room_progress'] = {}
+                user['completed_rooms'] = 0
+                user['total_rooms'] = 0
             
             # Get badge count
             badges = sb_select('badges', filters={'user_id': user_id})
             user['badges_count'] = len(badges)
             
+            # Add time since last activity
+            if user.get('last_activity'):
+                try:
+                    last_activity = datetime.fromisoformat(user['last_activity'].replace('Z', ''))
+                    time_diff = datetime.now() - last_activity
+                    if time_diff.days > 0:
+                        user['last_activity_human'] = f"{time_diff.days} days ago"
+                    elif time_diff.seconds > 3600:
+                        hours = time_diff.seconds // 3600
+                        user['last_activity_human'] = f"{hours} hours ago"
+                    elif time_diff.seconds > 60:
+                        minutes = time_diff.seconds // 60
+                        user['last_activity_human'] = f"{minutes} minutes ago"
+                    else:
+                        user['last_activity_human'] = "Just now"
+                except:
+                    user['last_activity_human'] = "Unknown"
+            else:
+                user['last_activity_human'] = "Never"
+        
         return jsonify(users), 200
     except Exception as e:
         print(f"Admin get users error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# New endpoint for detailed user progress view
+@app.route('/api/admin/users/<int:user_id>/progress', methods=['GET'])
+@require_admin()
+def admin_get_user_progress(user_id):
+    """Get detailed progress information for a specific user"""
+    try:
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user = users[0]
+        
+        # Get all progress records for this user
+        progress_records = sb_select('user_progress', filters={'user_id': user_id}, order='-last_accessed')
+        
+        # Get all badges for this user
+        badges = sb_select('badges', filters={'user_id': user_id}, order='-earned_at')
+        
+        # Calculate detailed stats
+        room_stats = {
+            'flowchart': {'name': 'FLOWBYTE', 'icon': 'bi-diagram-3', 'color': '#005FFB'},
+            'networking': {'name': 'NETXUS', 'icon': 'bi-hdd-network', 'color': '#00A949'},
+            'ai-training': {'name': 'AITRIX', 'icon': 'bi-robot', 'color': '#E08300'},
+            'database': {'name': 'SCHEMAX', 'icon': 'bi-database', 'color': '#FF3600'},
+            'programming': {'name': 'CODEVANCE', 'icon': 'bi-code-slash', 'color': '#FF006D'}
+        }
+        
+        # Enrich progress with room metadata
+        for record in progress_records:
+            room_name = record.get('room_name', '')
+            if room_name in room_stats:
+                record.update(room_stats[room_name])
+        
+        # Calculate overall statistics
+        total_progress = sum(p.get('progress_percentage', 0) for p in progress_records)
+        avg_progress = total_progress / len(progress_records) if progress_records else 0
+        completed_rooms = sum(1 for p in progress_records if p.get('completed', False))
+        total_time = sum(p.get('time_spent', 0) for p in progress_records)
+        total_attempts = sum(p.get('attempts', 0) for p in progress_records)
+        
+        # Recent activity (last 7 days)
+        week_ago = datetime.now() - timedelta(days=7)
+        week_ago_str = week_ago.isoformat()
+        recent_progress = [p for p in progress_records if p.get('last_accessed', '') > week_ago_str]
+        
+        return jsonify({
+            'user': {
+                'id': user['id'],
+                'name': user.get('name'),
+                'email': user.get('email'),
+                'role': user.get('role'),
+                'total_score': user.get('total_score', 0),
+                'current_streak': user.get('current_streak', 0),
+                'longest_streak': user.get('longest_streak', 0),
+                'last_activity': user.get('last_activity'),
+                'created_at': user.get('created_at')
+            },
+            'progress_summary': {
+                'total_rooms': len(progress_records),
+                'completed_rooms': completed_rooms,
+                'avg_progress': round(avg_progress, 1),
+                'total_time_spent': total_time,
+                'total_attempts': total_attempts,
+                'recent_activity_count': len(recent_progress)
+            },
+            'room_progress': progress_records,
+            'badges': badges
+        }), 200
+        
+    except Exception as e:
+        print(f"Admin get user progress error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# New endpoint for admin to update user progress
+@app.route('/api/admin/users/<int:user_id>/progress', methods=['POST'])
+@require_admin()
+def admin_update_user_progress(user_id):
+    """Admin endpoint to update user progress"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('room_name'):
+            return jsonify({'error': 'Room name is required'}), 400
+
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Use the same logic as user progress update but log admin action
+        room_name = data['room_name']
+        progress_percentage = max(0, min(100, int(data.get('progress_percentage', 0))))
+        
+        existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': room_name})
+        
+        progress_data = {
+            'user_id': user_id,
+            'room_name': room_name,
+            'progress_percentage': progress_percentage,
+            'current_level': data.get('current_level', 1),
+            'score': data.get('score', 0),
+            'time_spent': data.get('time_spent', 0),
+            'attempts': data.get('attempts', 1),
+            'completed': progress_percentage >= 100,
+            'last_accessed': datetime.now().isoformat(),
+            'notes': data.get('notes', '')
+        }
+        
+        if progress_data['completed'] and (not existing_progress or not existing_progress[0].get('completed')):
+            progress_data['completed_at'] = datetime.now().isoformat()
+        
+        if existing_progress:
+            sb_update('user_progress', progress_data, filters={'user_id': user_id, 'room_name': room_name})
+            action_type = 'UPDATE_USER_PROGRESS'
+        else:
+            sb_insert('user_progress', progress_data)
+            action_type = 'CREATE_USER_PROGRESS'
+        
+        # Log admin action
+        log_admin_action(
+            action_type,
+            f"Updated progress for {users[0].get('name')} in {room_name}: {progress_percentage}%",
+            target_user_id=user_id
+        )
+        
+        return jsonify({
+            'message': 'User progress updated successfully by admin',
+            'progress': progress_data
+        }), 200
+        
+    except Exception as e:
+        print(f"Admin update user progress error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/users/<int:user_id>/promote', methods=['POST'])
