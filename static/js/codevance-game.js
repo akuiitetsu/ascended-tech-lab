@@ -1217,7 +1217,7 @@ print(counter)"></textarea>
             case 'css_styling':
                 validationResults = [
                     { test: 'CSS style block', passed: htmlCode.includes('<style>') },
-                    { test: `Background color: ${bgColor}`, passed: htmlCode.includes(`background-color: ${bgColor}`) },
+                    { test: `Background color: ${scenario?.backgroundColor || 'lightblue'}`, passed: htmlCode.includes(`background-color: ${scenario?.backgroundColor || 'lightblue'}`) },
                     { test: 'Text alignment', passed: htmlCode.includes('text-align: center') },
                     { test: 'Body selector', passed: htmlCode.includes('body {') }
                 ];
