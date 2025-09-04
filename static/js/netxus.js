@@ -4,6 +4,10 @@ class NetxusLab {
         this.currentLab = null;
         this.container = null;
         this.initialized = false;
+        this.challengeStartTime = null;
+        this.roomStartTime = null;
+        this.score = 0;
+        this.attempts = 0;
         
         // Simulation state
         this.devices = [];
@@ -376,6 +380,14 @@ class NetxusLab {
     startLab(labNumber) {
         console.log('Starting lab:', labNumber);
         this.currentLab = labNumber;
+        this.attempts = 0;
+        
+        // Initialize timing
+        this.challengeStartTime = Date.now();
+        if (!this.roomStartTime) {
+            this.roomStartTime = Date.now();
+        }
+        
         this.initializeSimulation();
         this.displayLabInstructions();
         this.updateLabInterface();
@@ -3022,13 +3034,24 @@ Router# show access-lists 100
     }
 
     completeLab() {
+        // Calculate score based on attempts and completion time
+        const baseScore = 100;
+        const attemptPenalty = Math.min(this.attempts * 5, 30); // Max 30 point penalty
+        this.score = Math.max(70, baseScore - attemptPenalty); // Minimum 70 points
+        
         this.showFeedback('Lab completed successfully! 🎉', 'success');
+        
+        // Report progress to tracking systems
+        this.reportProgressToCenter();
         
         if (this.currentLab < 5) {
             setTimeout(() => {
                 this.startLab(this.currentLab + 1);
             }, 2000);
         } else {
+            // Report room completion
+            this.reportRoomCompletion();
+            
             setTimeout(() => {
                 if (window.commandCenter) {
                     window.commandCenter.showCommandDashboard();
@@ -3115,6 +3138,64 @@ Router# show access-lists 100
                 feedback.parentNode.removeChild(feedback);
             }
         }, 4000);
+    }
+
+    // Helper method to report progress to command center and database
+    async reportProgressToCenter() {
+        try {
+            if (window.progressTracker) {
+                const labProgress = Math.round((this.currentLab / 5) * 100);
+                
+                await window.progressTracker.updateProgress('netxus', labProgress, {
+                    currentLevel: this.currentLab,
+                    score: this.score,
+                    attempts: this.attempts,
+                    timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    difficulty: this.currentDifficulty
+                });
+                
+                // Dispatch event to update command center display
+                window.dispatchEvent(new CustomEvent('progressUpdated', {
+                    detail: {
+                        roomName: 'netxus',
+                        progress: labProgress,
+                        score: this.score,
+                        level: this.currentLab
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report progress to progress tracker:', error);
+        }
+    }
+
+    // Helper method to report room completion with detailed stats
+    async reportRoomCompletion() {
+        try {
+            if (window.progressTracker) {
+                await window.progressTracker.reportRoomCompletion('netxus', {
+                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                    totalAttempts: this.attempts,
+                    totalLabs: 5,
+                    finalScore: this.score,
+                    difficulty: this.currentDifficulty
+                });
+                
+                // Dispatch room completion event
+                window.dispatchEvent(new CustomEvent('roomCompleted', {
+                    detail: {
+                        roomName: 'netxus',
+                        completionStats: {
+                            timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                            totalAttempts: this.attempts,
+                            finalScore: this.score
+                        }
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report room completion:', error);
+        }
     }
 }
 

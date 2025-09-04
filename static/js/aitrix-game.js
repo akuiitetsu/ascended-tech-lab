@@ -10,6 +10,8 @@ class AitrixLab {
         this.challengeData = null;
         this.aiPersona = 'tutor'; // 'tutor' or 'mentor'
         this.conversationHistory = [];
+        this.challengeStartTime = null;
+        this.roomStartTime = null;
         
         this.challengeCategories = {
             easy: {
@@ -264,6 +266,12 @@ class AitrixLab {
         this.score = 0;
         this.attempts = 0;
         this.currentStep = 0;
+        
+        // Initialize timing
+        this.challengeStartTime = Date.now();
+        if (!this.roomStartTime) {
+            this.roomStartTime = Date.now();
+        }
         
         const categoryData = this.challengeCategories[this.currentDifficulty];
         this.challengeData = categoryData.challenges[challengeNumber - 1];
@@ -2241,10 +2249,24 @@ DOWNLOADED: 4612 - FOUND: 4`;
         const completionMessage = `🎉 Challenge Complete! You scored ${this.score} points with ${this.attempts} attempts.`;
         this.updateAIMessage(completionMessage);
         
+        // Report progress to tracking systems
+        this.reportProgressToCenter();
+        
         // Show completion feedback
         setTimeout(() => {
-            if (confirm('Challenge completed! Return to level selection?')) {
-                this.showChallengeSelection();
+            if (this.currentChallenge < 5) {
+                // Auto-progress to next challenge
+                this.startChallenge(this.currentChallenge + 1);
+            } else {
+                // Report room completion
+                this.reportRoomCompletion();
+                
+                // Return to command center
+                if (window.commandCenter) {
+                    window.commandCenter.showCommandDashboard();
+                } else {
+                    this.showChallengeSelection();
+                }
             }
         }, 2000);
     }
@@ -2275,6 +2297,66 @@ DOWNLOADED: 4612 - FOUND: 4`;
         this.initChallengeInterface();
         
         this.updateAIMessage('Challenge reset! You can start fresh with your learning journey.');
+    }
+
+    // Helper method to report progress to command center and database
+    async reportProgressToCenter() {
+        try {
+            if (window.progressTracker) {
+                const challengeProgress = Math.round((this.currentChallenge / 5) * 100);
+                
+                await window.progressTracker.updateProgress('aitrix', challengeProgress, {
+                    currentLevel: this.currentChallenge,
+                    score: this.score,
+                    attempts: this.attempts,
+                    timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    difficulty: this.currentDifficulty,
+                    aiPersona: this.aiPersona
+                });
+                
+                // Dispatch event to update command center display
+                window.dispatchEvent(new CustomEvent('progressUpdated', {
+                    detail: {
+                        roomName: 'aitrix',
+                        progress: challengeProgress,
+                        score: this.score,
+                        level: this.currentChallenge
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report progress to progress tracker:', error);
+        }
+    }
+
+    // Helper method to report room completion with detailed stats
+    async reportRoomCompletion() {
+        try {
+            if (window.progressTracker) {
+                await window.progressTracker.reportRoomCompletion('aitrix', {
+                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                    totalAttempts: this.attempts,
+                    totalChallenges: 5,
+                    finalScore: this.score,
+                    difficulty: this.currentDifficulty,
+                    aiPersona: this.aiPersona
+                });
+                
+                // Dispatch room completion event
+                window.dispatchEvent(new CustomEvent('roomCompleted', {
+                    detail: {
+                        roomName: 'aitrix',
+                        completionStats: {
+                            timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                            totalAttempts: this.attempts,
+                            finalScore: this.score
+                        }
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report room completion:', error);
+        }
     }
 }
 

@@ -12,6 +12,10 @@ class FlowByteGame {
         this.mistakeCount = 0;
         this.container = null;
         this.initialized = false;
+        this.challengeStartTime = null;
+        this.roomStartTime = null;
+        this.score = 0;
+        this.attempts = 0;
         
         this.difficulties = {
             easy: {
@@ -421,6 +425,14 @@ class FlowByteGame {
         console.log('Starting level:', levelNumber);
         this.currentLevel = levelNumber;
         this.mistakeCount = 0;
+        this.attempts = 0;
+        
+        // Initialize timing
+        this.challengeStartTime = Date.now();
+        if (!this.roomStartTime) {
+            this.roomStartTime = Date.now();
+        }
+        
         this.initGame();
     }
 
@@ -1404,6 +1416,7 @@ class FlowByteGame {
         if (!validationResults.isValid) {
             this.showFeedback(validationResults.message, 'error');
             this.mistakeCount++;
+            this.attempts++;
             this.updateMistakeCount();
             return;
         }
@@ -1416,12 +1429,20 @@ class FlowByteGame {
         
         this.showFeedback('Outstanding! You\'ve created a proper flowchart following professional standards!', 'success');
         
+        // Calculate score based on completion and mistakes
+        const baseScore = 100;
+        const mistakePenalty = Math.min(this.mistakeCount * 10, 50); // Max 50 point penalty
+        this.score = Math.max(50, baseScore - mistakePenalty); // Minimum 50 points
+        
         // Calculate progress
         const progress = Math.round((this.currentLevel / 5) * 100);
         const progressElement = this.container.querySelector('#learning-progress');
         if (progressElement) {
             progressElement.textContent = `${progress}%`;
         }
+        
+        // Report progress to tracking systems
+        this.reportProgressToCenter();
         
         // Automatically reset canvas for next level
         this.resetCanvasForNextLevel();
@@ -1431,6 +1452,9 @@ class FlowByteGame {
                 this.startLevel(this.currentLevel + 1);
             }, 2000);
         } else {
+            // Report room completion
+            this.reportRoomCompletion();
+            
             setTimeout(() => {
                 if (window.commandCenter) {
                     window.commandCenter.showCommandDashboard();
@@ -1863,6 +1887,65 @@ class FlowByteGame {
         this.hasLabels = true;
         this.showFeedback('Text updated! Your flowchart is becoming more detailed.', 'success');
         this.updateFlowchartProgress();
+    }
+
+    // Helper method to report progress to command center and database
+    async reportProgressToCenter() {
+        try {
+            if (window.progressTracker) {
+                const levelProgress = Math.round((this.currentLevel / 5) * 100);
+                
+                await window.progressTracker.updateProgress('flowchart', levelProgress, {
+                    currentLevel: this.currentLevel,
+                    score: this.score,
+                    attempts: this.attempts,
+                    timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    difficulty: this.currentDifficulty,
+                    mistakeCount: this.mistakeCount
+                });
+                
+                // Dispatch event to update command center display
+                window.dispatchEvent(new CustomEvent('progressUpdated', {
+                    detail: {
+                        roomName: 'flowchart',
+                        progress: levelProgress,
+                        score: this.score,
+                        level: this.currentLevel
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report progress to progress tracker:', error);
+        }
+    }
+
+    // Helper method to report room completion with detailed stats
+    async reportRoomCompletion() {
+        try {
+            if (window.progressTracker) {
+                await window.progressTracker.reportRoomCompletion('flowchart', {
+                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                    totalMistakes: this.mistakeCount,
+                    totalLevels: 5,
+                    finalScore: this.score,
+                    difficulty: this.currentDifficulty
+                });
+                
+                // Dispatch room completion event
+                window.dispatchEvent(new CustomEvent('roomCompleted', {
+                    detail: {
+                        roomName: 'flowchart',
+                        completionStats: {
+                            timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                            totalMistakes: this.mistakeCount,
+                            finalScore: this.score
+                        }
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report room completion:', error);
+        }
     }
 }
 

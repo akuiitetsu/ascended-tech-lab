@@ -10,6 +10,8 @@ class SchemaxLab {
         this.challengeData = null;
         this.sqlEditor = null;
         this.executionHistory = [];
+        this.challengeStartTime = null;
+        this.roomStartTime = null;
         
         this.challengeCategories = {
             easy: {
@@ -261,6 +263,12 @@ class SchemaxLab {
         this.score = 0;
         this.attempts = 0;
         this.currentStep = 0;
+        
+        // Initialize timing
+        this.challengeStartTime = Date.now();
+        if (!this.roomStartTime) {
+            this.roomStartTime = Date.now();
+        }
         
         const categoryData = this.challengeCategories[this.currentDifficulty];
         this.challengeData = categoryData.challenges[challengeNumber - 1];
@@ -1217,16 +1225,17 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
             this.score = Math.max(this.score, 100);
             this.showFeedback('🎉 Excellent work! Your SQL solution is correct and follows best practices!', 'success');
             
-            // Update room progress in command center if available
-            if (window.commandCenter && window.commandCenter.updateRoomProgress) {
-                window.commandCenter.updateRoomProgress('database', this.currentChallenge, 5);
-            }
+            // Report progress to tracking systems
+            this.reportProgressToCenter();
             
             if (this.currentChallenge < 5) {
                 setTimeout(() => {
                     this.startChallenge(this.currentChallenge + 1);
                 }, 2000);
             } else {
+                // Report room completion
+                this.reportRoomCompletion();
+                
                 setTimeout(() => {
                     if (window.commandCenter) {
                         window.commandCenter.showCommandDashboard();
@@ -1455,6 +1464,66 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
                 feedback.parentNode.removeChild(feedback);
             }
         }, 4000);
+    }
+
+    // Helper method to report progress to command center and database
+    async reportProgressToCenter() {
+        try {
+            if (window.progressTracker) {
+                const challengeProgress = Math.round((this.currentChallenge / 5) * 100);
+                
+                await window.progressTracker.updateProgress('schemax', challengeProgress, {
+                    currentLevel: this.currentChallenge,
+                    score: this.score,
+                    attempts: this.attempts,
+                    timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    difficulty: this.currentDifficulty,
+                    sqlStatements: this.executionHistory.length
+                });
+                
+                // Dispatch event to update command center display
+                window.dispatchEvent(new CustomEvent('progressUpdated', {
+                    detail: {
+                        roomName: 'schemax',
+                        progress: challengeProgress,
+                        score: this.score,
+                        level: this.currentChallenge
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report progress to progress tracker:', error);
+        }
+    }
+
+    // Helper method to report room completion with detailed stats
+    async reportRoomCompletion() {
+        try {
+            if (window.progressTracker) {
+                await window.progressTracker.reportRoomCompletion('schemax', {
+                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                    totalAttempts: this.attempts,
+                    totalChallenges: 5,
+                    finalScore: this.score,
+                    difficulty: this.currentDifficulty,
+                    totalSQLStatements: this.executionHistory.length
+                });
+                
+                // Dispatch room completion event
+                window.dispatchEvent(new CustomEvent('roomCompleted', {
+                    detail: {
+                        roomName: 'schemax',
+                        completionStats: {
+                            timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
+                            totalAttempts: this.attempts,
+                            finalScore: this.score
+                        }
+                    }
+                }));
+            }
+        } catch (error) {
+            console.warn('Could not report room completion:', error);
+        }
     }
 }
 
