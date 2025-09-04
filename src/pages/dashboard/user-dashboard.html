@@ -6,6 +6,7 @@
         <title> AscendEd - User Dashboard </title>
         <link rel="stylesheet" href="../../../static/css/dashboard.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+        <script src="../../../static/js/progress-tracker.js"></script>
         <script src="../../../static/js/dashboard.js" type="module"></script>
     </head>
     <body>
@@ -119,30 +120,28 @@
                     <h2><i class="bi bi-graph-up"></i> Overall Progress</h2>
                     <div class="progress-overview">
                         <div class="progress-bar-container">
-                            <div class="progress-fill" style="width: 45%">
+                            <div class="progress-fill" id="overall-progress-bar" style="width: 0%">
+                                <span class="progress-text" id="overall-progress-text">0%</span>
                             </div>
                         </div>
-                        <div class="room-progress-summary">
-                            <div class="room-progress-item">
-                                <i class="bi bi-diagram-3" style="color: #005FFB;"></i>
-                                <span>FLOWBYTE</span>
-                                <div class="mini-progress">
-                                    <div class="mini-fill" style="width: 85%; background: #005FFB;"></div>
-                                </div>
+                        <div class="room-progress-summary" id="room-progress-summary">
+                            <!-- Dynamic room progress items will be populated here -->
+                        </div>
+                        <div class="progress-stats">
+                            <div class="stat-item">
+                                <i class="bi bi-trophy"></i>
+                                <span>Total Score</span>
+                                <strong id="total-score">0</strong>
                             </div>
-                            <div class="room-progress-item">
-                                <i class="bi bi-hdd-network" style="color: #00A949;"></i>
-                                <span>NETXUS</span>
-                                <div class="mini-progress">
-                                    <div class="mini-fill" style="width: 45%; background: #00A949;"></div>
-                                </div>
+                            <div class="stat-item">
+                                <i class="bi bi-clock"></i>
+                                <span>Time Played</span>
+                                <strong id="total-time">0h 0m</strong>
                             </div>
-                            <div class="room-progress-item">
-                                <i class="bi bi-robot" style="color: #E08300;"></i>
-                                <span>AITRIX</span>
-                                <div class="mini-progress">
-                                    <div class="mini-fill" style="width: 25%; background: #E08300;"></div>
-                                </div>
+                            <div class="stat-item">
+                                <i class="bi bi-target"></i>
+                                <span>Rooms Completed</span>
+                                <strong id="completed-rooms">0/5</strong>
                             </div>
                         </div>
                     </div>
@@ -251,96 +250,123 @@
                 <!-- Room Progress -->
                 <section class="rooms-section">
                     <h2><i class="bi bi-door-open"></i> Room Progress </h2>
-                    <div class="rooms-grid">
+                    <div class="rooms-grid" id="rooms-grid">
+                        <!-- Default room cards with placeholders -->
                         <div class="room-card active" onclick="navigateToRoom('flowchart')">
                             <h3>FLOWBYTE</h3>
+                            <div class="room-description">
+                                <small>Flowchart & Logic Design</small>
+                            </div>
                             <div class="room-progress">
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 85%"></div>
+                                    <div class="progress-fill" style="width: 0%; background: #005FFB;">
+                                        <span class="progress-text">0%</span>
+                                    </div>
                                 </div>
                                 <div class="progress-info">
                                     <div class="progress-status">
-                                        <i class="bi bi-play-circle-fill"></i>
-                                        <span>In Progress</span>
+                                        <i class="bi bi-lock"></i>
+                                        <span>Not Started</span>
                                     </div>
-                                    <div class="mini-progress">
-                                        <div class="mini-bar" style="width: 85%"></div>
+                                    <div class="progress-details">
+                                        <span class="progress-score">Score: 0</span>
+                                        <span class="progress-level">Level: 1</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="room-card active last-played" onclick="navigateToRoom('networking')">
-                            <div class="last-played-badge">
-                                <i class="bi bi-clock-history"></i>
-                                Last Played
-                            </div>
+
+                        <div class="room-card active" onclick="navigateToRoom('netxus')">
                             <h3>NETXUS</h3>
+                            <div class="room-description">
+                                <small>Network Systems & Protocols</small>
+                            </div>
                             <div class="room-progress">
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 45%"></div>
+                                    <div class="progress-fill" style="width: 0%; background: #00A949;">
+                                        <span class="progress-text">0%</span>
+                                    </div>
                                 </div>
                                 <div class="progress-info">
                                     <div class="progress-status">
-                                        <i class="bi bi-play-circle-fill"></i>
-                                        <span>In Progress</span>
+                                        <i class="bi bi-lock"></i>
+                                        <span>Not Started</span>
                                     </div>
-                                    <div class="mini-progress">
-                                        <div class="mini-bar" style="width: 45%"></div>
+                                    <div class="progress-details">
+                                        <span class="progress-score">Score: 0</span>
+                                        <span class="progress-level">Level: 1</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="room-card active" onclick="navigateToRoom('ai-training')">
+                        <div class="room-card active" onclick="navigateToRoom('aitrix')">
                             <h3>AITRIX</h3>
+                            <div class="room-description">
+                                <small>AI & Machine Learning</small>
+                            </div>
                             <div class="room-progress">
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 35%"></div>
+                                    <div class="progress-fill" style="width: 0%; background: #E08300;">
+                                        <span class="progress-text">0%</span>
+                                    </div>
                                 </div>
                                 <div class="progress-info">
                                     <div class="progress-status">
-                                        <i class="bi bi-play-circle-fill"></i>
-                                        <span>In Progress</span>
+                                        <i class="bi bi-lock"></i>
+                                        <span>Not Started</span>
                                     </div>
-                                    <div class="mini-progress">
-                                        <div class="mini-bar" style="width: 35%"></div>
+                                    <div class="progress-details">
+                                        <span class="progress-score">Score: 0</span>
+                                        <span class="progress-level">Level: 1</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="room-card active" onclick="navigateToRoom('database')">
+                        <div class="room-card active" onclick="navigateToRoom('schemax')">
                             <h3>SCHEMAX</h3>
+                            <div class="room-description">
+                                <small>Database Design & Management</small>
+                            </div>
                             <div class="room-progress">
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 25%"></div>
+                                    <div class="progress-fill" style="width: 0%; background: #8B5A3C;">
+                                        <span class="progress-text">0%</span>
+                                    </div>
                                 </div>
                                 <div class="progress-info">
                                     <div class="progress-status">
-                                        <i class="bi bi-play-circle-fill"></i>
-                                        <span>In Progress</span>
+                                        <i class="bi bi-lock"></i>
+                                        <span>Not Started</span>
                                     </div>
-                                    <div class="mini-progress">
-                                        <div class="mini-bar" style="width: 25%"></div>
+                                    <div class="progress-details">
+                                        <span class="progress-score">Score: 0</span>
+                                        <span class="progress-level">Level: 1</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="room-card active" onclick="navigateToRoom('programming')">
+                        <div class="room-card active" onclick="navigateToRoom('codevance')">
                             <h3>CODEVANCE</h3>
+                            <div class="room-description">
+                                <small>Programming Challenges</small>
+                            </div>
                             <div class="room-progress">
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 15%"></div>
+                                    <div class="progress-fill" style="width: 0%; background: #DC3545;">
+                                        <span class="progress-text">0%</span>
+                                    </div>
                                 </div>
                                 <div class="progress-info">
                                     <div class="progress-status">
-                                        <i class="bi bi-play-circle-fill"></i>
-                                        <span>In Progress</span>
+                                        <i class="bi bi-lock"></i>
+                                        <span>Not Started</span>
                                     </div>
-                                    <div class="mini-progress">
-                                        <div class="mini-bar" style="width: 15%"></div>
+                                    <div class="progress-details">
+                                        <span class="progress-score">Score: 0</span>
+                                        <span class="progress-level">Level: 1</span>
                                     </div>
                                 </div>
                             </div>
