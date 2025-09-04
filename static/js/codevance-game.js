@@ -10,6 +10,8 @@ class CodevanceLab {
         this.challengeData = null;
         this.codeEditor = null;
         this.executionHistory = [];
+        this.challengeStartTime = null;
+        this.roomStartTime = null;
         
         this.challengeCategories = {
             easy: {
@@ -173,6 +175,32 @@ class CodevanceLab {
                         backgroundColor: 'lightcoral',
                         heading: 'Urban Luxury',
                         paragraph: 'Modern accommodations in the heart of the bustling city center.'
+                    }
+                ],
+                css_button: [
+                    {
+                        theme: 'Contact Form',
+                        title: 'Get In Touch',
+                        buttonText: 'Send Message',
+                        backgroundColor: 'green',
+                        textColor: 'white',
+                        context: 'Create a professional contact button for a business website'
+                    },
+                    {
+                        theme: 'E-commerce Store',
+                        title: 'Shopping Cart',
+                        buttonText: 'Add to Cart',
+                        backgroundColor: 'green',
+                        textColor: 'white',
+                        context: 'Design an attractive purchase button for online shopping'
+                    },
+                    {
+                        theme: 'Newsletter Signup',
+                        title: 'Stay Connected',
+                        buttonText: 'Subscribe Now',
+                        backgroundColor: 'green',
+                        textColor: 'white',
+                        context: 'Style a subscription button for newsletter signups'
                     }
                 ]
             },
@@ -766,6 +794,80 @@ class CodevanceLab {
         `;
     }
 
+    generateCSSButtonInterface() {
+        const scenario = this.currentScenario || {
+            theme: 'Contact Form',
+            title: 'Get In Touch',
+            buttonText: 'Send Message',
+            backgroundColor: 'green',
+            textColor: 'white',
+            context: 'Create a professional contact button for a business website'
+        };
+
+        return `
+            <div class="challenge-interface active">
+                <div class="challenge-header">
+                    <h3>🔘 ${scenario.theme} Button</h3>
+                    <p>${scenario.context}</p>
+                </div>
+                
+                <div class="requirements-panel">
+                    <h4>📋 Requirements</h4>
+                    <ul>
+                        <li>Complete HTML document with CSS styling</li>
+                        <li>Create a button element with text: "${scenario.buttonText}"</li>
+                        <li>Button background color: ${scenario.backgroundColor}</li>
+                        <li>Button text color: ${scenario.textColor}</li>
+                        <li>Add rounded corners (border-radius: 5px)</li>
+                        <li>Include padding for better appearance</li>
+                    </ul>
+                </div>
+                
+                <div class="code-workspace">
+                    <div class="editor-header">
+                        <h4>💻 HTML + CSS Editor</h4>
+                        <div class="editor-controls">
+                            <button onclick="window.codevanceLab.runCode()" class="run-btn">▶ Run HTML</button>
+                            <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="code-editor" placeholder="<!DOCTYPE html>
+<html>
+<head>
+    <title>${scenario.title}</title>
+    <style>
+        .styled-button {
+            background-color: ${scenario.backgroundColor};
+            color: ${scenario.textColor};
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>${scenario.title}</h1>
+    <button class=&quot;styled-button&quot;>${scenario.buttonText}</button>
+</body>
+</html>"></textarea>
+                </div>
+                
+                <div class="results-section">
+                    <div class="output-panel" id="code-output">
+                        <h5>🖥️ ${scenario.theme} Preview</h5>
+                        <iframe id="html-preview" style="width: 100%; height: 200px; border: 1px solid #ccc; background: white;"></iframe>
+                    </div>
+                    <div class="validation-panel" id="validation-panel">
+                        <h5>✅ Validation Results</h5>
+                        <div id="validation-output">Create your ${scenario.theme.toLowerCase()} button and run to see results</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     generatePythonFibonacciInterface() {
         const scenario = this.currentScenario || {
             theme: 'Basic Fibonacci',
@@ -1226,10 +1328,11 @@ print(counter)"></textarea>
             case 'css_button':
                 validationResults = [
                     { test: 'Button element', passed: htmlCode.toLowerCase().includes('<button') },
-                    { test: 'CSS class btn', passed: htmlCode.includes('class="btn"') || htmlCode.includes("class='btn'") },
-                    { test: 'Green background', passed: htmlCode.includes('background: green') },
-                    { test: 'White text color', passed: htmlCode.includes('color: white') },
-                    { test: 'Border radius', passed: htmlCode.includes('border-radius: 6px') }
+                    { test: 'CSS styling present', passed: htmlCode.includes('<style>') && htmlCode.includes('</style>') },
+                    { test: `Green background color`, passed: htmlCode.includes('background-color: green') },
+                    { test: `White text color`, passed: htmlCode.includes('color: white') },
+                    { test: 'Rounded corners', passed: htmlCode.includes('border-radius: 5px') },
+                    { test: `Button text: ${scenario?.buttonText || 'Send Message'}`, passed: htmlCode.includes(scenario?.buttonText || 'Send Message') }
                 ];
                 break;
 
@@ -1303,10 +1406,8 @@ print(counter)"></textarea>
             // Show replay option before moving to next challenge
             this.showReplayOption();
             
-            // Update room progress in command center
-            if (window.commandCenter && window.commandCenter.updateRoomProgress) {
-                window.commandCenter.updateRoomProgress('programming', this.currentChallenge, 5);
-            }
+            // Report progress to command center and progress tracker
+            this.reportProgressToCenter();
             
             if (this.currentChallenge < 5) {
                 setTimeout(() => {
@@ -1316,6 +1417,10 @@ print(counter)"></textarea>
             } else {
                 setTimeout(() => {
                     console.log('🏁 All challenges completed!');
+                    
+                    // Mark room as completely finished
+                    this.reportRoomCompletion();
+                    
                     if (window.commandCenter) {
                         window.commandCenter.showCommandDashboard();
                     } else {
@@ -1327,6 +1432,73 @@ print(counter)"></textarea>
             this.attempts++;
             this.showFeedback('❌ Solution needs improvement. Make sure your code passes all validation tests first.', 'error');
             console.log(`❌ Validation failed - Score: ${this.score}%, Attempts: ${this.attempts}`);
+        }
+    }
+    
+    async reportProgressToCenter() {
+        try {
+            // Calculate progress based on current challenge and score
+            const challengeProgress = Math.floor((this.currentChallenge / 5) * 100);
+            const currentChallengeBonus = Math.floor(this.score / 5); // Up to 20% bonus per challenge
+            const totalProgress = Math.min(100, challengeProgress + currentChallengeBonus);
+            
+            const progressData = {
+                progress: totalProgress,
+                score: this.score,
+                level: this.currentChallenge,
+                timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                attempts: this.attempts,
+                completed: totalProgress >= 100
+            };
+            
+            // Report to command center if available
+            if (window.commandCenter && window.commandCenter.reportProgress) {
+                await window.commandCenter.reportProgress('codevance', progressData);
+            }
+            
+            // Report to progress tracker if available
+            if (window.progressTracker) {
+                await window.progressTracker.updateProgress('codevance', {
+                    progress_percentage: totalProgress,
+                    score: this.score,
+                    current_level: this.currentChallenge,
+                    time_spent: progressData.timeSpent,
+                    attempts: this.attempts,
+                    completed: progressData.completed
+                });
+            }
+            
+            console.log('📊 Progress reported to tracking systems:', progressData);
+            
+        } catch (error) {
+            console.error('❌ Error reporting progress:', error);
+        }
+    }
+    
+    async reportRoomCompletion() {
+        try {
+            const completionData = {
+                progress: 100,
+                score: 100,
+                level: 5,
+                timeSpent: this.roomStartTime ? Math.floor((Date.now() - this.roomStartTime) / 1000) : 0,
+                attempts: this.attempts,
+                completed: true
+            };
+            
+            // Report final completion
+            if (window.commandCenter && window.commandCenter.reportProgress) {
+                await window.commandCenter.reportProgress('codevance', completionData);
+            }
+            
+            if (window.progressTracker) {
+                await window.progressTracker.markRoomComplete('codevance', 100);
+            }
+            
+            console.log('🏆 Room completion reported:', completionData);
+            
+        } catch (error) {
+            console.error('❌ Error reporting room completion:', error);
         }
     }
 
