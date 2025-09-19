@@ -608,9 +608,10 @@ class CodevanceLab {
                     <h4>📋 Requirements</h4>
                     <ul>
                         <li>Complete HTML document structure with DOCTYPE</li>
-                        <li>Page title: "${scenario.title}"</li>
-                        <li>H1 heading: "${scenario.heading}"</li>
-                        <li>Paragraph: "${scenario.paragraph}"</li>
+                        <li>HTML, head, and body sections with proper tags</li>
+                        <li>Page title in head: "${scenario.title}"</li>
+                        <li>H1 heading with exact text: "${scenario.heading}"</li>
+                        <li>Paragraph with exact text: "${scenario.paragraph}"</li>
                     </ul>
                 </div>
                 
@@ -766,10 +767,12 @@ class CodevanceLab {
                 <div class="requirements-panel">
                     <h4>📋 Requirements</h4>
                     <ul>
-                        <li>Complete HTML document with CSS in the head</li>
+                        <li>Complete HTML document with DOCTYPE and CSS in the head</li>
+                        <li>Page title in head with exact text: "${scenario.title}"</li>
                         <li>Body background color: ${scenario.backgroundColor}</li>
                         <li>All text centered using text-align property</li>
-                        <li>Include heading "${scenario.heading}" and paragraph</li>
+                        <li>Include H1 heading with exact text: "${scenario.heading}"</li>
+                        <li>Include paragraph with exact text: "${scenario.paragraph}"</li>
                     </ul>
                 </div>
                 
@@ -833,7 +836,8 @@ class CodevanceLab {
                 <div class="requirements-panel">
                     <h4>📋 Requirements</h4>
                     <ul>
-                        <li>Complete HTML document with CSS styling</li>
+                        <li>Complete HTML document with DOCTYPE and CSS styling</li>
+                        <li>Page title in head with exact text: "${scenario.title}"</li>
                         <li>Create a button element with text: "${scenario.buttonText}"</li>
                         <li>Button background color: ${scenario.backgroundColor}</li>
                         <li>Button text color: ${scenario.textColor}</li>
@@ -1323,13 +1327,17 @@ print(counter)"></textarea>
 
         switch (challengeType) {
             case 'basic_html':
+                const htmlTitle = scenario?.title || 'My First Page';
+                const htmlHeading = scenario?.heading || 'Hello, World!';
+                const htmlParagraph = scenario?.paragraph || 'This is my first HTML page';
                 validationResults = [
                     { test: 'DOCTYPE declaration', passed: htmlCode.toLowerCase().includes('<!doctype html>') },
                     { test: 'HTML structure', passed: htmlCode.includes('<html>') && htmlCode.includes('</html>') },
                     { test: 'Head section', passed: htmlCode.includes('<head>') && htmlCode.includes('</head>') },
-                    { test: `Title: ${scenario?.title || 'My First Page'}`, passed: htmlCode.includes(`<title>${scenario?.title || 'My First Page'}</title>`) },
-                    { test: `Heading: ${scenario?.heading || 'Hello, World!'}`, passed: htmlCode.includes(`<h1>${scenario?.heading || 'Hello, World!'}</h1>`) },
-                    { test: 'Paragraph content', passed: htmlCode.includes(scenario?.paragraph || 'This is my first HTML page') }
+                    { test: 'Body section', passed: htmlCode.includes('<body>') && htmlCode.includes('</body>') },
+                    { test: `Title: ${htmlTitle}`, passed: htmlCode.includes(`<title>${htmlTitle}</title>`) },
+                    { test: `Heading: ${htmlHeading}`, passed: htmlCode.includes(`<h1>${htmlHeading}</h1>`) },
+                    { test: `Paragraph content: ${htmlParagraph}`, passed: htmlCode.includes(`<p>${htmlParagraph}</p>`) || htmlCode.includes(`<p> ${htmlParagraph} </p>`) }
                 ];
                 break;
 
@@ -1353,16 +1361,26 @@ print(counter)"></textarea>
                 break;
 
             case 'css_styling':
+                const cssTitle = scenario?.title || 'My Styled Page';
+                const cssHeading = scenario?.heading || 'My Styled Page';
+                const cssParagraph = scenario?.paragraph || 'This is centered text.';
                 validationResults = [
+                    { test: 'DOCTYPE declaration', passed: htmlCode.toLowerCase().includes('<!doctype html>') },
+                    { test: `Page title: ${cssTitle}`, passed: htmlCode.includes(`<title>${cssTitle}</title>`) },
                     { test: 'CSS style block', passed: htmlCode.includes('<style>') },
                     { test: `Background color: ${scenario?.backgroundColor || 'lightblue'}`, passed: htmlCode.includes(`background-color: ${scenario?.backgroundColor || 'lightblue'}`) },
                     { test: 'Text alignment', passed: htmlCode.includes('text-align: center') },
-                    { test: 'Body selector', passed: htmlCode.includes('body {') }
+                    { test: 'Body selector', passed: htmlCode.includes('body {') },
+                    { test: `Required heading: ${cssHeading}`, passed: htmlCode.includes(`<h1>${cssHeading}</h1>`) },
+                    { test: `Required paragraph content`, passed: htmlCode.includes(`<p>${cssParagraph}</p>`) || htmlCode.includes(`<p> ${cssParagraph} </p>`) }
                 ];
                 break;
 
             case 'css_button':
+                const buttonTitle = scenario?.title || 'Get In Touch';
                 validationResults = [
+                    { test: 'DOCTYPE declaration', passed: htmlCode.toLowerCase().includes('<!doctype html>') },
+                    { test: `Page title: ${buttonTitle}`, passed: htmlCode.includes(`<title>${buttonTitle}</title>`) },
                     { test: 'Button element', passed: htmlCode.toLowerCase().includes('<button') },
                     { test: 'CSS styling present', passed: htmlCode.includes('<style>') && htmlCode.includes('</style>') },
                     { test: `Green background color`, passed: htmlCode.includes('background-color: green') },
