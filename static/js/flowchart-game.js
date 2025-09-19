@@ -1206,15 +1206,15 @@ class FlowByteGame {
         if (!svg.querySelector('#arrowhead')) {
             const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
             marker.setAttribute('id', 'arrowhead');
-            marker.setAttribute('markerWidth', '12');
-            marker.setAttribute('markerHeight', '12');
-            marker.setAttribute('refX', '10');
-            marker.setAttribute('refY', '4');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '10');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3');
             marker.setAttribute('orient', 'auto');
             marker.setAttribute('markerUnits', 'strokeWidth');
 
             const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            arrowPath.setAttribute('d', 'M0,0 L0,8 L10,4 z');
+            arrowPath.setAttribute('d', 'M0,0 L0,6 L8,3 z');
             arrowPath.setAttribute('fill', '#4CAF50');
             arrowPath.setAttribute('stroke', '#4CAF50');
             arrowPath.setAttribute('stroke-width', '1');
@@ -1223,21 +1223,17 @@ class FlowByteGame {
             defs.appendChild(marker);
         }
 
-        // Calculate connection points on the edge of shapes with better offset
+        // Calculate connection points on the edge of shapes with precise edge detection
         const angle = Math.atan2(targetY - sourceY, targetX - sourceX);
         
-        // Calculate shape radii with padding
-        const sourceRadius = Math.min(sourceRect.width, sourceRect.height) / 2;
-        const targetRadius = Math.min(targetRect.width, targetRect.height) / 2;
+        // Calculate precise edge intersection points for different shape types
+        const sourceEdge = this.calculateShapeEdgePoint(sourceNode, sourceRect, targetX, targetY, false);
+        const targetEdge = this.calculateShapeEdgePoint(targetNode, targetRect, sourceX, sourceY, true);
         
-        // Increase offset to ensure arrowhead is clearly visible outside the shape
-        const arrowheadOffset = 15; // Increased offset for better visibility
-        const sourceOffset = sourceRadius + 2; // Small offset from source edge
-        
-        const adjustedSourceX = sourceX + Math.cos(angle) * sourceOffset;
-        const adjustedSourceY = sourceY + Math.sin(angle) * sourceOffset;
-        const adjustedTargetX = targetX - Math.cos(angle) * (targetRadius + arrowheadOffset);
-        const adjustedTargetY = targetY - Math.sin(angle) * (targetRadius + arrowheadOffset);
+        const adjustedSourceX = sourceEdge.x;
+        const adjustedSourceY = sourceEdge.y;
+        const adjustedTargetX = targetEdge.x;
+        const adjustedTargetY = targetEdge.y;
 
         // Create main connection line
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1272,6 +1268,96 @@ class FlowByteGame {
 
         svg.appendChild(line);
         svg.appendChild(invisibleLine);
+    }
+
+    calculateShapeEdgePoint(node, nodeRect, targetX, targetY, isTarget) {
+        const canvasRect = this.gameContainer.getBoundingClientRect();
+        const centerX = nodeRect.left - canvasRect.left + nodeRect.width / 2;
+        const centerY = nodeRect.top - canvasRect.top + nodeRect.height / 2;
+        
+        // Calculate angle from center to target point
+        const angle = Math.atan2(targetY - centerY, targetX - centerX);
+        
+        // Get half dimensions
+        const halfWidth = nodeRect.width / 2;
+        const halfHeight = nodeRect.height / 2;
+        
+        let edgeX, edgeY;
+        
+        switch(node.type) {
+            case 'oval':
+                // For ovals/ellipses, calculate intersection with ellipse boundary
+                const radiusX = halfWidth;
+                const radiusY = halfHeight;
+                const denominator = Math.sqrt(
+                    Math.pow(radiusY * Math.cos(angle), 2) + 
+                    Math.pow(radiusX * Math.sin(angle), 2)
+                );
+                edgeX = centerX + (radiusX * radiusY * Math.cos(angle)) / denominator;
+                edgeY = centerY + (radiusX * radiusY * Math.sin(angle)) / denominator;
+                break;
+                
+            case 'diamond':
+                // For diamonds, calculate intersection with diamond edges
+                // Diamond points: top, right, bottom, left
+                const absCos = Math.abs(Math.cos(angle));
+                const absSin = Math.abs(Math.sin(angle));
+                
+                if (absCos / halfWidth > absSin / halfHeight) {
+                    // Intersect with left or right edge
+                    const t = halfWidth / absCos;
+                    edgeX = centerX + t * Math.cos(angle);
+                    edgeY = centerY + t * Math.sin(angle);
+                } else {
+                    // Intersect with top or bottom edge
+                    const t = halfHeight / absSin;
+                    edgeX = centerX + t * Math.cos(angle);
+                    edgeY = centerY + t * Math.sin(angle);
+                }
+                break;
+                
+            case 'rectangle':
+            case 'parallelogram':
+            default:
+                // For rectangles and parallelograms, calculate intersection with rectangle boundary
+                const slope = Math.tan(angle);
+                
+                // Check which edge the line intersects
+                if (Math.abs(slope) <= halfHeight / halfWidth) {
+                    // Intersects left or right edge
+                    if (Math.cos(angle) > 0) {
+                        // Right edge
+                        edgeX = centerX + halfWidth;
+                        edgeY = centerY + halfWidth * slope;
+                    } else {
+                        // Left edge
+                        edgeX = centerX - halfWidth;
+                        edgeY = centerY - halfWidth * slope;
+                    }
+                } else {
+                    // Intersects top or bottom edge
+                    if (Math.sin(angle) > 0) {
+                        // Bottom edge
+                        edgeY = centerY + halfHeight;
+                        edgeX = centerX + halfHeight / slope;
+                    } else {
+                        // Top edge
+                        edgeY = centerY - halfHeight;
+                        edgeX = centerX - halfHeight / slope;
+                    }
+                }
+                break;
+        }
+        
+        // For target nodes, move the point slightly inward so the arrowhead tip touches the edge
+        if (isTarget) {
+            const arrowheadLength = 2; // Reduced adjustment for more precise alignment
+            const adjustmentAngle = Math.atan2(centerY - edgeY, centerX - edgeX);
+            edgeX += Math.cos(adjustmentAngle) * arrowheadLength;
+            edgeY += Math.sin(adjustmentAngle) * arrowheadLength;
+        }
+        
+        return { x: edgeX, y: edgeY };
     }
 
     connectionExists(sourceId, targetId) {
@@ -1602,7 +1688,8 @@ class FlowByteGame {
                 Choose Text for ${this.getShapeTypeName(node.type)}
             </h3>
             <p style="color: #cccccc; margin: 0 0 20px 0; font-size: 0.9rem;">
-                Select the most appropriate text for this ${node.type} shape in the context of the scenario.
+                Select the most appropriate text for this ${node.type} shape in the context of: <br/>
+                <strong style="color: #4CAF50;">${levelData.name}</strong> - ${levelData.scenario.substring(0, 80)}...
             </p>
             <select id="text-options" style="
                 width: 100%;
@@ -1689,171 +1776,239 @@ class FlowByteGame {
     }
 
     getTextOptions(nodeType, difficulty, level) {
-        const coffeeShopOptions = {
+        const itIndustryOptions = {
             easy: {
-                1: { // Simple Start-End Flow
+                1: { // Software Deployment Pipeline - Simple Start-End Flow
                     oval: [
-                        { value: 'START', label: 'START - Begin the process' },
-                        { value: 'END', label: 'END - Finish the process' },
-                        { value: 'OPEN SHOP', label: 'OPEN SHOP - Start of day' },
-                        { value: 'CLOSE SHOP', label: 'CLOSE SHOP - End of day' }
+                        { value: 'START', label: 'START - Begin deployment process' },
+                        { value: 'END', label: 'END - Deployment complete' },
+                        { value: 'CODE COMMIT', label: 'CODE COMMIT - Developer submits code' },
+                        { value: 'PRODUCTION READY', label: 'PRODUCTION READY - System deployed' }
                     ],
                     rectangle: [
-                        { value: 'UNLOCK DOOR', label: 'UNLOCK DOOR - Open the shop' },
-                        { value: 'TURN ON LIGHTS', label: 'TURN ON LIGHTS - Illuminate space' },
-                        { value: 'START COFFEE MACHINE', label: 'START COFFEE MACHINE - Prepare equipment' },
-                        { value: 'CLEAN COUNTER', label: 'CLEAN COUNTER - Prepare workspace' },
-                        { value: 'COUNT REGISTER', label: 'COUNT REGISTER - Check cash' }
+                        { value: 'CODE REVIEW', label: 'CODE REVIEW - Examine submitted code' },
+                        { value: 'BUILD APPLICATION', label: 'BUILD APPLICATION - Compile source code' },
+                        { value: 'RUN TESTS', label: 'RUN TESTS - Execute test suite' },
+                        { value: 'DEPLOY TO STAGING', label: 'DEPLOY TO STAGING - Test environment' },
+                        { value: 'DEPLOY TO PRODUCTION', label: 'DEPLOY TO PRODUCTION - Live environment' }
                     ],
                     diamond: [
-                        { value: 'READY TO OPEN?', label: 'READY TO OPEN? - Check if prepared' },
-                        { value: 'ALL CLEAN?', label: 'ALL CLEAN? - Verify cleanliness' }
+                        { value: 'TESTS PASSED?', label: 'TESTS PASSED? - Verify code quality' },
+                        { value: 'BUILD SUCCESSFUL?', label: 'BUILD SUCCESSFUL? - Check compilation' }
                     ],
                     parallelogram: [
-                        { value: 'CHECK SCHEDULE', label: 'CHECK SCHEDULE - Review daily tasks' },
-                        { value: 'RECORD OPENING TIME', label: 'RECORD OPENING TIME - Log start time' }
+                        { value: 'GET CODE CHANGES', label: 'GET CODE CHANGES - Input: Developer commits' },
+                        { value: 'LOG DEPLOYMENT', label: 'LOG DEPLOYMENT - Output: Deployment record' }
                     ]
                 },
-                2: { // Decision Making
+                2: { // IT Security Incident Response - Decision Making
                     oval: [
-                        { value: 'START', label: 'START - Begin the process' },
-                        { value: 'END', label: 'END - Finish the process' },
-                        { value: 'SERVE CUSTOMER', label: 'SERVE CUSTOMER - Begin service' }
+                        { value: 'START', label: 'START - Begin incident response' },
+                        { value: 'END', label: 'END - Incident resolved' },
+                        { value: 'INCIDENT DETECTED', label: 'INCIDENT DETECTED - Security alert triggered' }
                     ],
                     rectangle: [
-                        { value: 'GREET CUSTOMER', label: 'GREET CUSTOMER - Welcome them' },
-                        { value: 'TAKE ORDER', label: 'TAKE ORDER - Record request' },
-                        { value: 'PREPARE COFFEE', label: 'PREPARE COFFEE - Make beverage' },
-                        { value: 'CHECK INVENTORY', label: 'CHECK INVENTORY - Verify stock' },
-                        { value: 'RESTOCK ITEMS', label: 'RESTOCK ITEMS - Replenish supplies' }
+                        { value: 'ANALYZE THREAT', label: 'ANALYZE THREAT - Examine security event' },
+                        { value: 'CLASSIFY SEVERITY', label: 'CLASSIFY SEVERITY - Determine threat level' },
+                        { value: 'ISOLATE SYSTEMS', label: 'ISOLATE SYSTEMS - Contain threat' },
+                        { value: 'NOTIFY STAKEHOLDERS', label: 'NOTIFY STAKEHOLDERS - Alert management' },
+                        { value: 'APPLY PATCHES', label: 'APPLY PATCHES - Fix vulnerabilities' }
                     ],
                     diamond: [
-                        { value: 'INVENTORY LOW?', label: 'INVENTORY LOW? - Check stock levels' },
-                        { value: 'CUSTOMER SATISFIED?', label: 'CUSTOMER SATISFIED? - Verify happiness' },
-                        { value: 'SPECIAL REQUEST?', label: 'SPECIAL REQUEST? - Custom order?' },
-                        { value: 'PAYMENT READY?', label: 'PAYMENT READY? - Ready to pay?' }
+                        { value: 'CRITICAL THREAT?', label: 'CRITICAL THREAT? - High severity incident?' },
+                        { value: 'SYSTEMS COMPROMISED?', label: 'SYSTEMS COMPROMISED? - Data breach detected?' },
+                        { value: 'EXTERNAL THREAT?', label: 'EXTERNAL THREAT? - Outside attacker?' },
+                        { value: 'IMMEDIATE ACTION REQUIRED?', label: 'IMMEDIATE ACTION REQUIRED? - Emergency response?' }
                     ],
                     parallelogram: [
-                        { value: 'GET CUSTOMER PREFERENCE', label: 'GET CUSTOMER PREFERENCE - Ask for details' },
-                        { value: 'DISPLAY MENU', label: 'DISPLAY MENU - Show options' }
+                        { value: 'GET THREAT DETAILS', label: 'GET THREAT DETAILS - Input: Security alert data' },
+                        { value: 'GENERATE INCIDENT REPORT', label: 'GENERATE INCIDENT REPORT - Output: Documentation' }
                     ]
                 },
-                3: { // Input-Output Flow
+                3: { // Database Backup and Recovery - Input-Output Flow
                     oval: [
-                        { value: 'START ORDER', label: 'START ORDER - Begin order process' },
-                        { value: 'COMPLETE ORDER', label: 'COMPLETE ORDER - Finish transaction' }
+                        { value: 'START BACKUP', label: 'START BACKUP - Begin backup process' },
+                        { value: 'BACKUP COMPLETE', label: 'BACKUP COMPLETE - Process finished' }
                     ],
                     rectangle: [
-                        { value: 'PROCESS PAYMENT', label: 'PROCESS PAYMENT - Handle transaction' },
-                        { value: 'PREPARE BEVERAGE', label: 'PREPARE BEVERAGE - Make drink' },
-                        { value: 'PACKAGE ORDER', label: 'PACKAGE ORDER - Prepare for pickup' }
+                        { value: 'VALIDATE DATA', label: 'VALIDATE DATA - Check data integrity' },
+                        { value: 'CREATE BACKUP', label: 'CREATE BACKUP - Generate backup file' },
+                        { value: 'COMPRESS DATA', label: 'COMPRESS DATA - Reduce file size' },
+                        { value: 'TRANSFER TO STORAGE', label: 'TRANSFER TO STORAGE - Move to backup location' }
                     ],
                     diamond: [
-                        { value: 'PAYMENT VALID?', label: 'PAYMENT VALID? - Check payment' },
-                        { value: 'ORDER CORRECT?', label: 'ORDER CORRECT? - Verify accuracy' }
+                        { value: 'DATA VALID?', label: 'DATA VALID? - Check data integrity' },
+                        { value: 'BACKUP SUCCESSFUL?', label: 'BACKUP SUCCESSFUL? - Verify completion' }
                     ],
                     parallelogram: [
-                        { value: 'GET CUSTOMER ORDER', label: 'GET CUSTOMER ORDER - Input: Customer request' },
-                        { value: 'PRINT RECEIPT', label: 'PRINT RECEIPT - Output: Transaction proof' },
-                        { value: 'DISPLAY TOTAL', label: 'DISPLAY TOTAL - Output: Amount due' },
-                        { value: 'SCAN LOYALTY CARD', label: 'SCAN LOYALTY CARD - Input: Customer data' }
+                        { value: 'READ DATABASE', label: 'READ DATABASE - Input: Source data' },
+                        { value: 'WRITE BACKUP FILE', label: 'WRITE BACKUP FILE - Output: Backup archive' },
+                        { value: 'LOG BACKUP STATUS', label: 'LOG BACKUP STATUS - Output: Process log' },
+                        { value: 'GET BACKUP SCHEDULE', label: 'GET BACKUP SCHEDULE - Input: Timing parameters' }
                     ]
                 },
-                4: { // Process Chain
+                4: { // DevOps CI/CD Pipeline - Process Chain
                     oval: [
-                        { value: 'START', label: 'START - Begin the process' },
-                        { value: 'END', label: 'END - Finish the process' }
+                        { value: 'START', label: 'START - Begin CI/CD pipeline' },
+                        { value: 'END', label: 'END - Pipeline complete' }
                     ],
                     rectangle: [
-                        { value: 'SETUP STATION', label: 'SETUP STATION - Prepare work area' },
-                        { value: 'TAKE ORDER', label: 'TAKE ORDER - Record request' },
-                        { value: 'PREPARE DRINK', label: 'PREPARE DRINK - Make beverage' },
-                        { value: 'SERVE CUSTOMER', label: 'SERVE CUSTOMER - Deliver order' },
-                        { value: 'CLEAN STATION', label: 'CLEAN STATION - Tidy workspace' }
+                        { value: 'SOURCE CONTROL', label: 'SOURCE CONTROL - Retrieve code' },
+                        { value: 'BUILD STAGE', label: 'BUILD STAGE - Compile application' },
+                        { value: 'TEST STAGE', label: 'TEST STAGE - Run automated tests' },
+                        { value: 'STAGING DEPLOYMENT', label: 'STAGING DEPLOYMENT - Deploy to test environment' },
+                        { value: 'PRODUCTION DEPLOYMENT', label: 'PRODUCTION DEPLOYMENT - Deploy to live environment' }
                     ],
                     diamond: [
-                        { value: 'ORDER READY?', label: 'ORDER READY? - Check completion' },
-                        { value: 'CUSTOMER WAITING?', label: 'CUSTOMER WAITING? - Check queue' }
+                        { value: 'BUILD PASSED?', label: 'BUILD PASSED? - Compilation successful?' },
+                        { value: 'TESTS PASSED?', label: 'TESTS PASSED? - All tests green?' }
                     ],
                     parallelogram: [
-                        { value: 'READ ORDER TICKET', label: 'READ ORDER TICKET - Input: Order details' },
-                        { value: 'CALL ORDER NUMBER', label: 'CALL ORDER NUMBER - Output: Customer notification' }
+                        { value: 'GET BUILD ARTIFACTS', label: 'GET BUILD ARTIFACTS - Input: Compiled code' },
+                        { value: 'SEND NOTIFICATIONS', label: 'SEND NOTIFICATIONS - Output: Status updates' }
                     ]
                 },
-                5: { // Complete Workflow
+                5: { // IT Asset Management - Complete Workflow
                     oval: [
-                        { value: 'START', label: 'START - Begin the process' },
-                        { value: 'END', label: 'END - Finish the process' }
+                        { value: 'START', label: 'START - Begin asset lifecycle' },
+                        { value: 'END', label: 'END - Asset decommissioned' }
                     ],
                     rectangle: [
-                        { value: 'OPEN SHOP', label: 'OPEN SHOP - Start business day' },
-                        { value: 'SERVE CUSTOMERS', label: 'SERVE CUSTOMERS - Handle orders' },
-                        { value: 'MANAGE INVENTORY', label: 'MANAGE INVENTORY - Track supplies' },
-                        { value: 'PROCESS PAYMENTS', label: 'PROCESS PAYMENTS - Handle transactions' },
-                        { value: 'CLOSE SHOP', label: 'CLOSE SHOP - End business day' }
+                        { value: 'PROCURE DEVICE', label: 'PROCURE DEVICE - Purchase equipment' },
+                        { value: 'DEPLOY DEVICE', label: 'DEPLOY DEVICE - Install and configure' },
+                        { value: 'MONITOR PERFORMANCE', label: 'MONITOR PERFORMANCE - Track device health' },
+                        { value: 'PERFORM MAINTENANCE', label: 'PERFORM MAINTENANCE - Update and repair' },
+                        { value: 'DECOMMISSION DEVICE', label: 'DECOMMISSION DEVICE - Retire equipment' }
                     ],
                     diamond: [
-                        { value: 'CUSTOMERS WAITING?', label: 'CUSTOMERS WAITING? - Check queue' },
-                        { value: 'INVENTORY LOW?', label: 'INVENTORY LOW? - Check stock' },
-                        { value: 'PAYMENT VALID?', label: 'PAYMENT VALID? - Verify transaction' }
+                        { value: 'DEVICE AVAILABLE?', label: 'DEVICE AVAILABLE? - Ready for deployment?' },
+                        { value: 'MAINTENANCE NEEDED?', label: 'MAINTENANCE NEEDED? - Requires servicing?' },
+                        { value: 'END OF LIFE?', label: 'END OF LIFE? - Time to replace?' }
                     ],
                     parallelogram: [
-                        { value: 'GET ORDER', label: 'GET ORDER - Input: Customer request' },
-                        { value: 'PRINT RECEIPT', label: 'PRINT RECEIPT - Output: Transaction record' },
-                        { value: 'UPDATE INVENTORY', label: 'UPDATE INVENTORY - Output: Stock levels' }
+                        { value: 'GET ASSET REQUEST', label: 'GET ASSET REQUEST - Input: Equipment request' },
+                        { value: 'UPDATE ASSET DATABASE', label: 'UPDATE ASSET DATABASE - Output: Inventory record' },
+                        { value: 'GENERATE REPORTS', label: 'GENERATE REPORTS - Output: Asset status' }
                     ]
                 }
             },
             hard: {
-                1: { // Nested Decisions
+                1: { // Network Troubleshooting - Nested Decisions
                     oval: [
-                        { value: 'START SERVICE', label: 'START SERVICE - Begin customer service' },
-                        { value: 'END SERVICE', label: 'END SERVICE - Complete interaction' }
+                        { value: 'START DIAGNOSIS', label: 'START DIAGNOSIS - Begin network troubleshooting' },
+                        { value: 'ISSUE RESOLVED', label: 'ISSUE RESOLVED - Network restored' }
                     ],
                     rectangle: [
-                        { value: 'IDENTIFY CUSTOMER TYPE', label: 'IDENTIFY CUSTOMER TYPE - Categorize visitor' },
-                        { value: 'APPLY DISCOUNT', label: 'APPLY DISCOUNT - Reduce price' },
-                        { value: 'PROCESS PAYMENT', label: 'PROCESS PAYMENT - Handle transaction' },
-                        { value: 'UPDATE SEASONAL MENU', label: 'UPDATE SEASONAL MENU - Change offerings' }
+                        { value: 'CHECK PHYSICAL LAYER', label: 'CHECK PHYSICAL LAYER - Inspect cables/hardware' },
+                        { value: 'ANALYZE PROTOCOLS', label: 'ANALYZE PROTOCOLS - Examine network traffic' },
+                        { value: 'RESET EQUIPMENT', label: 'RESET EQUIPMENT - Restart network devices' },
+                        { value: 'UPDATE FIRMWARE', label: 'UPDATE FIRMWARE - Patch network devices' }
                     ],
                     diamond: [
-                        { value: 'REGULAR CUSTOMER?', label: 'REGULAR CUSTOMER? - Known visitor?' },
-                        { value: 'LOYALTY MEMBER?', label: 'LOYALTY MEMBER? - Has membership?' },
-                        { value: 'CASH OR CARD?', label: 'CASH OR CARD? - Payment method?' },
-                        { value: 'SEASONAL ITEM?', label: 'SEASONAL ITEM? - Special menu item?' },
-                        { value: 'STUDENT DISCOUNT?', label: 'STUDENT DISCOUNT? - Eligible for reduction?' }
+                        { value: 'HARDWARE FAILURE?', label: 'HARDWARE FAILURE? - Physical component issue?' },
+                        { value: 'PROTOCOL ERROR?', label: 'PROTOCOL ERROR? - Network protocol problem?' },
+                        { value: 'SECURITY INCIDENT?', label: 'SECURITY INCIDENT? - Malicious activity?' },
+                        { value: 'CONFIGURATION ISSUE?', label: 'CONFIGURATION ISSUE? - Settings problem?' },
+                        { value: 'PERFORMANCE DEGRADED?', label: 'PERFORMANCE DEGRADED? - Slow network?' }
                     ],
                     parallelogram: [
-                        { value: 'CHECK CUSTOMER DATABASE', label: 'CHECK CUSTOMER DATABASE - Lookup info' },
-                        { value: 'DISPLAY PAYMENT OPTIONS', label: 'DISPLAY PAYMENT OPTIONS - Show methods' }
+                        { value: 'GET NETWORK LOGS', label: 'GET NETWORK LOGS - Input: System logs' },
+                        { value: 'DISPLAY DIAGNOSTIC RESULTS', label: 'DISPLAY DIAGNOSTIC RESULTS - Output: Test results' }
                     ]
                 },
-                2: { // Loop Structures
+                2: { // System Monitoring - Loop Structures
                     oval: [
-                        { value: 'START QUALITY CHECK', label: 'START QUALITY CHECK - Begin inspection' },
-                        { value: 'END QUALITY CHECK', label: 'END QUALITY CHECK - Complete inspection' }
+                        { value: 'START MONITORING', label: 'START MONITORING - Begin system health check' },
+                        { value: 'MONITORING COMPLETE', label: 'MONITORING COMPLETE - Health check finished' }
                     ],
                     rectangle: [
-                        { value: 'INSPECT PRODUCT', label: 'INSPECT PRODUCT - Check quality' },
-                        { value: 'RECORD RESULTS', label: 'RECORD RESULTS - Log findings' },
-                        { value: 'FIX ISSUES', label: 'FIX ISSUES - Correct problems' },
-                        { value: 'RESTOCK INVENTORY', label: 'RESTOCK INVENTORY - Replenish supplies' }
+                        { value: 'CHECK CPU USAGE', label: 'CHECK CPU USAGE - Monitor processor load' },
+                        { value: 'CHECK MEMORY', label: 'CHECK MEMORY - Monitor RAM usage' },
+                        { value: 'SCALE RESOURCES', label: 'SCALE RESOURCES - Adjust capacity' },
+                        { value: 'OPTIMIZE PERFORMANCE', label: 'OPTIMIZE PERFORMANCE - Tune system' }
                     ],
                     diamond: [
-                        { value: 'QUALITY OK?', label: 'QUALITY OK? - Meets standards?' },
-                        { value: 'MORE ITEMS?', label: 'MORE ITEMS? - Continue checking?' },
-                        { value: 'INVENTORY LOW?', label: 'INVENTORY LOW? - Need restocking?' }
+                        { value: 'RESOURCES AVAILABLE?', label: 'RESOURCES AVAILABLE? - Sufficient capacity?' },
+                        { value: 'PERFORMANCE OK?', label: 'PERFORMANCE OK? - System running well?' },
+                        { value: 'SCALING NEEDED?', label: 'SCALING NEEDED? - Require more resources?' }
                     ],
                     parallelogram: [
-                        { value: 'GET NEXT ITEM', label: 'GET NEXT ITEM - Input: Next product' },
-                        { value: 'UPDATE INVENTORY LOG', label: 'UPDATE INVENTORY LOG - Output: Stock record' }
+                        { value: 'READ SYSTEM METRICS', label: 'READ SYSTEM METRICS - Input: Performance data' },
+                        { value: 'SEND ALERTS', label: 'SEND ALERTS - Output: Notifications' }
+                    ]
+                },
+                3: { // Disaster Recovery - Error Handling
+                    oval: [
+                        { value: 'DISASTER DETECTED', label: 'DISASTER DETECTED - Critical failure identified' },
+                        { value: 'RECOVERY COMPLETE', label: 'RECOVERY COMPLETE - Systems restored' }
+                    ],
+                    rectangle: [
+                        { value: 'ASSESS DAMAGE', label: 'ASSESS DAMAGE - Evaluate system status' },
+                        { value: 'ACTIVATE BACKUP SITE', label: 'ACTIVATE BACKUP SITE - Switch to DR location' },
+                        { value: 'RESTORE FROM BACKUP', label: 'RESTORE FROM BACKUP - Recover data' },
+                        { value: 'FAILOVER SYSTEMS', label: 'FAILOVER SYSTEMS - Switch to backup systems' }
+                    ],
+                    diamond: [
+                        { value: 'POWER FAILURE?', label: 'POWER FAILURE? - Electrical outage?' },
+                        { value: 'HARDWARE FAILURE?', label: 'HARDWARE FAILURE? - Equipment broken?' },
+                        { value: 'NETWORK DISRUPTION?', label: 'NETWORK DISRUPTION? - Connectivity lost?' },
+                        { value: 'SECURITY BREACH?', label: 'SECURITY BREACH? - Cyber attack?' }
+                    ],
+                    parallelogram: [
+                        { value: 'GET FAILURE REPORTS', label: 'GET FAILURE REPORTS - Input: Error notifications' },
+                        { value: 'LOG RECOVERY ACTIONS', label: 'LOG RECOVERY ACTIONS - Output: Recovery log' }
+                    ]
+                },
+                4: { // Microservices Architecture - Parallel Processing
+                    oval: [
+                        { value: 'START SERVICES', label: 'START SERVICES - Begin microservices' },
+                        { value: 'ALL SERVICES READY', label: 'ALL SERVICES READY - System operational' }
+                    ],
+                    rectangle: [
+                        { value: 'DEPLOY SERVICE A', label: 'DEPLOY SERVICE A - Launch user service' },
+                        { value: 'DEPLOY SERVICE B', label: 'DEPLOY SERVICE B - Launch data service' },
+                        { value: 'CONFIGURE LOAD BALANCER', label: 'CONFIGURE LOAD BALANCER - Distribute traffic' },
+                        { value: 'SYNC SERVICES', label: 'SYNC SERVICES - Coordinate communication' }
+                    ],
+                    diamond: [
+                        { value: 'SERVICE A READY?', label: 'SERVICE A READY? - User service online?' },
+                        { value: 'SERVICE B READY?', label: 'SERVICE B READY? - Data service online?' },
+                        { value: 'LOAD BALANCED?', label: 'LOAD BALANCED? - Traffic distributed?' },
+                        { value: 'SERVICES SYNCED?', label: 'SERVICES SYNCED? - Communication established?' }
+                    ],
+                    parallelogram: [
+                        { value: 'GET SERVICE CONFIG', label: 'GET SERVICE CONFIG - Input: Service parameters' },
+                        { value: 'SEND STATUS UPDATES', label: 'SEND STATUS UPDATES - Output: Service health' }
+                    ]
+                },
+                5: { // Enterprise IT Architecture - System Architecture
+                    oval: [
+                        { value: 'START SYSTEM', label: 'START SYSTEM - Initialize enterprise architecture' },
+                        { value: 'SYSTEM OPERATIONAL', label: 'SYSTEM OPERATIONAL - Full enterprise ready' }
+                    ],
+                    rectangle: [
+                        { value: 'CONFIGURE SECURITY', label: 'CONFIGURE SECURITY - Set up access controls' },
+                        { value: 'SETUP DATA FLOW', label: 'SETUP DATA FLOW - Configure data pipelines' },
+                        { value: 'INTEGRATE SYSTEMS', label: 'INTEGRATE SYSTEMS - Connect business units' },
+                        { value: 'DEPLOY GLOBALLY', label: 'DEPLOY GLOBALLY - Distribute across locations' }
+                    ],
+                    diamond: [
+                        { value: 'SECURITY CONFIGURED?', label: 'SECURITY CONFIGURED? - Access controls ready?' },
+                        { value: 'DATA FLOWING?', label: 'DATA FLOWING? - Information moving correctly?' },
+                        { value: 'SYSTEMS INTEGRATED?', label: 'SYSTEMS INTEGRATED? - All units connected?' },
+                        { value: 'GLOBAL DEPLOYMENT OK?', label: 'GLOBAL DEPLOYMENT OK? - All locations ready?' }
+                    ],
+                    parallelogram: [
+                        { value: 'GET BUSINESS REQUIREMENTS', label: 'GET BUSINESS REQUIREMENTS - Input: Business needs' },
+                        { value: 'GENERATE ARCHITECTURE REPORTS', label: 'GENERATE ARCHITECTURE REPORTS - Output: System status' },
+                        { value: 'UPDATE COMPLIANCE LOGS', label: 'UPDATE COMPLIANCE LOGS - Output: Audit trail' }
                     ]
                 }
             }
         };
         
         // Get options for current difficulty and level, fallback to basic options
-        const difficultyOptions = coffeeShopOptions[difficulty] || coffeeShopOptions.easy;
+        const difficultyOptions = itIndustryOptions[difficulty] || itIndustryOptions.easy;
         const levelOptions = difficultyOptions[level] || difficultyOptions[1];
         const nodeOptions = levelOptions[nodeType] || [];
         
