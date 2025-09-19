@@ -113,140 +113,159 @@ class CodevanceLab {
             easy: {
                 basic_html: [
                     {
-                        theme: 'Coffee Shop',
-                        title: 'Brew & Beans Café',
-                        heading: 'Welcome to Brew & Beans!',
-                        paragraph: 'We serve the finest coffee in town with fresh pastries daily.',
-                        image: 'https://via.placeholder.com/300x200/8B4513/FFFFFF?text=Coffee+Shop'
+                        theme: 'Tech Startup Landing Page',
+                        title: 'InnovateTech Solutions',
+                        heading: 'Welcome to InnovateTech Solutions',
+                        paragraph: 'Delivering cutting-edge software solutions for enterprise transformation and digital innovation.',
+                        image: 'https://via.placeholder.com/300x200/0066CC/FFFFFF?text=Tech+Company'
                     },
                     {
-                        theme: 'Pet Store',
-                        title: 'Pawsome Pets',
-                        heading: 'Find Your Perfect Pet!',
-                        paragraph: 'From adorable puppies to exotic birds, we have the perfect companion for you.',
-                        image: 'https://via.placeholder.com/300x200/FF69B4/FFFFFF?text=Pet+Store'
+                        theme: 'IT Support Portal',
+                        title: 'HelpDesk Pro',
+                        heading: 'IT Support Portal',
+                        paragraph: 'Submit tickets, track issues, and access knowledge base resources for technical assistance.',
+                        image: 'https://via.placeholder.com/300x200/00AA44/FFFFFF?text=IT+Support'
                     },
                     {
-                        theme: 'Bookstore',
-                        title: 'Chapter & Verse Books',
-                        heading: 'Discover Your Next Great Read',
-                        paragraph: 'Thousands of books across all genres waiting to transport you to new worlds.',
-                        image: 'https://via.placeholder.com/300x200/4169E1/FFFFFF?text=Bookstore'
+                        theme: 'DevOps Dashboard',
+                        title: 'DevOps Central',
+                        heading: 'DevOps Monitoring Dashboard',
+                        paragraph: 'Real-time monitoring and deployment pipeline management for continuous integration workflows.',
+                        image: 'https://via.placeholder.com/300x200/FF6600/FFFFFF?text=DevOps'
                     }
                 ],
                 html_list: [
                     {
-                        theme: 'Grocery Store',
-                        listTitle: 'Fresh Produce',
-                        items: ['Apples', 'Bananas', 'Oranges'],
-                        context: 'Create a produce section list for Valley Fresh Market'
+                        theme: 'Network Admin Tools',
+                        listTitle: 'Essential Network Tools',
+                        items: ['Wireshark', 'Nmap', 'Ping Utility'],
+                        context: 'Create a network administrator toolkit list for TechCorp IT department'
                     },
                     {
-                        theme: 'Restaurant Menu',
-                        listTitle: 'Today\'s Specials',
-                        items: ['Grilled Salmon', 'Pasta Primavera', 'Chocolate Cake'],
-                        context: 'Display the daily specials for Mama Rosa\'s Restaurant'
+                        theme: 'Cybersecurity Checklist',
+                        listTitle: 'Security Best Practices',
+                        items: ['Multi-Factor Authentication', 'Regular Updates', 'Data Encryption'],
+                        context: 'Display security protocols for InfoSec team training materials'
                     },
                     {
-                        theme: 'Todo List',
-                        listTitle: 'Weekend Plans',
-                        items: ['Visit Museum', 'Go Hiking', 'Movie Night'],
-                        context: 'Create a weekend activity list for planning'
+                        theme: 'Software Development Stack',
+                        listTitle: 'Development Technologies',
+                        items: ['JavaScript Framework', 'Database System', 'Cloud Platform'],
+                        context: 'Create a technology stack overview for project planning'
                     }
                 ],
                 css_styling: [
                     {
-                        theme: 'Beach Resort',
-                        title: 'Sunset Beach Resort',
+                        theme: 'Corporate IT Portal',
+                        title: 'TechCorp IT Portal',
                         backgroundColor: 'lightblue',
-                        heading: 'Paradise Awaits You',
-                        paragraph: 'Relax on pristine beaches with crystal clear waters and golden sunsets.'
+                        heading: 'Enterprise IT Services',
+                        paragraph: 'Access company systems, submit service requests, and manage your IT resources efficiently.'
                     },
                     {
-                        theme: 'Mountain Lodge',
-                        title: 'Alpine Mountain Lodge',
+                        theme: 'Cloud Services Dashboard',
+                        title: 'CloudTech Management',
                         backgroundColor: 'lightgreen',
-                        heading: 'Mountain Adventure',
-                        paragraph: 'Experience the beauty of nature with hiking trails and cozy cabins.'
+                        heading: 'Cloud Infrastructure Hub',
+                        paragraph: 'Monitor cloud resources, manage deployments, and optimize your infrastructure costs.'
                     },
                     {
-                        theme: 'City Hotel',
-                        title: 'Metro Grand Hotel',
+                        theme: 'Data Analytics Platform',
+                        title: 'DataInsights Pro',
                         backgroundColor: 'lightcoral',
-                        heading: 'Urban Luxury',
-                        paragraph: 'Modern accommodations in the heart of the bustling city center.'
+                        heading: 'Business Intelligence Center',
+                        paragraph: 'Transform data into actionable insights with advanced analytics and reporting tools.'
                     }
                 ],
                 css_button: [
                     {
-                        theme: 'Contact Form',
-                        title: 'Get In Touch',
-                        buttonText: 'Send Message',
+                        theme: 'System Administration Panel',
+                        title: 'Server Management',
+                        buttonText: 'Deploy System',
                         backgroundColor: 'green',
                         textColor: 'white',
-                        context: 'Create a professional contact button for a business website'
+                        context: 'Create a deployment button for system administrators managing production servers'
                     },
                     {
-                        theme: 'E-commerce Store',
-                        title: 'Shopping Cart',
-                        buttonText: 'Add to Cart',
+                        theme: 'Database Management System',
+                        title: 'Database Operations',
+                        buttonText: 'Execute Query',
                         backgroundColor: 'green',
                         textColor: 'white',
-                        context: 'Design an attractive purchase button for online shopping'
+                        context: 'Design a query execution button for database administrators using SQL management tools'
                     },
                     {
-                        theme: 'Newsletter Signup',
-                        title: 'Stay Connected',
-                        buttonText: 'Subscribe Now',
+                        theme: 'Network Security Console',
+                        title: 'Security Operations',
+                        buttonText: 'Scan Network',
                         backgroundColor: 'green',
                         textColor: 'white',
-                        context: 'Style a subscription button for newsletter signups'
+                        context: 'Style a network scan button for cybersecurity professionals monitoring threats'
                     }
                 ]
             },
             hard: {
-                name: 'Hard Mode (Python)',
-                description: 'Logic-heavy backend programming challenges',
-                challenges: [
+                python_fibonacci: [
                     {
-                        name: 'Fibonacci Sequence',
-                        objective: 'Print the first 10 Fibonacci numbers',
-                        description: 'Generate mathematical sequences using loops',
-                        type: 'python_fibonacci',
-                        concepts: ['Loops', 'Variables', 'Mathematical sequences'],
-                        expectedOutput: '0 1 1 2 3 5 8 13 21 34'
+                        theme: 'Performance Algorithm Testing',
+                        context: 'Optimize server response times using efficient algorithms',
+                        numbers: 10,
+                        realWorld: 'Load testing requires efficient mathematical computations for stress analysis and performance benchmarking.'
                     },
                     {
-                        name: 'File Reader',
-                        objective: 'Read and print the contents of sample.txt',
-                        description: 'Handle file operations and text processing',
-                        type: 'python_file',
-                        concepts: ['File handling', 'Context managers', 'Text processing'],
-                        expectedOutput: 'Contents of sample.txt displayed line by line'
+                        theme: 'Database Sequence Generator',
+                        context: 'Generate unique ID sequences for database records',
+                        numbers: 10,
+                        realWorld: 'Enterprise databases often use Fibonacci-based algorithms for distributed ID generation and sharding strategies.'
                     },
                     {
-                        name: 'Student Grade Average',
-                        objective: 'Given grades in a list, compute the average',
-                        description: 'Process data collections and perform calculations',
-                        type: 'python_average',
-                        concepts: ['Lists', 'Mathematical operations', 'Data processing'],
-                        expectedOutput: 'Average grade: 86.6'
+                        theme: 'Network Traffic Pattern Analysis',
+                        context: 'Analyze network packet sequences for anomaly detection',
+                        numbers: 10,
+                        realWorld: 'Cybersecurity systems use mathematical sequences to detect unusual traffic patterns and potential security threats.'
+                    }
+                ],
+                python_average: [
+                    {
+                        theme: 'Server Performance Metrics',
+                        subject: 'CPU Usage',
+                        grades: [85, 90, 78, 92, 88],
+                        context: 'Calculate average server CPU utilization for capacity planning'
                     },
                     {
-                        name: 'Login Validation',
-                        objective: 'Validate a login using a dictionary of users',
-                        description: 'Implement user authentication logic',
-                        type: 'python_login',
-                        concepts: ['Dictionaries', 'Conditionals', 'User input'],
-                        expectedOutput: 'Login successful! or Invalid login message'
+                        theme: 'Network Latency Analysis',
+                        subject: 'Response Time',
+                        grades: [45, 52, 38, 49, 44],
+                        context: 'Analyze average network response times for SLA monitoring'
                     },
                     {
-                        name: 'Word Counter',
-                        objective: 'Count word frequency in a string',
-                        description: 'Analyze text data and create frequency maps',
-                        type: 'python_counter',
-                        concepts: ['String processing', 'Dictionaries', 'Data analysis'],
-                        expectedOutput: "{'hello': 2, 'world': 2, 'python': 1}"
+                        theme: 'Security Scan Results',
+                        subject: 'Vulnerability Score',
+                        grades: [72, 85, 69, 91, 78],
+                        context: 'Calculate average vulnerability scores from security assessments'
+                    }
+                ],
+                python_login: [
+                    {
+                        theme: 'System Administrator Access',
+                        users: { 'admin': 'SecurePass123', 'sysadmin': 'AdminKey456' },
+                        context: 'Validate system administrator credentials for server access',
+                        testUser: 'admin',
+                        testPass: 'SecurePass123'
+                    },
+                    {
+                        theme: 'Database Connection Authentication',
+                        users: { 'dbadmin': 'DB_Access789', 'developer': 'DevKey321' },
+                        context: 'Authenticate database connections for application deployment',
+                        testUser: 'dbadmin',
+                        testPass: 'DB_Access789'
+                    },
+                    {
+                        theme: 'Network Security Portal',
+                        users: { 'security': 'InfoSec2024', 'analyst': 'CyberWatch99' },
+                        context: 'Validate security analyst access to threat monitoring systems',
+                        testUser: 'security',
+                        testPass: 'InfoSec2024'
                     }
                 ]
             }

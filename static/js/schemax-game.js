@@ -19,37 +19,37 @@ class SchemaxLab {
                 description: 'Basic table creation, queries, and relationships',
                 challenges: [
                     {
-                        name: 'Create a Student Table',
-                        objective: 'Write SQL to create a students table with proper structure',
-                        description: 'Design a basic table with primary key and essential fields',
+                        name: 'Employee Directory Table',
+                        objective: 'Create an IT employees table with proper structure',
+                        description: 'Design a database table for IT staff management',
                         type: 'table_creation',
                         concepts: ['CREATE TABLE', 'Primary Keys', 'Data Types']
                     },
                     {
-                        name: 'Insert Records',
-                        objective: 'Insert sample data into the students table',
-                        description: 'Practice INSERT statements with multiple records',
+                        name: 'Add IT Staff Records',
+                        objective: 'Insert IT employee data into the directory',
+                        description: 'Practice INSERT statements with tech staff information',
                         type: 'data_insertion',
                         concepts: ['INSERT INTO', 'Data Values', 'Multiple Records']
                     },
                     {
-                        name: 'Basic Query',
-                        objective: 'Select students based on age criteria',
-                        description: 'Write SELECT statements with WHERE conditions',
+                        name: 'Query IT Personnel',
+                        objective: 'Find IT staff based on department criteria',
+                        description: 'Write SELECT statements to filter tech employees',
                         type: 'basic_query',
                         concepts: ['SELECT', 'WHERE clause', 'Comparison operators']
                     },
                     {
-                        name: 'Primary Key & Uniqueness',
-                        objective: 'Create courses table with constraints',
-                        description: 'Implement primary keys and unique constraints',
+                        name: 'System Access Constraints',
+                        objective: 'Create secure user accounts table with constraints',
+                        description: 'Implement primary keys and unique constraints for user management',
                         type: 'constraints',
                         concepts: ['Primary Keys', 'UNIQUE constraints', 'Table constraints']
                     },
                     {
-                        name: 'Foreign Key Relationship',
-                        objective: 'Establish relationships between tables',
-                        description: 'Create foreign key constraints for referential integrity',
+                        name: 'Department Relationships',
+                        objective: 'Link employees to IT departments',
+                        description: 'Create foreign key constraints for organizational structure',
                         type: 'foreign_keys',
                         concepts: ['Foreign Keys', 'References', 'Relational integrity']
                     }
@@ -60,36 +60,36 @@ class SchemaxLab {
                 description: 'Complex normalization, optimization, and enterprise patterns',
                 challenges: [
                     {
-                        name: 'Database Normalization',
-                        objective: 'Normalize denormalized data into proper table structure',
-                        description: 'Apply 1NF, 2NF, and 3NF principles to eliminate redundancy',
+                        name: 'Enterprise Data Normalization',
+                        objective: 'Normalize enterprise system data into proper table structure',
+                        description: 'Apply 1NF, 2NF, and 3NF principles to eliminate IT system redundancy',
                         type: 'normalization',
                         concepts: ['Normalization', 'Data redundancy', 'Table relationships']
                     },
                     {
-                        name: 'Banking Transactions Schema',
-                        objective: 'Design secure banking system tables',
-                        description: 'Create tables for accounts and transactions with proper relationships',
+                        name: 'Financial System Schema',
+                        objective: 'Design secure enterprise accounting database',
+                        description: 'Create tables for financial transactions with proper audit trails',
                         type: 'transactions_schema',
-                        concepts: ['Financial data', 'Transaction integrity', 'Account management']
+                        concepts: ['Financial data', 'Transaction integrity', 'Audit management']
                     },
                     {
-                        name: 'Index Optimization',
-                        objective: 'Optimize query performance with indexes',
-                        description: 'Create indexes to speed up database queries',
+                        name: 'Database Performance Optimization',
+                        objective: 'Optimize enterprise query performance with indexes',
+                        description: 'Create indexes to speed up critical business database queries',
                         type: 'indexing',
                         concepts: ['Database indexes', 'Query optimization', 'Performance tuning']
                     },
                     {
-                        name: 'Many-to-Many Relationship',
-                        objective: 'Design complex relationship schemas',
-                        description: 'Create junction tables for many-to-many relationships',
+                        name: 'System User-Role Relationships',
+                        objective: 'Design complex enterprise permission schemas',
+                        description: 'Create junction tables for user-role-permission management',
                         type: 'many_to_many',
                         concepts: ['Junction tables', 'Composite keys', 'Complex relationships']
                     },
                     {
-                        name: 'Constraints and Security',
-                        objective: 'Implement secure user management schema',
+                        name: 'Enterprise Security Schema',
+                        objective: 'Implement secure enterprise user management system',
                         description: 'Create tables with advanced constraints and security features',
                         type: 'security_schema',
                         concepts: ['CHECK constraints', 'Security patterns', 'Data validation']
@@ -335,17 +335,17 @@ class SchemaxLab {
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🗄️ Create a Student Table</h3>
-                    <p>Design a students table with the specified structure and constraints.</p>
+                    <h3>🗄️ Create IT Employee Directory</h3>
+                    <p>Design an employees table for IT department staff management.</p>
                 </div>
                 
                 <div class="requirements-panel">
                     <h4>📋 Requirements</h4>
                     <ul>
-                        <li><strong>student_id:</strong> Primary Key, Integer</li>
+                        <li><strong>employee_id:</strong> Primary Key, Integer</li>
                         <li><strong>name:</strong> Text (VARCHAR)</li>
-                        <li><strong>age:</strong> Integer</li>
-                        <li><strong>course:</strong> Text (VARCHAR)</li>
+                        <li><strong>department:</strong> Text (VARCHAR) - IT departments</li>
+                        <li><strong>role:</strong> Text (VARCHAR) - Job position</li>
                     </ul>
                 </div>
                 
@@ -358,7 +358,7 @@ class SchemaxLab {
                         </div>
                     </div>
                     <textarea id="sql-editor" placeholder="-- Write your CREATE TABLE statement here
-CREATE TABLE students (
+CREATE TABLE employees (
     -- Add your columns here
 );"></textarea>
                 </div>
@@ -381,21 +381,21 @@ CREATE TABLE students (
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>📝 Insert Student Records</h3>
-                    <p>Add the specified sample data to the students table.</p>
+                    <h3>📝 Add IT Staff Records</h3>
+                    <p>Insert IT employee data into the company directory.</p>
                 </div>
                 
                 <div class="requirements-panel">
-                    <h4>📋 Data to Insert</h4>
+                    <h4>📋 IT Staff to Add</h4>
                     <div class="data-table">
                         <table>
                             <thead>
-                                <tr><th>student_id</th><th>name</th><th>age</th><th>course</th></tr>
+                                <tr><th>employee_id</th><th>name</th><th>department</th><th>role</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td>1</td><td>Anna Cruz</td><td>18</td><td>IT</td></tr>
-                                <tr><td>2</td><td>Mark Reyes</td><td>19</td><td>CS</td></tr>
-                                <tr><td>3</td><td>John Lim</td><td>17</td><td>IS</td></tr>
+                                <tr><td>1</td><td>Sarah Chen</td><td>DevOps</td><td>Senior Engineer</td></tr>
+                                <tr><td>2</td><td>Michael Torres</td><td>Cybersecurity</td><td>Security Analyst</td></tr>
+                                <tr><td>3</td><td>Jessica Kim</td><td>Backend</td><td>Database Admin</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -410,7 +410,7 @@ CREATE TABLE students (
                         </div>
                     </div>
                     <textarea id="sql-editor" placeholder="-- Write your INSERT statements here
-INSERT INTO students (student_id, name, age, course) VALUES
+INSERT INTO employees (employee_id, name, department, role) VALUES
     -- Add your data here
 ;"></textarea>
                 </div>
@@ -433,28 +433,28 @@ INSERT INTO students (student_id, name, age, course) VALUES
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🔍 Basic Query Challenge</h3>
-                    <p>Write a SELECT statement to find students based on specific criteria.</p>
+                    <h3>🔍 Query IT Personnel</h3>
+                    <p>Write a SELECT statement to find IT staff based on department criteria.</p>
                 </div>
                 
                 <div class="requirements-panel">
                     <h4>📋 Query Requirements</h4>
                     <ul>
-                        <li>Select <strong>all students</strong> who are <strong>older than 18</strong></li>
+                        <li>Select <strong>all employees</strong> from the <strong>DevOps</strong> department</li>
                         <li>Return all columns for matching records</li>
                         <li>Use proper WHERE clause syntax</li>
                     </ul>
                     
                     <div class="sample-data">
-                        <h5>Sample Data in students table:</h5>
+                        <h5>Sample Data in employees table:</h5>
                         <table>
                             <thead>
-                                <tr><th>student_id</th><th>name</th><th>age</th><th>course</th></tr>
+                                <tr><th>employee_id</th><th>name</th><th>department</th><th>role</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td>1</td><td>Anna Cruz</td><td>18</td><td>IT</td></tr>
-                                <tr><td>2</td><td>Mark Reyes</td><td>19</td><td>CS</td></tr>
-                                <tr><td>3</td><td>John Lim</td><td>17</td><td>IS</td></tr>
+                                <tr><td>1</td><td>Sarah Chen</td><td>DevOps</td><td>Senior Engineer</td></tr>
+                                <tr><td>2</td><td>Michael Torres</td><td>Cybersecurity</td><td>Security Analyst</td></tr>
+                                <tr><td>3</td><td>Jessica Kim</td><td>Backend</td><td>Database Admin</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -469,7 +469,7 @@ INSERT INTO students (student_id, name, age, course) VALUES
                         </div>
                     </div>
                     <textarea id="sql-editor" placeholder="-- Write your SELECT statement here
-SELECT * FROM students 
+SELECT * FROM employees 
 WHERE -- Add your condition here
 ;"></textarea>
                 </div>
@@ -492,17 +492,17 @@ WHERE -- Add your condition here
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🔒 Primary Key & Uniqueness</h3>
-                    <p>Create a courses table with proper constraints to ensure data integrity.</p>
+                    <h3>🔒 System Access Constraints</h3>
+                    <p>Create a secure user accounts table with proper constraints for system access.</p>
                 </div>
                 
                 <div class="requirements-panel">
-                    <h4>📋 Table Requirements</h4>
+                    <h4>📋 Security Requirements</h4>
                     <ul>
-                        <li><strong>course_id:</strong> Primary Key, Integer</li>
-                        <li><strong>course_name:</strong> Text (VARCHAR), Unique constraint</li>
-                        <li>Ensure no duplicate course names can be inserted</li>
-                        <li>Primary key should auto-identify each course uniquely</li>
+                        <li><strong>user_id:</strong> Primary Key, Integer</li>
+                        <li><strong>username:</strong> Text (VARCHAR), Unique constraint</li>
+                        <li>Ensure no duplicate usernames can be created</li>
+                        <li>Primary key should uniquely identify each system user</li>
                     </ul>
                 </div>
                 
@@ -515,7 +515,7 @@ WHERE -- Add your condition here
                         </div>
                     </div>
                     <textarea id="sql-editor" placeholder="-- Write your CREATE TABLE statement with constraints
-CREATE TABLE courses (
+CREATE TABLE user_accounts (
     -- Add your columns with appropriate constraints
 );"></textarea>
                 </div>
@@ -538,24 +538,24 @@ CREATE TABLE courses (
         return `
             <div class="challenge-interface active">
                 <div class="challenge-header">
-                    <h3>🔗 Foreign Key Relationships</h3>
-                    <p>Establish referential integrity between students and courses tables.</p>
+                    <h3>🔗 Department Relationships</h3>
+                    <p>Link employees to their IT departments with referential integrity.</p>
                 </div>
                 
                 <div class="requirements-panel">
                     <h4>📋 Relationship Requirements</h4>
                     <ul>
-                        <li>Modify the <strong>students</strong> table to include <strong>course_id</strong></li>
-                        <li>Create foreign key constraint referencing <strong>courses(course_id)</strong></li>
+                        <li>Modify the <strong>employees</strong> table to include <strong>dept_id</strong></li>
+                        <li>Create foreign key constraint referencing <strong>departments(dept_id)</strong></li>
                         <li>Ensure referential integrity is maintained</li>
-                        <li>Students can only be assigned to existing courses</li>
+                        <li>Employees can only be assigned to existing departments</li>
                     </ul>
                     
                     <div class="existing-tables">
                         <h5>Existing Tables:</h5>
                         <div class="table-info">
-                            <strong>courses:</strong> course_id (PK), course_name (UNIQUE)<br>
-                            <strong>students:</strong> student_id (PK), name, age, course
+                            <strong>departments:</strong> dept_id (PK), dept_name (UNIQUE)<br>
+                            <strong>employees:</strong> employee_id (PK), name, department, role
                         </div>
                     </div>
                 </div>
@@ -568,10 +568,10 @@ CREATE TABLE courses (
                             <button onclick="window.schemaxLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="sql-editor" placeholder="-- Modify students table to add foreign key relationship
-ALTER TABLE students 
-ADD COLUMN course_id INTEGER,
-ADD FOREIGN KEY (course_id) REFERENCES courses(course_id);"></textarea>
+                    <textarea id="sql-editor" placeholder="-- Modify employees table to add foreign key relationship
+ALTER TABLE employees 
+ADD COLUMN dept_id INTEGER,
+ADD FOREIGN KEY (dept_id) REFERENCES departments(dept_id);"></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -1381,16 +1381,16 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
 
     getHint() {
         const hints = {
-            'table_creation': "💡 Use CREATE TABLE with column_name DATA_TYPE constraints. Don't forget PRIMARY KEY for student_id!",
-            'data_insertion': "💡 Use INSERT INTO table_name (columns) VALUES (values1), (values2), (values3) for multiple records.",
-            'basic_query': "💡 Use SELECT * FROM students WHERE age > 18 to find students older than 18.",
-            'constraints': "💡 Add UNIQUE constraint after column definition: course_name VARCHAR(100) UNIQUE",
+            'table_creation': "💡 Use CREATE TABLE with column_name DATA_TYPE constraints. Don't forget PRIMARY KEY for employee_id!",
+            'data_insertion': "💡 Use INSERT INTO employees (columns) VALUES (values1), (values2), (values3) for multiple IT staff records.",
+            'basic_query': "💡 Use SELECT * FROM employees WHERE department = 'DevOps' to find DevOps team members.",
+            'constraints': "💡 Add UNIQUE constraint after column definition: username VARCHAR(100) UNIQUE",
             'foreign_keys': "💡 Use ALTER TABLE to ADD COLUMN and ADD FOREIGN KEY constraint with REFERENCES.",
-            'normalization': "💡 Create separate tables for students, courses, and a junction table for enrollments.",
-            'transactions_schema': "💡 Use DECIMAL for money amounts and TIMESTAMP for dates. Don't forget foreign keys!",
+            'normalization': "💡 Create separate tables for employees, departments, and a junction table for project assignments.",
+            'transactions_schema': "💡 Use DECIMAL for financial amounts and TIMESTAMP for transaction dates. Don't forget foreign keys!",
             'indexing': "💡 CREATE INDEX index_name ON table_name(column_name) - consider UNIQUE for email addresses.",
-            'many_to_many': "💡 Junction table needs composite primary key: PRIMARY KEY (student_id, course_id)",
-            'security_schema': "💡 Use CHECK constraint for role validation: role VARCHAR(10) CHECK (role IN ('student', 'admin'))"
+            'many_to_many': "💡 Junction table needs composite primary key: PRIMARY KEY (user_id, role_id)",
+            'security_schema': "💡 Use CHECK constraint for role validation: access_level VARCHAR(10) CHECK (access_level IN ('user', 'admin', 'super'))"
         };
         
         const hint = hints[this.challengeData.type] || "💡 Follow the requirements carefully and use proper SQL syntax. Check examples in the challenge description!";

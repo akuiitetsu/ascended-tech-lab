@@ -25,58 +25,58 @@ class FlowByteGame {
                     { 
                         name: 'Simple Start-End Flow', 
                         objective: 'Create a basic start-to-end flowchart',
-                        scenario: "Sarah is opening her first coffee shop and needs a simple process flowchart for her opening day routine. Help her create a basic flow that shows how she starts and ends her day."
+                        scenario: "You're designing a software deployment pipeline for TechCorp. Create a flowchart that outlines the basic steps from code commit to production deployment, showing a clear start and end to the process."
                     },
                     { 
                         name: 'Decision Making', 
                         objective: 'Add decision nodes to your flowchart',
-                        scenario: "Sarah needs to add decision points to her coffee shop process. Help her create a flowchart that includes decisions like checking inventory and customer preferences."
+                        scenario: "The IT security team needs a flowchart for incident response procedures. Design a decision-based flowchart that shows how to classify security threats and determine appropriate response actions based on severity levels."
                     },
                     { 
                         name: 'Input-Output Flow', 
                         objective: 'Create flowchart with input/output operations',
-                        scenario: "Sarah wants to track customer orders and receipts. Create a flowchart that shows input/output operations for her coffee shop system."
+                        scenario: "Design a database backup and recovery workflow for the data center. Create a flowchart showing input validation, backup processes, and recovery procedures with proper data handling operations."
                     },
                     { 
                         name: 'Process Chain', 
                         objective: 'Build a multi-step process flowchart',
-                        scenario: "Sarah's coffee shop now has multiple processes running together. Help her create a comprehensive workflow that connects all operations."
+                        scenario: "The DevOps team needs a comprehensive CI/CD pipeline flowchart. Design a multi-step process that connects development, testing, staging, and production deployment with automated quality checks."
                     },
                     { 
                         name: 'Complete Workflow', 
                         objective: 'Combine all elements into complex flowchart',
-                        scenario: "Sarah wants a master flowchart that includes all aspects of her coffee shop operations. Create a complete workflow that demonstrates advanced flowchart design."
+                        scenario: "Create a complete IT asset management workflow that includes device procurement, deployment, monitoring, maintenance, and decommissioning processes for enterprise infrastructure."
                     }
                 ]
             },
             hard: {
                 name: 'Hard',
-                description: 'Advanced flowchart design with complex logic patterns',
+                description: 'Advanced flowchart design with complex IT architecture patterns',
                 levels: [
                     { 
                         name: 'Nested Decisions', 
                         objective: 'Create flowchart with multiple decision branches',
-                        scenario: "Sarah's coffee shop now has complex decision trees for different customer types, payment methods, and seasonal menus. Design a flowchart with nested decision logic."
+                        scenario: "Design a complex network troubleshooting flowchart with nested decision trees for different protocol issues, hardware failures, and security incidents requiring multi-level diagnostic procedures."
                     },
                     { 
                         name: 'Loop Structures', 
                         objective: 'Design flowcharts with iterative processes',
-                        scenario: "Sarah needs to implement quality control loops and inventory checking cycles. Create a flowchart that demonstrates iterative processes and loop structures."
+                        scenario: "Create a system monitoring flowchart that implements continuous health checks, automated scaling decisions, and performance optimization loops for cloud infrastructure management."
                     },
                     { 
                         name: 'Error Handling', 
                         objective: 'Build flowcharts with exception handling',
-                        scenario: "Sarah wants to handle various error scenarios like payment failures, out-of-stock items, and equipment malfunctions. Design a robust flowchart with error handling."
+                        scenario: "Design a comprehensive disaster recovery flowchart for data center operations that handles various failure scenarios including power outages, hardware failures, network disruptions, and security breaches with proper fallback procedures."
                     },
                     { 
                         name: 'Parallel Processing', 
                         objective: 'Design concurrent workflow patterns',
-                        scenario: "Sarah's coffee shop now has multiple staff members working simultaneously on different tasks. Create a flowchart that shows parallel processing workflows."
+                        scenario: "Create a microservices architecture flowchart showing parallel processing workflows for a distributed system with multiple services running simultaneously, including load balancing and inter-service communication."
                     },
                     { 
                         name: 'System Architecture', 
                         objective: 'Create comprehensive system flowchart',
-                        scenario: "Sarah is expanding to multiple locations and needs a master system architecture flowchart that governs all operations across her coffee shop chain."
+                        scenario: "Design a complete enterprise IT architecture flowchart that governs data flow, security protocols, user access management, and system integrations across multiple business units and geographic locations."
                     }
                 ]
             }

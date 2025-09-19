@@ -1869,8 +1869,8 @@ Router# show ip dhcp conflict
             <div class="topology-info">
                 <h4>📊 VLAN Configuration</h4>
                 <ul>
-                    <li><strong>VLAN 10:</strong> 192.168.10.0/24 (Sales Department)</li>
-                    <li><strong>VLAN 20:</strong> 192.168.20.0/24 (Marketing Department)</li>
+                    <li><strong>VLAN 10:</strong> 192.168.10.0/24 (Development Team)</li>
+                    <li><strong>VLAN 20:</strong> 192.168.20.0/24 (Security Operations)</li>
                     <li><strong>Trunk Link:</strong> Between switch and router</li>
                 </ul>
             </div>
@@ -2551,8 +2551,8 @@ Router# show access-lists 100
             <div class="topology-info">
                 <h4>📊 VLAN Configuration</h4>
                 <ul>
-                    <li><strong>VLAN 10:</strong> 192.168.10.0/24 (Sales Department)</li>
-                    <li><strong>VLAN 20:</strong> 192.168.20.0/24 (Marketing Department)</li>
+                    <li><strong>VLAN 10:</strong> 192.168.10.0/24 (Development Team)</li>
+                    <li><strong>VLAN 20:</strong> 192.168.20.0/24 (Security Operations)</li>
                     <li><strong>Trunk Link:</strong> Between switch and router</li>
                 </ul>
             </div>
