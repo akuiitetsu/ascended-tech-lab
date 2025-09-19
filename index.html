@@ -66,10 +66,29 @@
                             <input type="password" id="regPassword" placeholder="Password" required>
                         </div>
                         
+                        <!-- Password Strength Indicator -->
+                        <div class="password-strength-container" id="passwordStrengthContainer" style="display: none;">
+                            <div class="password-strength-meter">
+                                <div class="strength-bar" id="strengthBar"></div>
+                            </div>
+                            <div class="password-strength-text" id="strengthText">Password strength: None</div>
+                            <div class="password-requirements" id="passwordRequirements">
+                                <div class="requirement" id="reqLength">✗ At least 12 characters</div>
+                                <div class="requirement" id="reqUppercase">✗ One uppercase letter (A-Z)</div>
+                                <div class="requirement" id="reqLowercase">✗ One lowercase letter (a-z)</div>
+                                <div class="requirement" id="reqNumber">✗ One number (0-9)</div>
+                                <div class="requirement" id="reqSpecial">✗ One special character (!@#$%^&*)</div>
+                                <div class="requirement" id="reqPatterns">✗ No common weak patterns</div>
+                            </div>
+                        </div>
+                        
                         <div class="input-group">
                             <i class="bi bi-lock-fill"></i>
                             <input type="password" id="regConfirmPassword" placeholder="Confirm Password" required>
                         </div>
+                        
+                        <!-- Password Match Indicator -->
+                        <div class="password-match-indicator" id="passwordMatchIndicator" style="display: none;"></div>
                         
                         <button type="submit" class="login-btn">
                             <i class="bi bi-person-plus"></i>

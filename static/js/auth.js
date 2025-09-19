@@ -6,6 +6,102 @@ class AuthService {
         this.loadUserFromStorage();
     }
 
+    // Password security validation with comprehensive checks
+    validatePasswordSecurity(password) {
+        const errors = [];
+        
+        // Check minimum length (12-16 characters recommended)
+        if (password.length < 12) {
+            errors.push('Password must be at least 12 characters long');
+        }
+        
+        // Check for uppercase letters
+        if (!/[A-Z]/.test(password)) {
+            errors.push('Password must contain at least one uppercase letter (A-Z)');
+        }
+        
+        // Check for lowercase letters
+        if (!/[a-z]/.test(password)) {
+            errors.push('Password must contain at least one lowercase letter (a-z)');
+        }
+        
+        // Check for numbers
+        if (!/[0-9]/.test(password)) {
+            errors.push('Password must contain at least one number (0-9)');
+        }
+        
+        // Check for special characters
+        if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) {
+            errors.push('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
+        }
+        
+        // Check for common weak patterns
+        const commonPatterns = [
+            /123456/,
+            /password/i,
+            /qwerty/i,
+            /admin/i,
+            /letmein/i,
+            /welcome/i,
+            /^(.)\1{2,}/, // Repeated characters (e.g., aaa, 111)
+            /(.{2,})\1{2,}/ // Repeated sequences (e.g., abcabc, 123123)
+        ];
+        
+        for (let pattern of commonPatterns) {
+            if (pattern.test(password)) {
+                errors.push('Password contains common weak patterns. Please choose a more unique password');
+                break;
+            }
+        }
+        
+        // Check for sequential characters
+        let hasSequential = false;
+        for (let i = 0; i < password.length - 2; i++) {
+            const char1 = password.charCodeAt(i);
+            const char2 = password.charCodeAt(i + 1);
+            const char3 = password.charCodeAt(i + 2);
+            
+            if ((char2 === char1 + 1 && char3 === char2 + 1) || 
+                (char2 === char1 - 1 && char3 === char2 - 1)) {
+                hasSequential = true;
+                break;
+            }
+        }
+        
+        if (hasSequential) {
+            errors.push('Password should not contain sequential characters (e.g., abc, 123, xyz)');
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors,
+            strength: this.calculatePasswordStrength(password)
+        };
+    }
+
+    // Calculate password strength score (0-100)
+    calculatePasswordStrength(password) {
+        let score = 0;
+        
+        // Length bonus
+        if (password.length >= 12) score += 25;
+        if (password.length >= 16) score += 10;
+        if (password.length >= 20) score += 10;
+        
+        // Character variety bonus
+        if (/[a-z]/.test(password)) score += 10;
+        if (/[A-Z]/.test(password)) score += 10;
+        if (/[0-9]/.test(password)) score += 10;
+        if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) score += 15;
+        
+        // Complexity bonus
+        const uniqueChars = new Set(password).size;
+        if (uniqueChars >= 8) score += 10;
+        if (uniqueChars >= 12) score += 10;
+        
+        return Math.min(score, 100);
+    }
+
     async register(userData) {
         try {
             console.log('Attempting registration:', userData);
@@ -16,6 +112,14 @@ class AuthService {
 
             if (!userData.username || !userData.email || !userData.password) {
                 throw new Error('Username, email, and password are required');
+            }
+
+            // Enhanced password security validation
+            const passwordValidation = this.validatePasswordSecurity(userData.password);
+            if (!passwordValidation.isValid) {
+                const errorMessage = 'Password security requirements not met:\n• ' + 
+                    passwordValidation.errors.join('\n• ');
+                throw new Error(errorMessage);
             }
 
             const response = await fetch(`${this.baseURL}/register`, {

@@ -81,8 +81,29 @@ async function handleRegister(event) {
         return;
     }
     
+    // Enhanced password security validation
+    const passwordValidation = auth.validatePasswordSecurity(password);
+    if (!passwordValidation.isValid) {
+        const errorMessage = 'Password security requirements not met:\n\n• ' + 
+            passwordValidation.errors.join('\n• ') + 
+            '\n\nPassword Requirements:\n• 12+ characters minimum\n• At least one uppercase letter (A-Z)\n• At least one lowercase letter (a-z)\n• At least one number (0-9)\n• At least one special character (!@#$%^&*)\n• No common weak patterns or sequential characters';
+        alert(errorMessage);
+        return;
+    }
+    
     if (password !== confirmPassword) {
         alert('Passwords do not match');
+        return;
+    }
+    
+    // Additional field validation
+    if (username.length < 3) {
+        alert('Username must be at least 3 characters long');
+        return;
+    }
+    
+    if (!isValidEmail(email)) {
+        alert('Please enter a valid email address');
         return;
     }
     
@@ -97,7 +118,7 @@ async function handleRegister(event) {
         
         const result = await auth.register(userData);
         
-        alert('Registration successful! Please login with your new account.');
+        alert('Registration successful! Your account has been created with enhanced security. Please login with your new account.');
         
         // Clear form fields
         document.getElementById('regUsername').value = '';
@@ -105,12 +126,198 @@ async function handleRegister(event) {
         document.getElementById('regPassword').value = '';
         document.getElementById('regConfirmPassword').value = '';
         
+        // Reset password indicators
+        resetPasswordIndicators();
+        
         toggleAuthMode(); // Switch back to login form
         
     } catch (error) {
         console.error('Registration error:', error);
         alert(error.message);
     }
+}
+
+// Email validation helper function
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Password strength indicator functions
+function setupPasswordStrengthIndicator() {
+    const passwordField = document.getElementById('regPassword');
+    const confirmPasswordField = document.getElementById('regConfirmPassword');
+    
+    if (passwordField) {
+        passwordField.addEventListener('input', function() {
+            updatePasswordStrength(this.value);
+        });
+        
+        passwordField.addEventListener('focus', function() {
+            const container = document.getElementById('passwordStrengthContainer');
+            container.style.display = 'block';
+            // Scroll to keep the form visible
+            setTimeout(() => {
+                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        });
+    }
+    
+    if (confirmPasswordField) {
+        confirmPasswordField.addEventListener('input', function() {
+            updatePasswordMatch();
+        });
+        
+        confirmPasswordField.addEventListener('focus', function() {
+            const indicator = document.getElementById('passwordMatchIndicator');
+            indicator.style.display = 'block';
+            // Scroll to keep the form visible
+            setTimeout(() => {
+                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        });
+        
+        passwordField.addEventListener('input', function() {
+            if (confirmPasswordField.value) {
+                updatePasswordMatch();
+            }
+        });
+    }
+}
+
+function updatePasswordStrength(password) {
+    const strengthContainer = document.getElementById('passwordStrengthContainer');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    
+    if (!password) {
+        strengthBar.style.width = '0%';
+        strengthBar.className = 'strength-bar';
+        strengthText.textContent = 'Password strength: None';
+        updateRequirements(password);
+        return;
+    }
+    
+    const validation = auth.validatePasswordSecurity(password);
+    const strength = validation.strength;
+    
+    // Update strength bar
+    strengthBar.style.width = strength + '%';
+    strengthBar.className = 'strength-bar';
+    
+    let strengthLabel = '';
+    if (strength < 30) {
+        strengthLabel = 'Weak';
+        strengthBar.classList.add('weak');
+    } else if (strength < 60) {
+        strengthLabel = 'Fair';
+        strengthBar.classList.add('fair');
+    } else if (strength < 80) {
+        strengthLabel = 'Good';
+        strengthBar.classList.add('good');
+    } else {
+        strengthLabel = 'Strong';
+        strengthBar.classList.add('strong');
+    }
+    
+    strengthText.textContent = `Password strength: ${strengthLabel} (${strength}%)`;
+    
+    updateRequirements(password);
+}
+
+function updateRequirements(password) {
+    const requirements = [
+        { id: 'reqLength', test: password.length >= 12 },
+        { id: 'reqUppercase', test: /[A-Z]/.test(password) },
+        { id: 'reqLowercase', test: /[a-z]/.test(password) },
+        { id: 'reqNumber', test: /[0-9]/.test(password) },
+        { id: 'reqSpecial', test: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) },
+        { id: 'reqPatterns', test: !hasWeakPatterns(password) }
+    ];
+    
+    requirements.forEach(req => {
+        const element = document.getElementById(req.id);
+        if (element) {
+            if (req.test) {
+                element.className = 'requirement met';
+                element.innerHTML = element.innerHTML.replace('✗', '✓');
+            } else {
+                element.className = 'requirement unmet';
+                element.innerHTML = element.innerHTML.replace('✓', '✗');
+            }
+        }
+    });
+}
+
+function hasWeakPatterns(password) {
+    const commonPatterns = [
+        /123456/,
+        /password/i,
+        /qwerty/i,
+        /admin/i,
+        /letmein/i,
+        /welcome/i,
+        /^(.)\1{2,}/, // Repeated characters
+        /(.{2,})\1{2,}/ // Repeated sequences
+    ];
+    
+    for (let pattern of commonPatterns) {
+        if (pattern.test(password)) {
+            return true;
+        }
+    }
+    
+    // Check for sequential characters
+    for (let i = 0; i < password.length - 2; i++) {
+        const char1 = password.charCodeAt(i);
+        const char2 = password.charCodeAt(i + 1);
+        const char3 = password.charCodeAt(i + 2);
+        
+        if ((char2 === char1 + 1 && char3 === char2 + 1) || 
+            (char2 === char1 - 1 && char3 === char2 - 1)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+function updatePasswordMatch() {
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    const matchIndicator = document.getElementById('passwordMatchIndicator');
+    
+    if (!confirmPassword) {
+        matchIndicator.textContent = '';
+        matchIndicator.className = 'password-match-indicator';
+        return;
+    }
+    
+    if (password === confirmPassword) {
+        matchIndicator.textContent = '✓ Passwords match';
+        matchIndicator.className = 'password-match-indicator match';
+    } else {
+        matchIndicator.textContent = '✗ Passwords do not match';
+        matchIndicator.className = 'password-match-indicator no-match';
+    }
+}
+
+function resetPasswordIndicators() {
+    const strengthContainer = document.getElementById('passwordStrengthContainer');
+    const matchIndicator = document.getElementById('passwordMatchIndicator');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    
+    strengthContainer.style.display = 'none';
+    matchIndicator.style.display = 'none';
+    strengthBar.style.width = '0%';
+    strengthBar.className = 'strength-bar';
+    strengthText.textContent = 'Password strength: None';
+    matchIndicator.textContent = '';
+    matchIndicator.className = 'password-match-indicator';
+    
+    // Reset all requirements
+    updateRequirements('');
 }
 
 function showWelcomeScreen() {
@@ -307,4 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showWelcomeScreen();
         }
     }
+    
+    // Set up password strength indicator for registration
+    setupPasswordStrengthIndicator();
 });
