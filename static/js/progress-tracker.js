@@ -184,17 +184,57 @@ class ProgressTracker {
     }
     
     validateProgressData(roomName, data) {
+        // Validate room name against known rooms
+        const validRoomNames = ['flowchart', 'networking', 'ai-training', 'database', 'programming', 
+                               'netxus', 'aitrix', 'schemax', 'codevance', 'flowbyte'];
+        
+        if (!validRoomNames.includes(roomName)) {
+            console.warn(`Invalid room name: ${roomName}. Using normalized name.`);
+            roomName = this.normalizeRoomName(roomName);
+        }
+        
+        // Parse and validate level (1-5 for all rooms, representing challenges 1-5)
+        const currentLevel = Math.max(1, Math.min(5, parseInt(data.current_level) || 1));
+        
+        // Parse and validate progress percentage
+        let progressPercentage = Math.max(0, Math.min(100, parseInt(data.progress_percentage) || 0));
+        
+        // If level is provided but progress isn't, calculate progress from level
+        if (data.current_level && !data.progress_percentage) {
+            progressPercentage = Math.min(100, (currentLevel - 1) * 20); // Each level = 20%
+        }
+        
+        // Ensure progress percentage aligns with level completion
+        if (currentLevel > 1 && progressPercentage < (currentLevel - 1) * 20) {
+            progressPercentage = (currentLevel - 1) * 20;
+        }
+        
         const validated = {
             room_name: roomName,
-            progress_percentage: Math.max(0, Math.min(100, parseInt(data.progress_percentage) || 0)),
-            current_level: Math.max(1, parseInt(data.current_level) || 1),
+            progress_percentage: progressPercentage,
+            current_level: currentLevel,
             score: Math.max(0, parseInt(data.score) || 0),
             time_spent: Math.max(0, parseInt(data.time_spent) || 0),
             attempts: Math.max(1, parseInt(data.attempts) || 1),
+            completed: progressPercentage >= 100 || currentLevel >= 5,
             notes: data.notes || ''
         };
         
+        console.log(`📊 Validated progress for ${roomName}:`, validated);
         return validated;
+    }
+    
+    // Helper method to normalize room names between frontend and backend
+    normalizeRoomName(roomName) {
+        const roomNameMap = {
+            'flowbyte': 'flowchart',
+            'netxus': 'networking', 
+            'aitrix': 'ai-training',
+            'schemax': 'database',
+            'codevance': 'programming'
+        };
+        
+        return roomNameMap[roomName] || roomName;
     }
     
     async syncProgressToServer(roomName, progressData) {
@@ -339,36 +379,50 @@ class ProgressTracker {
     
     // Convenience methods for common progress updates
     async completeChallenge(roomName, challengeData = {}) {
+        const currentProgress = this.getProgressForRoom(roomName);
+        const currentLevel = challengeData.level || (currentProgress.current_level || 1);
+        
+        // Calculate progress: each challenge completion = 20%
+        const progressPercentage = Math.min(100, currentLevel * 20);
+        
         const progressUpdate = {
-            progress_percentage: Math.min(100, (this.getProgressForRoom(roomName).progress_percentage || 0) + 20),
-            score: challengeData.score || 10,
+            progress_percentage: progressPercentage,
+            current_level: currentLevel,
+            score: Math.max(currentProgress.score || 0, challengeData.score || 10),
             time_spent: challengeData.timeSpent || 0,
             attempts: 1,
-            current_level: challengeData.level || 1
+            completed: progressPercentage >= 100
         };
         
+        console.log(`🎯 Challenge ${currentLevel}/5 completed for ${roomName}:`, progressUpdate);
         return await this.updateProgress(roomName, progressUpdate);
     }
     
     async markRoomComplete(roomName, finalScore = 100) {
         const progressUpdate = {
             progress_percentage: 100,
+            current_level: 5,
             score: finalScore,
             completed: true,
             attempts: 1
         };
         
+        console.log(`🏆 Room ${roomName} marked as complete:`, progressUpdate);
         return await this.updateProgress(roomName, progressUpdate);
     }
     
-    async incrementLevel(roomName, newLevel) {
+    async incrementLevel(roomName, newLevel = null) {
         const currentProgress = this.getProgressForRoom(roomName);
+        const nextLevel = newLevel || Math.min(5, (currentProgress.current_level || 1) + 1);
+        
         const progressUpdate = {
-            current_level: newLevel,
-            progress_percentage: Math.min(100, (currentProgress.progress_percentage || 0) + 10),
-            attempts: 1
+            current_level: nextLevel,
+            progress_percentage: Math.min(100, nextLevel * 20),
+            attempts: 1,
+            completed: nextLevel >= 5
         };
         
+        console.log(`⬆️ Level incremented to ${nextLevel}/5 for ${roomName}:`, progressUpdate);
         return await this.updateProgress(roomName, progressUpdate);
     }
     

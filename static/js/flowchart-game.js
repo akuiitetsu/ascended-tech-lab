@@ -2339,13 +2339,12 @@ class FlowByteGame {
     async reportProgressToCenter() {
         try {
             if (window.progressTracker) {
-                const levelProgress = Math.round((this.currentLevel / 5) * 100);
-                
-                await window.progressTracker.updateProgress('flowchart', levelProgress, {
-                    currentLevel: this.currentLevel,
+                // Use the improved completeChallenge method for proper validation
+                await window.progressTracker.completeChallenge('flowchart', {
+                    level: this.currentLevel,
                     score: this.score,
-                    attempts: this.attempts,
                     timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    attempts: this.attempts,
                     difficulty: this.currentDifficulty,
                     mistakeCount: this.mistakeCount
                 });
@@ -2354,11 +2353,13 @@ class FlowByteGame {
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
                         roomName: 'flowchart',
-                        progress: levelProgress,
+                        progress: this.currentLevel * 20, // Each level = 20%
                         score: this.score,
                         level: this.currentLevel
                     }
                 }));
+                
+                console.log(`📊 Level ${this.currentLevel}/5 progress reported for FlowByte`);
             }
         } catch (error) {
             console.warn('Could not report progress to progress tracker:', error);
@@ -2369,13 +2370,7 @@ class FlowByteGame {
     async reportRoomCompletion() {
         try {
             if (window.progressTracker) {
-                await window.progressTracker.reportRoomCompletion('flowchart', {
-                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
-                    totalMistakes: this.mistakeCount,
-                    totalLevels: 5,
-                    finalScore: this.score,
-                    difficulty: this.currentDifficulty
-                });
+                await window.progressTracker.markRoomComplete('flowchart', this.score);
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {
@@ -2384,10 +2379,14 @@ class FlowByteGame {
                         completionStats: {
                             timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
                             totalMistakes: this.mistakeCount,
-                            finalScore: this.score
+                            finalScore: this.score,
+                            difficulty: this.currentDifficulty,
+                            totalLevels: 5
                         }
                     }
                 }));
+                
+                console.log('🏆 FlowByte room completion reported successfully');
             }
         } catch (error) {
             console.warn('Could not report room completion:', error);

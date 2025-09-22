@@ -212,6 +212,25 @@ def generate_session_token():
     """Generate a secure session token"""
     return secrets.token_urlsafe(32)
 
+def normalize_room_name(room_name):
+    """Normalize room names between frontend and backend"""
+    room_name_map = {
+        'flowbyte': 'flowchart',
+        'netxus': 'networking', 
+        'aitrix': 'ai-training',
+        'schemax': 'database',
+        'codevance': 'programming'
+    }
+    
+    normalized = room_name_map.get(room_name, room_name)
+    
+    # Validate against known room names
+    valid_room_names = ['flowchart', 'networking', 'ai-training', 'database', 'programming']
+    if normalized not in valid_room_names:
+        print(f"⚠️ Warning: Unknown room name '{room_name}' normalized to '{normalized}'")
+    
+    return normalized
+
 
 # Authentication endpoints
 @app.route('/api/auth/register', methods=['POST'])
@@ -715,22 +734,36 @@ def update_user_progress(user_id):
         if not users:
             return jsonify({'error': 'User not found'}), 404
 
-        room_name = data['room_name']
+        # Normalize and validate room name
+        room_name = normalize_room_name(data['room_name'])
+        
+        # Validate and bound current_level (1-5)
+        current_level = max(1, min(5, int(data.get('current_level', 1))))
+        
+        # Validate and bound progress_percentage (0-100)
         progress_percentage = max(0, min(100, int(data.get('progress_percentage', 0))))
+        
+        # Ensure progress percentage aligns with level completion (each level = 20%)
+        if current_level > 1 and progress_percentage < (current_level - 1) * 20:
+            progress_percentage = (current_level - 1) * 20
+        
+        # If progress is 100% but level is less than 5, set level to 5
+        if progress_percentage >= 100 and current_level < 5:
+            current_level = 5
         
         # Check if progress record already exists
         existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': room_name})
         
-        # Prepare progress data
+        # Prepare progress data with proper validation
         progress_data = {
             'user_id': user_id,
             'room_name': room_name,
             'progress_percentage': progress_percentage,
-            'current_level': data.get('current_level', 1),
-            'score': data.get('score', 0),
-            'time_spent': data.get('time_spent', 0),
-            'attempts': data.get('attempts', 1),
-            'completed': progress_percentage >= 100,
+            'current_level': current_level,
+            'score': max(0, int(data.get('score', 0))),
+            'time_spent': max(0, int(data.get('time_spent', 0))),
+            'attempts': max(1, int(data.get('attempts', 1))),
+            'completed': progress_percentage >= 100 or current_level >= 5,
             'last_accessed': datetime.now().isoformat(),
             'notes': data.get('notes', '')
         }
@@ -744,10 +777,18 @@ def update_user_progress(user_id):
         if existing_progress:
             # Update existing record, but keep higher progress
             current_progress = existing_progress[0].get('progress_percentage', 0)
+            current_level_existing = existing_progress[0].get('current_level', 1)
+            
+            # Keep higher progress and level
             if progress_percentage > current_progress:
                 progress_data['progress_percentage'] = progress_percentage
             else:
                 progress_data['progress_percentage'] = current_progress
+                
+            if current_level > current_level_existing:
+                progress_data['current_level'] = current_level
+            else:
+                progress_data['current_level'] = current_level_existing
                 
             # Keep higher score
             current_score = existing_progress[0].get('score', 0)
@@ -1005,7 +1046,17 @@ def batch_update_progress():
                     continue
                 
                 # Update progress using existing logic
+                room_name = normalize_room_name(progress_update.get('room_name', ''))
+                
+                # Validate and bound current_level (1-5)
+                current_level = max(1, min(5, int(progress_update.get('current_level', 1))))
+                
+                # Validate and bound progress_percentage (0-100)
                 progress_percentage = max(0, min(100, int(progress_update.get('progress_percentage', 0))))
+                
+                # Ensure progress percentage aligns with level completion
+                if current_level > 1 and progress_percentage < (current_level - 1) * 20:
+                    progress_percentage = (current_level - 1) * 20
                 
                 existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': room_name})
                 
@@ -1013,11 +1064,11 @@ def batch_update_progress():
                     'user_id': user_id,
                     'room_name': room_name,
                     'progress_percentage': progress_percentage,
-                    'current_level': progress_update.get('current_level', 1),
-                    'score': progress_update.get('score', 0),
-                    'time_spent': progress_update.get('time_spent', 0),
-                    'attempts': progress_update.get('attempts', 1),
-                    'completed': progress_percentage >= 100,
+                    'current_level': current_level,
+                    'score': max(0, int(progress_update.get('score', 0))),
+                    'time_spent': max(0, int(progress_update.get('time_spent', 0))),
+                    'attempts': max(1, int(progress_update.get('attempts', 1))),
+                    'completed': progress_percentage >= 100 or current_level >= 5,
                     'last_accessed': datetime.now().isoformat()
                 }
                 
@@ -1403,8 +1454,17 @@ def admin_update_user_progress(user_id):
             return jsonify({'error': 'User not found'}), 404
 
         # Use the same logic as user progress update but log admin action
-        room_name = data['room_name']
+        room_name = normalize_room_name(data['room_name'])
+        
+        # Validate and bound current_level (1-5)
+        current_level = max(1, min(5, int(data.get('current_level', 1))))
+        
+        # Validate and bound progress_percentage (0-100)
         progress_percentage = max(0, min(100, int(data.get('progress_percentage', 0))))
+        
+        # Ensure progress percentage aligns with level completion
+        if current_level > 1 and progress_percentage < (current_level - 1) * 20:
+            progress_percentage = (current_level - 1) * 20
         
         existing_progress = sb_select('user_progress', filters={'user_id': user_id, 'room_name': room_name})
         
@@ -1412,11 +1472,11 @@ def admin_update_user_progress(user_id):
             'user_id': user_id,
             'room_name': room_name,
             'progress_percentage': progress_percentage,
-            'current_level': data.get('current_level', 1),
-            'score': data.get('score', 0),
-            'time_spent': data.get('time_spent', 0),
-            'attempts': data.get('attempts', 1),
-            'completed': progress_percentage >= 100,
+            'current_level': current_level,
+            'score': max(0, int(data.get('score', 0))),
+            'time_spent': max(0, int(data.get('time_spent', 0))),
+            'attempts': max(1, int(data.get('attempts', 1))),
+            'completed': progress_percentage >= 100 or current_level >= 5,
             'last_accessed': datetime.now().isoformat(),
             'notes': data.get('notes', '')
         }

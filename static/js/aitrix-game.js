@@ -1735,13 +1735,12 @@ DOWNLOADED: 4612 - FOUND: 4`;
     async reportProgressToCenter() {
         try {
             if (window.progressTracker) {
-                const challengeProgress = Math.round((this.currentChallenge / 5) * 100);
-                
-                await window.progressTracker.updateProgress('aitrix', challengeProgress, {
-                    currentLevel: this.currentChallenge,
+                // Use the improved completeChallenge method for proper validation
+                await window.progressTracker.completeChallenge('aitrix', {
+                    level: this.currentChallenge,
                     score: this.score,
-                    attempts: this.attempts,
                     timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    attempts: this.attempts,
                     difficulty: this.currentDifficulty,
                     aiPersona: this.aiPersona
                 });
@@ -1750,11 +1749,13 @@ DOWNLOADED: 4612 - FOUND: 4`;
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
                         roomName: 'aitrix',
-                        progress: challengeProgress,
+                        progress: this.currentChallenge * 20, // Each challenge = 20%
                         score: this.score,
                         level: this.currentChallenge
                     }
                 }));
+                
+                console.log(`📊 Challenge ${this.currentChallenge}/5 progress reported for AITRIX`);
             }
         } catch (error) {
             console.warn('Could not report progress to progress tracker:', error);
@@ -1765,14 +1766,7 @@ DOWNLOADED: 4612 - FOUND: 4`;
     async reportRoomCompletion() {
         try {
             if (window.progressTracker) {
-                await window.progressTracker.reportRoomCompletion('aitrix', {
-                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
-                    totalAttempts: this.attempts,
-                    totalChallenges: 5,
-                    finalScore: this.score,
-                    difficulty: this.currentDifficulty,
-                    aiPersona: this.aiPersona
-                });
+                await window.progressTracker.markRoomComplete('aitrix', this.score);
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {
@@ -1781,10 +1775,14 @@ DOWNLOADED: 4612 - FOUND: 4`;
                         completionStats: {
                             timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
                             totalAttempts: this.attempts,
-                            finalScore: this.score
+                            finalScore: this.score,
+                            difficulty: this.currentDifficulty,
+                            totalChallenges: 5
                         }
                     }
                 }));
+                
+                console.log('🏆 AITRIX room completion reported successfully');
             }
         } catch (error) {
             console.warn('Could not report room completion:', error);

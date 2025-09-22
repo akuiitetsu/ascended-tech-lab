@@ -1546,39 +1546,28 @@ print(counter)"></textarea>
     
     async reportProgressToCenter() {
         try {
-            // Calculate progress based on current challenge and score
-            const challengeProgress = Math.floor((this.currentChallenge / 5) * 100);
-            const currentChallengeBonus = Math.floor(this.score / 5); // Up to 20% bonus per challenge
-            const totalProgress = Math.min(100, challengeProgress + currentChallengeBonus);
-            
-            const progressData = {
-                progress: totalProgress,
-                score: this.score,
-                level: this.currentChallenge,
-                timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
-                attempts: this.attempts,
-                completed: totalProgress >= 100
-            };
-            
-            // Report to command center if available
-            if (window.commandCenter && window.commandCenter.reportProgress) {
-                await window.commandCenter.reportProgress('codevance', progressData);
-            }
-            
-            // Report to progress tracker if available
             if (window.progressTracker) {
-                await window.progressTracker.updateProgress('codevance', {
-                    progress_percentage: totalProgress,
+                // Use the improved completeChallenge method for proper validation
+                await window.progressTracker.completeChallenge('codevance', {
+                    level: this.currentChallenge,
                     score: this.score,
-                    current_level: this.currentChallenge,
-                    time_spent: progressData.timeSpent,
+                    timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
                     attempts: this.attempts,
-                    completed: progressData.completed
+                    difficulty: this.currentDifficulty
                 });
+                
+                // Dispatch event to update command center display
+                window.dispatchEvent(new CustomEvent('progressUpdated', {
+                    detail: {
+                        roomName: 'codevance',
+                        progress: this.currentChallenge * 20, // Each challenge = 20%
+                        score: this.score,
+                        level: this.currentChallenge
+                    }
+                }));
+                
+                console.log(`📊 Challenge ${this.currentChallenge}/5 progress reported for CODEVANCE`);
             }
-            
-            console.log('📊 Progress reported to tracking systems:', progressData);
-            
         } catch (error) {
             console.error('❌ Error reporting progress:', error);
         }
@@ -1586,26 +1575,25 @@ print(counter)"></textarea>
     
     async reportRoomCompletion() {
         try {
-            const completionData = {
-                progress: 100,
-                score: 100,
-                level: 5,
-                timeSpent: this.roomStartTime ? Math.floor((Date.now() - this.roomStartTime) / 1000) : 0,
-                attempts: this.attempts,
-                completed: true
-            };
-            
-            // Report final completion
-            if (window.commandCenter && window.commandCenter.reportProgress) {
-                await window.commandCenter.reportProgress('codevance', completionData);
-            }
-            
             if (window.progressTracker) {
-                await window.progressTracker.markRoomComplete('codevance', 100);
+                await window.progressTracker.markRoomComplete('codevance', this.score);
+                
+                // Dispatch room completion event
+                window.dispatchEvent(new CustomEvent('roomCompleted', {
+                    detail: {
+                        roomName: 'codevance',
+                        completionStats: {
+                            timeSpent: this.roomStartTime ? Math.floor((Date.now() - this.roomStartTime) / 1000) : 0,
+                            totalAttempts: this.attempts,
+                            finalScore: this.score,
+                            difficulty: this.currentDifficulty,
+                            totalChallenges: 5
+                        }
+                    }
+                }));
+                
+                console.log('🏆 CODEVANCE room completion reported successfully');
             }
-            
-            console.log('🏆 Room completion reported:', completionData);
-            
         } catch (error) {
             console.error('❌ Error reporting room completion:', error);
         }

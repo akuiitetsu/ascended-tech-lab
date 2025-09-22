@@ -1633,13 +1633,12 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
     async reportProgressToCenter() {
         try {
             if (window.progressTracker) {
-                const challengeProgress = Math.round((this.currentChallenge / 5) * 100);
-                
-                await window.progressTracker.updateProgress('schemax', challengeProgress, {
-                    currentLevel: this.currentChallenge,
+                // Use the improved completeChallenge method for proper validation
+                await window.progressTracker.completeChallenge('schemax', {
+                    level: this.currentChallenge,
                     score: this.score,
-                    attempts: this.attempts,
                     timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    attempts: this.attempts,
                     difficulty: this.currentDifficulty,
                     sqlStatements: this.executionHistory.length
                 });
@@ -1648,11 +1647,13 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
                         roomName: 'schemax',
-                        progress: challengeProgress,
+                        progress: this.currentChallenge * 20, // Each challenge = 20%
                         score: this.score,
                         level: this.currentChallenge
                     }
                 }));
+                
+                console.log(`📊 Challenge ${this.currentChallenge}/5 progress reported for SCHEMAX`);
             }
         } catch (error) {
             console.warn('Could not report progress to progress tracker:', error);
@@ -1663,14 +1664,7 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
     async reportRoomCompletion() {
         try {
             if (window.progressTracker) {
-                await window.progressTracker.reportRoomCompletion('schemax', {
-                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
-                    totalAttempts: this.attempts,
-                    totalChallenges: 5,
-                    finalScore: this.score,
-                    difficulty: this.currentDifficulty,
-                    totalSQLStatements: this.executionHistory.length
-                });
+                await window.progressTracker.markRoomComplete('schemax', this.score);
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {
@@ -1679,10 +1673,15 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
                         completionStats: {
                             timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
                             totalAttempts: this.attempts,
-                            finalScore: this.score
+                            finalScore: this.score,
+                            difficulty: this.currentDifficulty,
+                            totalChallenges: 5,
+                            totalSQLStatements: this.executionHistory.length
                         }
                     }
                 }));
+                
+                console.log('🏆 SCHEMAX room completion reported successfully');
             }
         } catch (error) {
             console.warn('Could not report room completion:', error);

@@ -2514,6 +2514,145 @@ Router# show access-lists 100
         return labTests[labNumber] || [];
     }
 
+    getAdvancedLabTests(labNumber) {
+        // Advanced lab tests for hard difficulty
+        const advancedLabTests = {
+            1: [ // Inter-VLAN Routing
+                {
+                    name: 'Router and switch placed',
+                    check: () => this.devices.filter(d => d.type === 'router').length >= 1 &&
+                                 this.devices.filter(d => d.type === 'switch').length >= 1
+                },
+                {
+                    name: 'Multiple PCs placed for different VLANs',
+                    check: () => this.devices.filter(d => d.type === 'pc').length >= 2
+                },
+                {
+                    name: 'Router-switch trunk connection exists',
+                    check: () => {
+                        const routers = this.devices.filter(d => d.type === 'router');
+                        const switches = this.devices.filter(d => d.type === 'switch');
+                        return routers.some(router => 
+                            switches.some(sw => this.areDirectlyConnected(router, sw))
+                        );
+                    }
+                },
+                {
+                    name: 'Router subinterfaces configured',
+                    check: () => {
+                        const routers = this.devices.filter(d => d.type === 'router');
+                        return routers.some(router => 
+                            Object.keys(router.configuration.interfaces).length >= 2
+                        );
+                    }
+                }
+            ],
+            2: [ // Static Routing
+                {
+                    name: 'Multiple routers placed',
+                    check: () => this.devices.filter(d => d.type === 'router').length >= 2
+                },
+                {
+                    name: 'PCs in different networks',
+                    check: () => this.devices.filter(d => d.type === 'pc').length >= 2
+                },
+                {
+                    name: 'Router-to-router connections',
+                    check: () => {
+                        const routers = this.devices.filter(d => d.type === 'router');
+                        return routers.length >= 2 && this.cables.some(cable => 
+                            routers.some(r1 => r1.id === cable.source || r1.id === cable.target) &&
+                            routers.some(r2 => (r2.id === cable.source || r2.id === cable.target) && r2.id !== r1.id)
+                        );
+                    }
+                },
+                {
+                    name: 'Static routes configured',
+                    check: () => {
+                        const routers = this.devices.filter(d => d.type === 'router');
+                        return routers.some(router => 
+                            router.configuration.routes && router.configuration.routes.length > 0
+                        );
+                    }
+                }
+            ],
+            3: [ // Small Office LAN
+                {
+                    name: 'Complete topology placed',
+                    check: () => this.devices.filter(d => d.type === 'router').length >= 1 &&
+                                 this.devices.filter(d => d.type === 'switch').length >= 2 &&
+                                 this.devices.filter(d => d.type === 'pc').length >= 4
+                },
+                {
+                    name: 'All devices connected',
+                    check: () => {
+                        const totalDevices = this.devices.length;
+                        const expectedConnections = totalDevices - 1; // Minimum for connected topology
+                        return this.cables.length >= expectedConnections;
+                    }
+                },
+                {
+                    name: 'DHCP configured on router',
+                    check: () => {
+                        const routers = this.devices.filter(d => d.type === 'router');
+                        return routers.some(router => 
+                            router.configuration.dhcpPools && router.configuration.dhcpPools.length > 0
+                        );
+                    }
+                }
+            ],
+            4: [ // Wireless LAN
+                {
+                    name: 'Wireless access point placed',
+                    check: () => this.devices.filter(d => d.type === 'wireless').length >= 1
+                },
+                {
+                    name: 'Wireless and wired devices present',
+                    check: () => this.devices.filter(d => d.type === 'laptop').length >= 1 &&
+                                 this.devices.filter(d => d.type === 'pc').length >= 1
+                },
+                {
+                    name: 'Access point configured',
+                    check: () => {
+                        const aps = this.devices.filter(d => d.type === 'wireless');
+                        return aps.some(ap => 
+                            ap.configuration.ssid && ap.configuration.security
+                        );
+                    }
+                }
+            ],
+            5: [ // Access Control List
+                {
+                    name: 'Network topology complete',
+                    check: () => this.devices.filter(d => d.type === 'router').length >= 1 &&
+                                 this.devices.filter(d => d.type === 'pc').length >= 2
+                },
+                {
+                    name: 'Multiple network segments',
+                    check: () => {
+                        const pcs = this.devices.filter(d => d.type === 'pc');
+                        if (pcs.length < 2) return false;
+                        const networks = pcs.map(pc => 
+                            this.getNetworkAddress(pc.configuration.ipAddress, pc.configuration.subnetMask)
+                        ).filter(net => net);
+                        return new Set(networks).size >= 2;
+                    }
+                },
+                {
+                    name: 'Access control configured',
+                    check: () => {
+                        const routers = this.devices.filter(d => d.type === 'router');
+                        return routers.some(router => 
+                            router.configuration.accessLists && router.configuration.accessLists.length > 0
+                        );
+                    }
+                }
+            ]
+        };
+
+        return advancedLabTests[labNumber] || [];
+    }
+
     runTest(test) {
         try {
             const passed = test.check();
@@ -3089,12 +3228,47 @@ Router# show access-lists 100
     }
 
     completeLab() {
+        console.log('Attempting to complete lab:', this.currentLab);
+        
+        // First, validate that all lab objectives are met
+        const tests = this.currentDifficulty === 'hard' ? 
+            this.getAdvancedLabTests(this.currentLab) : 
+            this.getLabTests(this.currentLab);
+        const results = [];
+
+        tests.forEach(test => {
+            const result = this.runTest(test);
+            results.push({
+                name: test.name,
+                status: result.passed ? 'pass' : 'fail',
+                message: result.message
+            });
+        });
+
+        // Check if all tests pass
+        const allPassed = results.every(r => r.status === 'pass');
+        
+        if (!allPassed) {
+            // Show which tests failed
+            const failedTests = results.filter(r => r.status === 'fail');
+            const failedTestNames = failedTests.map(t => t.name).join(', ');
+            this.showFeedback(`⚠️ Cannot complete lab! The following objectives are not met: ${failedTestNames}. Please complete all requirements before advancing.`, 'error');
+            
+            // Display detailed test results to help player understand what's missing
+            this.displayTestResults(results);
+            return; // Don't allow completion
+        }
+
+        // All tests passed, proceed with completion
+        console.log('All lab objectives completed successfully!');
+        this.attempts++;
+
         // Calculate score based on attempts and completion time
         const baseScore = 100;
         const attemptPenalty = Math.min(this.attempts * 5, 30); // Max 30 point penalty
         this.score = Math.max(70, baseScore - attemptPenalty); // Minimum 70 points
         
-        this.showFeedback('Lab completed successfully! 🎉', 'success');
+        this.showFeedback('Lab completed successfully! All objectives met! 🎉', 'success');
         
         // Report progress to tracking systems
         this.reportProgressToCenter();
@@ -3199,13 +3373,12 @@ Router# show access-lists 100
     async reportProgressToCenter() {
         try {
             if (window.progressTracker) {
-                const labProgress = Math.round((this.currentLab / 5) * 100);
-                
-                await window.progressTracker.updateProgress('netxus', labProgress, {
-                    currentLevel: this.currentLab,
+                // Use the improved completeChallenge method for proper validation
+                await window.progressTracker.completeChallenge('netxus', {
+                    level: this.currentLab,
                     score: this.score,
-                    attempts: this.attempts,
                     timeSpent: this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                    attempts: this.attempts,
                     difficulty: this.currentDifficulty
                 });
                 
@@ -3213,11 +3386,13 @@ Router# show access-lists 100
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
                         roomName: 'netxus',
-                        progress: labProgress,
+                        progress: this.currentLab * 20, // Each lab = 20%
                         score: this.score,
                         level: this.currentLab
                     }
                 }));
+                
+                console.log(`📊 Lab ${this.currentLab}/5 progress reported for NetXus`);
             }
         } catch (error) {
             console.warn('Could not report progress to progress tracker:', error);
@@ -3228,13 +3403,7 @@ Router# show access-lists 100
     async reportRoomCompletion() {
         try {
             if (window.progressTracker) {
-                await window.progressTracker.reportRoomCompletion('netxus', {
-                    timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
-                    totalAttempts: this.attempts,
-                    totalLabs: 5,
-                    finalScore: this.score,
-                    difficulty: this.currentDifficulty
-                });
+                await window.progressTracker.markRoomComplete('netxus', this.score);
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {
@@ -3243,10 +3412,14 @@ Router# show access-lists 100
                         completionStats: {
                             timeSpent: Math.floor((Date.now() - this.roomStartTime) / 1000),
                             totalAttempts: this.attempts,
-                            finalScore: this.score
+                            finalScore: this.score,
+                            difficulty: this.currentDifficulty,
+                            totalLabs: 5
                         }
                     }
                 }));
+                
+                console.log('🏆 NetXus room completion reported successfully');
             }
         } catch (error) {
             console.warn('Could not report room completion:', error);
