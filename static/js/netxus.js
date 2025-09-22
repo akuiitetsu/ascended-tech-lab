@@ -1,3 +1,55 @@
+// ============================================
+// MOBILE UTILITIES FOR NETXUS LAB
+// ============================================
+
+const NetxusMobileUtils = {
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    },
+    
+    setupMobileViewport() {
+        const setViewportHeight = () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+        
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setViewportHeight, 100);
+        });
+    },
+    
+    enhanceTouchFeedback() {
+        const interactiveElements = document.querySelectorAll('.device, .tool-btn, .difficulty-btn, button, .btn, .network-node');
+        
+        interactiveElements.forEach(element => {
+            element.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.95)';
+                this.style.filter = 'brightness(1.2)';
+                this.style.transition = 'all 0.1s ease';
+            });
+            
+            element.addEventListener('touchend', function() {
+                setTimeout(() => {
+                    this.style.transform = '';
+                    this.style.filter = '';
+                    this.style.transition = 'all 0.2s ease';
+                }, 100);
+            });
+        });
+    },
+    
+    init() {
+        this.setupMobileViewport();
+        this.enhanceTouchFeedback();
+        
+        if (this.isMobile()) {
+            document.body.classList.add('mobile-device');
+        }
+    }
+};
+
 class NetxusLab {
     constructor() {
         this.currentDifficulty = null;
@@ -8,6 +60,9 @@ class NetxusLab {
         this.roomStartTime = null;
         this.score = 0;
         this.attempts = 0;
+        
+        // Initialize mobile enhancements
+        NetxusMobileUtils.init();
         
         // Simulation state
         this.devices = [];
