@@ -619,11 +619,11 @@ function toggleProfile() {
 }
 
 function editProfile() {
-    alert('Edit Profile functionality would be implemented here');
+    openEditProfileModal();
 }
 
 function changePassword() {
-    alert('Change Password functionality would be implemented here');
+    openChangePasswordModal();
 }
 
 function logout() {
@@ -908,5 +908,301 @@ window.toggleBadgeFullscreen = toggleBadgeFullscreen;
 window.playCutscene = playCutscene;
 window.closeCutscene = closeCutscene;
 window.loadUserProgress = loadUserProgress;
+
+// Profile Management Functions
+function openEditProfileModal() {
+    const modal = document.getElementById('editProfileModal');
+    const currentUser = localStorage.getItem('currentUser');
+    const currentEmail = localStorage.getItem('currentEmail');
+    
+    // Pre-fill current values
+    document.getElementById('editUsername').value = currentUser || '';
+    document.getElementById('editEmail').value = currentEmail || '';
+    
+    // Clear any previous errors
+    clearModalErrors();
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditProfileModal() {
+    const modal = document.getElementById('editProfileModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = 'auto';
+    clearModalErrors();
+}
+
+function openChangePasswordModal() {
+    const modal = document.getElementById('changePasswordModal');
+    
+    // Clear form
+    document.getElementById('changePasswordForm').reset();
+    clearModalErrors();
+    updatePasswordRequirements('');
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeChangePasswordModal() {
+    const modal = document.getElementById('changePasswordModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = 'auto';
+    clearModalErrors();
+}
+
+function clearModalErrors() {
+    const errorElements = document.querySelectorAll('.error-message, .success-message');
+    errorElements.forEach(element => {
+        element.style.display = 'none';
+        element.textContent = '';
+    });
+}
+
+function showError(elementId, message) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = message;
+        element.style.display = 'block';
+    }
+}
+
+function showSuccess(elementId, message) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = message;
+        element.style.display = 'block';
+    }
+}
+
+async function saveProfile(event) {
+    event.preventDefault();
+    
+    const userId = localStorage.getItem('userId');
+    const username = document.getElementById('editUsername').value.trim();
+    const email = document.getElementById('editEmail').value.trim();
+    const saveBtn = document.getElementById('saveProfileBtn');
+    
+    // Validate inputs
+    if (!username || username.length < 2) {
+        showError('usernameError', 'Username must be at least 2 characters long');
+        return;
+    }
+    
+    if (!email || !email.includes('@')) {
+        showError('emailError', 'Please enter a valid email address');
+        return;
+    }
+    
+    // Clear previous errors
+    clearModalErrors();
+    
+    // Disable button and show loading
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="bi bi-spinner spin"></i> Saving...';
+    
+    try {
+        const response = await fetch(`/api/users/${userId}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: username,
+                email: email
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Update localStorage with new values
+            localStorage.setItem('currentUser', data.user.name);
+            localStorage.setItem('currentEmail', data.user.email);
+            
+            // Update UI displays
+            updateUserDisplay(data.user.name);
+            document.getElementById('profileEmail').textContent = data.user.email;
+            
+            // Show success and close modal
+            showSuccess('usernameError', 'Profile updated successfully!');
+            setTimeout(() => {
+                closeEditProfileModal();
+            }, 1500);
+            
+        } else {
+            showError('usernameError', data.error || 'Failed to update profile');
+        }
+        
+    } catch (error) {
+        console.error('Profile update error:', error);
+        showError('usernameError', 'Network error. Please try again.');
+    } finally {
+        // Re-enable button
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="bi bi-check-circle"></i> Save Changes';
+    }
+}
+
+async function changeUserPassword(event) {
+    event.preventDefault();
+    
+    const userId = localStorage.getItem('userId');
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const changeBtn = document.getElementById('changePasswordBtn');
+    
+    // Validate inputs
+    if (!currentPassword) {
+        showError('currentPasswordError', 'Current password is required');
+        return;
+    }
+    
+    if (!newPassword) {
+        showError('newPasswordError', 'New password is required');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        showError('confirmPasswordError', 'Passwords do not match');
+        return;
+    }
+    
+    // Validate password strength
+    const validationErrors = validatePasswordStrength(newPassword);
+    if (validationErrors.length > 0) {
+        showError('newPasswordError', validationErrors[0]);
+        return;
+    }
+    
+    // Clear previous errors
+    clearModalErrors();
+    
+    // Disable button and show loading
+    changeBtn.disabled = true;
+    changeBtn.innerHTML = '<i class="bi bi-spinner spin"></i> Changing...';
+    
+    try {
+        const response = await fetch(`/api/users/${userId}/password`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Show success and close modal
+            showSuccess('currentPasswordError', 'Password changed successfully!');
+            setTimeout(() => {
+                closeChangePasswordModal();
+            }, 1500);
+            
+        } else {
+            showError('currentPasswordError', data.error || 'Failed to change password');
+        }
+        
+    } catch (error) {
+        console.error('Password change error:', error);
+        showError('currentPasswordError', 'Network error. Please try again.');
+    } finally {
+        // Re-enable button
+        changeBtn.disabled = false;
+        changeBtn.innerHTML = '<i class="bi bi-check-circle"></i> Change Password';
+    }
+}
+
+function validatePasswordStrength(password) {
+    const errors = [];
+    
+    if (password.length < 12) {
+        errors.push('Password must be at least 12 characters long');
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+        errors.push('Password must contain at least one uppercase letter');
+    }
+    
+    if (!/[a-z]/.test(password)) {
+        errors.push('Password must contain at least one lowercase letter');
+    }
+    
+    if (!/[0-9]/.test(password)) {
+        errors.push('Password must contain at least one number');
+    }
+    
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) {
+        errors.push('Password must contain at least one special character');
+    }
+    
+    return errors;
+}
+
+function updatePasswordRequirements(password) {
+    const requirements = [
+        { id: 'req-length', test: password.length >= 12 },
+        { id: 'req-uppercase', test: /[A-Z]/.test(password) },
+        { id: 'req-lowercase', test: /[a-z]/.test(password) },
+        { id: 'req-number', test: /[0-9]/.test(password) },
+        { id: 'req-special', test: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) }
+    ];
+    
+    requirements.forEach(req => {
+        const element = document.getElementById(req.id);
+        if (element) {
+            element.className = req.test ? 'requirement-met' : 'requirement-unmet';
+        }
+    });
+}
+
+// Event listeners for forms and password validation
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit Profile Form
+    const editProfileForm = document.getElementById('editProfileForm');
+    if (editProfileForm) {
+        editProfileForm.addEventListener('submit', saveProfile);
+    }
+    
+    // Change Password Form
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', changeUserPassword);
+    }
+    
+    // Password strength validation
+    const newPasswordInput = document.getElementById('newPassword');
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', function() {
+            updatePasswordRequirements(this.value);
+        });
+    }
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        const editModal = document.getElementById('editProfileModal');
+        const passwordModal = document.getElementById('changePasswordModal');
+        
+        if (event.target === editModal) {
+            closeEditProfileModal();
+        }
+        
+        if (event.target === passwordModal) {
+            closeChangePasswordModal();
+        }
+    });
+});
+
+// Make modal functions globally accessible
+window.openEditProfileModal = openEditProfileModal;
+window.closeEditProfileModal = closeEditProfileModal;
+window.openChangePasswordModal = openChangePasswordModal;
+window.closeChangePasswordModal = closeChangePasswordModal;
 window.updateDashboardProgress = updateDashboardProgress;
 window.formatTime = formatTime;

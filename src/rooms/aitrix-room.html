@@ -26,6 +26,22 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(224, 131, 0, 0.3);
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Allow text selection for inputs and content areas */
+        input, textarea, .selectable, .matching-content {
+            -webkit-user-select: text;
+            -khtml-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
         }
 
         body {
@@ -33,12 +49,14 @@
             background: var(--bg-main);
             color: var(--text-light);
             overflow-x: hidden;
+            font-size: 14px;
         }
 
         #game-container {
             position: relative;
             width: 100%;
             height: 100vh;
+            height: calc(var(--vh, 1vh) * 100); /* Mobile viewport fix */
             background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-panel) 100%);
             overflow: hidden;
         }
@@ -622,21 +640,281 @@
             display: none !important;
         }
 
-        /* Responsive Design */
+        /* Enhanced Mobile Responsiveness */
         @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            
+            /* Difficulty screen mobile */
+            .difficulty-modal {
+                padding: 25px 20px;
+                margin: 10px;
+                max-width: 95%;
+                border-radius: 15px;
+            }
+            
+            .ai-icon i {
+                font-size: 3rem;
+            }
+            
+            .difficulty-modal h1 {
+                font-size: 1.8rem;
+                margin-bottom: 15px;
+            }
+            
+            .difficulty-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                margin: 20px 0;
+            }
+            
+            .difficulty-card {
+                padding: 20px 15px;
+                border-radius: 12px;
+                min-height: 120px;
+            }
+            
+            .difficulty-card h2 {
+                font-size: 1.2rem;
+                margin-bottom: 8px;
+            }
+            
+            .difficulty-card p {
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+            
+            /* Game interface mobile */
             .lab-container {
                 flex-direction: column;
                 height: auto;
-                min-height: calc(100vh - 60px);
+                min-height: calc(var(--vh, 1vh) * 100);
             }
             
             .lab-sidebar {
                 width: 100%;
                 min-width: auto;
+                max-height: none;
+                padding: 15px;
+                border-radius: 0;
+                border-bottom: 2px solid var(--border-color);
             }
-
+            
+            .lab-header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .lab-header .ai-icon i {
+                font-size: 1.5rem;
+            }
+            
+            .back-to-levels {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+                min-height: 40px;
+            }
+            
+            .lab-stats {
+                flex-direction: row;
+                gap: 10px;
+                margin: 15px 0;
+            }
+            
+            .stat-box {
+                flex: 1;
+                padding: 10px;
+                text-align: center;
+            }
+            
+            .lab-controls {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin: 15px 0;
+            }
+            
+            .lab-controls .btn {
+                padding: 12px 8px;
+                font-size: 0.9rem;
+                min-height: 44px;
+                border-radius: 8px;
+            }
+            
+            .ai-tutor-panel {
+                margin-top: 15px;
+                padding: 15px;
+                border-radius: 12px;
+            }
+            
+            .ai-tutor-panel h3 {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+            }
+            
+            .ai-message {
+                padding: 12px;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                border-radius: 10px;
+                min-height: 60px;
+            }
+            
+            /* Level selection mobile */
+            .level-selection-container {
+                padding: 15px;
+            }
+            
+            .level-selection-header h1 {
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+            }
+            
+            .level-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 10px 0;
+            }
+            
+            .level-card {
+                padding: 20px 15px;
+                border-radius: 12px;
+            }
+            
+            .level-card h3 {
+                font-size: 1.1rem;
+                margin-bottom: 8px;
+            }
+            
+            .level-card p {
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+            
+            .level-info {
+                flex-direction: column;
+                gap: 8px;
+                margin: 10px 0;
+            }
+            
+            .level-info span {
+                font-size: 0.85rem;
+                padding: 6px 10px;
+                border-radius: 6px;
+                text-align: center;
+            }
+            
+            /* Matching game mobile */
             .matching-container {
                 grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 15px;
+                max-height: calc(var(--vh, 1vh) * 60);
+                overflow-y: auto;
+            }
+            
+            .matching-side {
+                min-height: 300px;
+            }
+            
+            .matching-side h3 {
+                font-size: 1.1rem;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+            
+            .matching-item {
+                padding: 15px 12px;
+                margin-bottom: 10px;
+                border-radius: 10px;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                min-height: 60px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .matching-item:active {
+                transform: scale(0.98);
+            }
+            
+            .matching-item.selected {
+                transform: scale(1.02);
+                box-shadow: 0 4px 12px rgba(224, 131, 0, 0.4);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            /* Ultra-mobile optimizations */
+            .difficulty-modal {
+                padding: 20px 15px;
+                margin: 5px;
+            }
+            
+            .ai-icon i {
+                font-size: 2.5rem;
+            }
+            
+            .difficulty-modal h1 {
+                font-size: 1.5rem;
+            }
+            
+            .difficulty-card {
+                padding: 15px 12px;
+                min-height: 100px;
+            }
+            
+            .lab-sidebar {
+                padding: 12px;
+            }
+            
+            .lab-controls {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .lab-controls .btn {
+                padding: 10px;
+                font-size: 0.85rem;
+                min-height: 40px;
+            }
+            
+            .matching-container {
+                padding: 10px;
+                gap: 15px;
+            }
+            
+            .matching-item {
+                padding: 12px 10px;
+                font-size: 0.85rem;
+                min-height: 50px;
+            }
+        }
+        
+        /* Landscape mobile optimization */
+        @media screen and (max-height: 600px) and (orientation: landscape) {
+            .lab-container {
+                flex-direction: row;
+            }
+            
+            .lab-sidebar {
+                width: 300px;
+                max-height: calc(var(--vh, 1vh) * 100);
+                overflow-y: auto;
+            }
+            
+            .difficulty-modal {
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .difficulty-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+            
+            .matching-container {
+                grid-template-columns: 1fr 1fr;
+                max-height: calc(var(--vh, 1vh) * 85);
             }
         }
     </style>

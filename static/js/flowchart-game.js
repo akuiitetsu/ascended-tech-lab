@@ -1,3 +1,180 @@
+// ============================================
+// MOBILE UTILITIES FOR FLOWBYTE LAB
+// ============================================
+
+const FlowByteMobileUtils = {
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    },
+    
+    setupMobileViewport() {
+        const setViewportHeight = () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+        
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setViewportHeight, 100);
+        });
+    },
+    
+    enhanceTouchFeedback() {
+        // Only apply general touch feedback to UI elements, not flowchart nodes
+        const interactiveElements = document.querySelectorAll('.tool-btn, .difficulty-btn, button, .btn');
+        
+        interactiveElements.forEach(element => {
+            // Skip if this is a flowchart node (they have specialized handling)
+            if (element.classList.contains('flowchart-node')) return;
+            
+            element.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.95)';
+                this.style.filter = 'brightness(1.2)';
+                this.style.transition = 'all 0.1s ease';
+            });
+            
+            element.addEventListener('touchend', function() {
+                setTimeout(() => {
+                    this.style.transform = '';
+                    this.style.filter = '';
+                    this.style.transition = 'all 0.2s ease';
+                }, 100);
+            });
+        });
+    },
+    
+    // Enhanced double-tap detection for flowchart nodes
+    setupDoubleTapHandler(element, callback) {
+        let touchStartTime = 0;
+        let touchCount = 0;
+        let touchTimeout = null;
+        let lastTouchTime = 0;
+        let isProcessingDoubleTap = false;
+        
+        element.addEventListener('touchstart', (e) => {
+            // Prevent other touch handlers from interfering
+            if (isProcessingDoubleTap) return;
+            
+            touchStartTime = Date.now();
+            touchCount++;
+            
+            // Clear existing timeout
+            if (touchTimeout) {
+                clearTimeout(touchTimeout);
+                touchTimeout = null;
+            }
+            
+            // Check for double-tap
+            if (touchCount === 2) {
+                const timeBetweenTaps = touchStartTime - lastTouchTime;
+                if (timeBetweenTaps < 300 && timeBetweenTaps > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isProcessingDoubleTap = true;
+                    
+                    // Reset any existing transforms before calling callback
+                    element.style.transform = '';
+                    element.style.filter = '';
+                    element.style.transition = '';
+                    
+                    callback(e);
+                    touchCount = 0;
+                    
+                    // Reset processing flag after a short delay
+                    setTimeout(() => {
+                        isProcessingDoubleTap = false;
+                    }, 100);
+                    return;
+                }
+            }
+            
+            lastTouchTime = touchStartTime;
+            
+            // Reset touch count after 300ms
+            touchTimeout = setTimeout(() => {
+                touchCount = 0;
+                touchTimeout = null;
+                isProcessingDoubleTap = false;
+            }, 300);
+        });
+        
+        // Override touchend to prevent scaling when double-tap is detected
+        element.addEventListener('touchend', (e) => {
+            if (isProcessingDoubleTap) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Ensure transform is reset
+                element.style.transform = '';
+                element.style.filter = '';
+                return;
+            }
+        });
+        
+        // Prevent context menu on long press
+        element.addEventListener('contextmenu', (e) => {
+            if (this.isMobile()) {
+                e.preventDefault();
+            }
+        });
+    },
+    
+    // Visual feedback for double-tap (simplified)
+    showDoubleTapFeedback(element) {
+        // Show only a simple text feedback without affecting element transforms
+        const feedback = document.createElement('div');
+        feedback.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(76, 175, 80, 0.95);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 2000;
+            animation: fadeInOut 1s ease-out forwards;
+        `;
+        feedback.textContent = 'Text Editor Opened';
+        
+        // Add fade animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            }
+        `;
+        if (!document.querySelector('style[data-feedback-animation]')) {
+            style.setAttribute('data-feedback-animation', 'true');
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(feedback);
+        
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.parentNode.removeChild(feedback);
+            }
+        }, 1000);
+    },
+    
+    init() {
+        this.setupMobileViewport();
+        this.enhanceTouchFeedback();
+        
+        if (this.isMobile()) {
+            document.body.classList.add('mobile-device');
+            console.log('📱 FlowByte mobile enhancements initialized');
+        }
+    }
+};
+
 class FlowByteGame {
     constructor() {
         this.currentDifficulty = null;
@@ -14,6 +191,9 @@ class FlowByteGame {
         this.initialized = false;
         this.challengeStartTime = null;
         this.roomStartTime = null;
+        
+        // Initialize mobile enhancements
+        FlowByteMobileUtils.init();
         this.score = 0;
         this.attempts = 0;
         
@@ -921,14 +1101,78 @@ class FlowByteGame {
         // Add visual styles for flowchart nodes
         this.applyNodeStyles(nodeElement, type);
 
-        nodeElement.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.handleNodeClick(node, e);
-        });
-
+        // Enhanced click/touch handling for both desktop and mobile
+        // Desktop double-click handler
         nodeElement.addEventListener('dblclick', (e) => {
             e.stopPropagation();
+            e.preventDefault();
             this.editNodeText(node);
+        });
+
+        // Enhanced mobile double-tap handling using mobile utils
+        if (FlowByteMobileUtils.isMobile()) {
+            FlowByteMobileUtils.setupDoubleTapHandler(nodeElement, (e) => {
+                this.editNodeText(node);
+            });
+            
+            // Clean mobile touch feedback that doesn't interfere with double-tap
+            nodeElement.addEventListener('touchstart', (e) => {
+                // Only apply subtle visual feedback, no scaling
+                nodeElement.style.filter = 'brightness(1.1)';
+                nodeElement.style.transition = 'filter 0.1s ease';
+                
+                // Show hint about double-tap on first touch
+                if (!nodeElement.hasAttribute('data-hint-shown')) {
+                    setTimeout(() => {
+                        if (!nodeElement.hasAttribute('data-editing')) {
+                            const hint = document.createElement('div');
+                            hint.style.cssText = `
+                                position: absolute;
+                                top: -25px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: rgba(255, 193, 7, 0.9);
+                                color: #000;
+                                padding: 2px 6px;
+                                border-radius: 3px;
+                                font-size: 9px;
+                                font-weight: bold;
+                                pointer-events: none;
+                                z-index: 1000;
+                                white-space: nowrap;
+                            `;
+                            hint.textContent = 'Double-tap to edit';
+                            nodeElement.style.position = 'relative';
+                            nodeElement.appendChild(hint);
+                            
+                            setTimeout(() => {
+                                if (hint.parentNode) {
+                                    hint.parentNode.removeChild(hint);
+                                }
+                            }, 2000);
+                        }
+                    }, 1000);
+                    nodeElement.setAttribute('data-hint-shown', 'true');
+                }
+            });
+            
+            nodeElement.addEventListener('touchend', (e) => {
+                // Reset only the brightness filter, keep position stable
+                setTimeout(() => {
+                    nodeElement.style.filter = '';
+                    nodeElement.style.transition = 'filter 0.2s ease';
+                }, 50);
+            });
+        }
+
+        // Standard click handler for single clicks
+        nodeElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Only handle single click if not from touch or if it's the first click
+            if (!FlowByteMobileUtils.isMobile() || e.detail === 1) {
+                this.handleNodeClick(node, e);
+            }
         });
 
         // Prevent default drag behavior
@@ -1644,6 +1888,26 @@ class FlowByteGame {
             this.currentStep = Math.max(this.currentStep, 5);
         }
         
+        // Mark node as being edited for mobile feedback
+        const nodeElement = document.getElementById(node.id);
+        if (nodeElement) {
+            nodeElement.setAttribute('data-editing', 'true');
+            
+            // Reset any existing transforms to prevent expansion
+            nodeElement.style.transform = '';
+            nodeElement.style.filter = '';
+            nodeElement.style.transition = '';
+            
+            // Add subtle editing visual feedback
+            nodeElement.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.8)';
+            nodeElement.style.borderColor = '#4CAF50';
+            
+            // Show mobile-friendly feedback
+            if (FlowByteMobileUtils.isMobile()) {
+                this.showFeedback('📝 Text editor opened! Choose appropriate text for your flowchart element.', 'info');
+            }
+        }
+        
         this.showTextSelectionModal(node);
     }
 
@@ -2028,6 +2292,26 @@ class FlowByteGame {
         const nodeElement = document.getElementById(node.id);
         if (nodeElement) {
             nodeElement.textContent = node.text;
+            
+            // Clear editing state and reset ALL visual effects
+            nodeElement.removeAttribute('data-editing');
+            nodeElement.style.boxShadow = '';
+            nodeElement.style.borderColor = '';
+            nodeElement.style.transform = '';
+            nodeElement.style.filter = '';
+            nodeElement.style.transition = '';
+            
+            // Add success animation for mobile users (controlled animation)
+            if (FlowByteMobileUtils.isMobile()) {
+                nodeElement.style.animation = 'nodeUpdateSuccess 0.6s ease-in-out';
+                setTimeout(() => {
+                    nodeElement.style.animation = '';
+                    // Ensure everything is reset after animation
+                    nodeElement.style.transform = '';
+                    nodeElement.style.filter = '';
+                    nodeElement.style.transition = '';
+                }, 600);
+            }
         }
         
         // Update tracking for start/end nodes
@@ -2040,7 +2324,14 @@ class FlowByteGame {
         }
         
         this.hasLabels = true;
-        this.showFeedback('Text updated! Your flowchart is becoming more detailed.', 'success');
+        
+        // Enhanced feedback for mobile users
+        if (FlowByteMobileUtils.isMobile()) {
+            this.showFeedback(`✅ "${node.text}" updated! Double-tap other shapes to edit them.`, 'success');
+        } else {
+            this.showFeedback('Text updated! Your flowchart is becoming more detailed.', 'success');
+        }
+        
         this.updateFlowchartProgress();
     }
 

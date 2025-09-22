@@ -1,4 +1,165 @@
-/* Base Styles */
+/* ============================================
+   UNIVERSAL MOBILE RESPONSIVENESS FRAMEWORK
+   ============================================ */
+
+/* Mobile-first base styles */
+* {
+    -webkit-tap-highlight-color: rgba(160, 105, 255, 0.3);
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Allow text selection for inputs and content areas */
+input, textarea, select, [contenteditable], .selectable {
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* Mobile viewport fix */
+html {
+    height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Touch-friendly button sizes */
+button, .btn, .clickable, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+}
+
+/* Touch feedback */
+button:active, .btn:active, .clickable:active {
+    transform: scale(0.95);
+}
+
+/* Enhanced mobile form inputs */
+input, textarea, select {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 8px;
+    touch-action: manipulation;
+}
+
+/* Mobile-first grid systems */
+.mobile-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 15px;
+}
+
+.mobile-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Universal mobile breakpoints */
+@media (min-width: 768px) {
+    .mobile-grid.tablet-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .mobile-grid.tablet-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .mobile-grid.desktop-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .mobile-grid.desktop-cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .mobile-stack.desktop-row {
+        flex-direction: row;
+    }
+}
+
+/* Mobile game interface patterns */
+.game-container {
+    width: 100%;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+    overflow: hidden;
+    position: relative;
+}
+
+.game-sidebar {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    border-radius: 12px;
+    margin: 10px;
+}
+
+.game-main {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Universal mobile text sizes */
+@media (max-width: 768px) {
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.3rem; }
+    h3 { font-size: 1.1rem; }
+    h4 { font-size: 1rem; }
+    p, span, div { font-size: 0.9rem; line-height: 1.4; }
+    small { font-size: 0.8rem; }
+}
+
+@media (max-width: 480px) {
+    h1 { font-size: 1.3rem; }
+    h2 { font-size: 1.1rem; }
+    h3 { font-size: 1rem; }
+    h4 { font-size: 0.95rem; }
+    p, span, div { font-size: 0.85rem; }
+    small { font-size: 0.75rem; }
+}
+
+/* Utility classes for mobile */
+.mobile-only { display: block; }
+.desktop-only { display: none; }
+.mobile-hide { display: none; }
+
+@media (min-width: 768px) {
+    .mobile-only { display: none; }
+    .desktop-only { display: block; }
+    .mobile-hide { display: block; }
+}
+
+/* Touch gesture areas */
+.swipe-area {
+    touch-action: pan-x pan-y;
+    overflow: hidden;
+}
+
+.tap-area {
+    touch-action: manipulation;
+    cursor: pointer;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
 :root {
     --primary-color: #10a1fa;
     --secondary-color: #A069FF;
@@ -6,6 +167,7 @@
     --background-gradient: linear-gradient(135deg, #0D1A2C 0%, #09398E 50%, #A109F8 100%);
     --text-light: #ffffff;
     --border-light: rgba(16, 161, 250, 0.3);
+    --vh: 1vh; /* Mobile viewport height variable */
 }
 
 body {
@@ -14,6 +176,11 @@ body {
     margin: 0;
     padding: 0;
     color: var(--text-light);
+    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
 }
 
 /* Shared Components */

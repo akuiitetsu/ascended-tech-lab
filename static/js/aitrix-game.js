@@ -1,3 +1,92 @@
+// Mobile responsiveness utilities for AITRIX Lab
+class MobileUtils {
+    static setupMobileViewport() {
+        // Fix viewport height issues on mobile browsers
+        function setViewportHeight() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setViewportHeight, 500);
+        });
+    }
+    
+    static setupTouchEnhancements() {
+        // Add touch feedback for all interactive elements
+        document.addEventListener('touchstart', (e) => {
+            const target = e.target.closest('.matching-item, .difficulty-card, .level-card, .btn, button');
+            if (target) {
+                target.style.transform = 'scale(0.95)';
+                target.style.transition = 'transform 0.1s ease';
+            }
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            const target = e.target.closest('.matching-item, .difficulty-card, .level-card, .btn, button');
+            if (target) {
+                setTimeout(() => {
+                    target.style.transform = 'scale(1)';
+                }, 100);
+            }
+        }, { passive: true });
+        
+        document.addEventListener('touchcancel', (e) => {
+            const target = e.target.closest('.matching-item, .difficulty-card, .level-card, .btn, button');
+            if (target) {
+                target.style.transform = 'scale(1)';
+            }
+        }, { passive: true });
+    }
+    
+    static isMobileDevice() {
+        return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+    }
+    
+    static setupMobileScrolling() {
+        // Improve scrolling on mobile for containers
+        const scrollContainers = document.querySelectorAll('.matching-container, .level-grid');
+        scrollContainers.forEach(container => {
+            container.style.webkitOverflowScrolling = 'touch';
+        });
+    }
+    
+    static optimizeForMobile() {
+        if (this.isMobileDevice()) {
+            document.body.classList.add('mobile-device');
+            
+            // Add mobile-specific optimizations
+            const style = document.createElement('style');
+            style.textContent = `
+                .mobile-device .matching-item {
+                    min-height: 60px !important;
+                    font-size: 0.9rem !important;
+                    padding: 15px !important;
+                }
+                
+                .mobile-device .btn {
+                    min-height: 44px !important;
+                    padding: 12px 15px !important;
+                    font-size: 0.9rem !important;
+                }
+                
+                .mobile-device .difficulty-card,
+                .mobile-device .level-card {
+                    min-height: 120px !important;
+                    touch-action: manipulation;
+                }
+                
+                .mobile-device * {
+                    -webkit-tap-highlight-color: rgba(224, 131, 0, 0.3);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+}
+
 class AitrixLab {
     constructor() {
         this.currentDifficulty = null;
@@ -110,16 +199,25 @@ class AitrixLab {
             return;
         }
         
+        // Setup mobile enhancements
+        MobileUtils.setupMobileViewport();
+        MobileUtils.optimizeForMobile();
+        
         const initWhenReady = () => {
             const difficultyScreen = this.container.querySelector('#difficulty-screen');
             const levelScreen = this.container.querySelector('#level-screen');
             const gameScreen = this.container.querySelector('#game-screen');
             
             if (difficultyScreen && levelScreen && gameScreen) {
+                // Setup mobile touch enhancements after elements are ready
+                MobileUtils.setupTouchEnhancements();
+                MobileUtils.setupMobileScrolling();
+                
                 this.setupEventListeners();
                 this.showDifficultySelection();
                 this.initialized = true;
                 console.log('🎉 AitrixLab initialized successfully!');
+                console.log('📱 Mobile device detected:', MobileUtils.isMobileDevice());
             } else {
                 setTimeout(initWhenReady, 100);
             }
