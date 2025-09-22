@@ -852,3 +852,41 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Screen dimensions:', window.innerWidth + 'x' + window.innerHeight);
     console.log('Pixel ratio:', window.devicePixelRatio);
 });
+
+// Load Achievement Manager
+function loadAchievementManager() {
+    const script = document.createElement('script');
+    script.src = 'static/js/achievement-manager.js';
+    script.onload = function() {
+        console.log('🏆 Achievement Manager loaded successfully');
+    };
+    script.onerror = function() {
+        console.warn('⚠️ Failed to load Achievement Manager');
+    };
+    document.head.appendChild(script);
+}
+
+// Load Progress Tracker if not already loaded
+function loadProgressTracker() {
+    if (!window.progressTracker) {
+        const script = document.createElement('script');
+        script.src = 'static/js/progress-tracker.js';
+        script.onload = function() {
+            console.log('📊 Progress Tracker loaded successfully');
+            // Load Achievement Manager after Progress Tracker
+            loadAchievementManager();
+        };
+        script.onerror = function() {
+            console.warn('⚠️ Failed to load Progress Tracker');
+        };
+        document.head.appendChild(script);
+    } else {
+        // Progress Tracker already loaded, just load Achievement Manager
+        loadAchievementManager();
+    }
+}
+
+// Load essential scripts on window load
+window.addEventListener('load', function() {
+    loadProgressTracker();
+});

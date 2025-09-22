@@ -598,6 +598,15 @@ main {
     z-index: 1;
 }
 
+.badge-item .earned-date {
+    display: block;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.7rem;
+    font-weight: normal;
+    margin-top: 2px;
+    opacity: 0.8;
+}
+
 .badge-item.locked {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);

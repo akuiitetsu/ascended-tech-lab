@@ -77,6 +77,9 @@ async function loadUserProgress() {
         // Update dashboard with real progress
         updateDashboardProgress(progressData);
         
+        // Load and display user badges
+        await loadUserBadges();
+        
         // Trigger success event
         const event = new CustomEvent('dashboard-updated', {
             detail: { success: true, data: progressData }
@@ -435,6 +438,133 @@ function loadLocalProgress() {
     }
     
     updateDashboardProgress(defaultProgress);
+}
+
+// Load and display user badges from database
+async function loadUserBadges() {
+    try {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            console.warn('No user ID found for badge loading');
+            return;
+        }
+
+        console.log('🏆 Loading badges for user ID:', userId);
+
+        // Fetch user badges from backend
+        const response = await fetch(`/api/users/${userId}/badges`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load badges: ${response.status} ${response.statusText}`);
+        }
+
+        const badges = await response.json();
+        console.log('🎖️ Badges loaded:', badges);
+
+        // Update badge display
+        updateBadgesDisplay(badges);
+        
+    } catch (error) {
+        console.error('❌ Error loading user badges:', error);
+        // Keep default badge display on error
+    }
+}
+
+// Update the badges section with user's earned badges
+function updateBadgesDisplay(earnedBadges) {
+    const badgesGrid = document.querySelector('.badges-grid');
+    if (!badgesGrid) return;
+
+    // Import badge definitions from achievement manager if available
+    const allBadgeDefinitions = window.achievementManager ? window.achievementManager.badgeDefinitions : {};
+    
+    // Create map of earned badge names for quick lookup
+    const earnedBadgeNames = new Set(earnedBadges.map(badge => badge.badge_name));
+    
+    console.log('📋 Earned badge names:', Array.from(earnedBadgeNames));
+    console.log('🔧 Available badge definitions:', Object.keys(allBadgeDefinitions));
+
+    // Clear existing badges
+    badgesGrid.innerHTML = '';
+
+    // First, add all earned badges
+    earnedBadges.forEach(badge => {
+        const badgeDefinition = allBadgeDefinitions[badge.badge_name];
+        if (badgeDefinition) {
+            const badgeElement = createBadgeElement(badgeDefinition, true, badge.earned_at);
+            badgesGrid.appendChild(badgeElement);
+        } else {
+            // Create a basic badge element for unknown badges
+            const badgeElement = createBasicBadgeElement(badge, true);
+            badgesGrid.appendChild(badgeElement);
+        }
+    });
+
+    // Then add locked badges for badges not yet earned (limit to prevent overcrowding)
+    let lockedBadgesShown = 0;
+    const maxLockedBadges = 8; // Limit locked badges to keep UI clean
+    
+    Object.entries(allBadgeDefinitions).forEach(([badgeKey, badgeDefinition]) => {
+        if (!earnedBadgeNames.has(badgeKey) && lockedBadgesShown < maxLockedBadges) {
+            const badgeElement = createBadgeElement(badgeDefinition, false);
+            badgesGrid.appendChild(badgeElement);
+            lockedBadgesShown++;
+        }
+    });
+
+    console.log(`✅ Badge display updated: ${earnedBadges.length} earned, ${lockedBadgesShown} locked shown`);
+}
+
+// Create a badge element from badge definition
+function createBadgeElement(badgeDefinition, isUnlocked = false, earnedAt = null) {
+    const badgeElement = document.createElement('div');
+    badgeElement.className = `badge-item ${isUnlocked ? 'unlocked' : 'locked'}`;
+    
+    if (!isUnlocked) {
+        badgeElement.classList.add('badge-hidden');
+    }
+    
+    const iconClass = badgeDefinition.icon || 'bi-award';
+    const badgeColor = badgeDefinition.color || '#888';
+    
+    badgeElement.innerHTML = `
+        <i class="${iconClass}" style="color: ${isUnlocked ? badgeColor : '#666'};"></i>
+        <span>${badgeDefinition.name}</span>
+        ${isUnlocked && earnedAt ? `<small class="earned-date">Earned ${formatEarnedDate(earnedAt)}</small>` : ''}
+    `;
+    
+    // Add tooltip with description
+    badgeElement.title = badgeDefinition.description;
+    
+    return badgeElement;
+}
+
+// Create a basic badge element for unknown badges
+function createBasicBadgeElement(badge, isUnlocked = false) {
+    const badgeElement = document.createElement('div');
+    badgeElement.className = `badge-item ${isUnlocked ? 'unlocked' : 'locked'}`;
+    
+    badgeElement.innerHTML = `
+        <i class="bi-award" style="color: ${isUnlocked ? '#FFD700' : '#666'};"></i>
+        <span>${badge.badge_name}</span>
+        ${isUnlocked && badge.earned_at ? `<small class="earned-date">Earned ${formatEarnedDate(badge.earned_at)}</small>` : ''}
+    `;
+    
+    return badgeElement;
+}
+
+// Format earned date for display
+function formatEarnedDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+        });
+    } catch (e) {
+        return 'Recently';
+    }
 }
 
 // Listen for progress updates

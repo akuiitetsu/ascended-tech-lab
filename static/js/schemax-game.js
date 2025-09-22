@@ -1643,6 +1643,17 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
                     sqlStatements: this.executionHistory.length
                 });
                 
+                // Award level completion badge
+                if (window.achievementManager) {
+                    await window.achievementManager.checkLevelCompletion(
+                        'schemax',
+                        this.currentChallenge,
+                        this.score,
+                        this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                        { difficulty: this.currentDifficulty, sqlStatements: this.executionHistory.length }
+                    );
+                }
+                
                 // Dispatch event to update command center display
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
@@ -1665,6 +1676,21 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
         try {
             if (window.progressTracker) {
                 await window.progressTracker.markRoomComplete('schemax', this.score);
+                
+                // Check for room completion badge
+                if (window.achievementManager) {
+                    const totalTime = this.roomStartTime ? Math.floor((Date.now() - this.roomStartTime) / 1000) : 0;
+                    await window.achievementManager.checkRoomCompletion(
+                        'schemax',
+                        this.score,
+                        totalTime,
+                        5, // All 5 levels completed
+                        { difficulty: this.currentDifficulty, totalSQLStatements: this.executionHistory.length }
+                    );
+                    
+                    // Check for cross-room achievements
+                    await window.achievementManager.checkAllRoomsCompletion();
+                }
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {

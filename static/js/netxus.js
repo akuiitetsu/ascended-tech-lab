@@ -3382,6 +3382,16 @@ Router# show access-lists 100
                     difficulty: this.currentDifficulty
                 });
                 
+                // Award level completion badge
+                if (window.achievementManager) {
+                    await window.achievementManager.checkNetXusLevelCompletion(
+                        this.currentLab,
+                        this.currentDifficulty,
+                        this.score,
+                        this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0
+                    );
+                }
+                
                 // Dispatch event to update command center display
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
@@ -3404,6 +3414,23 @@ Router# show access-lists 100
         try {
             if (window.progressTracker) {
                 await window.progressTracker.markRoomComplete('netxus', this.score);
+                
+                // Check for difficulty completion badge
+                if (window.achievementManager) {
+                    await window.achievementManager.checkNetXusDifficultyCompletion(
+                        this.currentDifficulty,
+                        5 // All 5 levels completed
+                    );
+                    
+                    // Check for room completion badge (if both difficulties completed)
+                    // This is a simplified check - in a full implementation, you'd track user progress across sessions
+                    const totalTime = this.roomStartTime ? Math.floor((Date.now() - this.roomStartTime) / 1000) : 0;
+                    await window.achievementManager.checkNetXusRoomCompletion(
+                        this.score,
+                        totalTime,
+                        true // Assume room completion for now
+                    );
+                }
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {

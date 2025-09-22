@@ -1745,6 +1745,17 @@ DOWNLOADED: 4612 - FOUND: 4`;
                     aiPersona: this.aiPersona
                 });
                 
+                // Award level completion badge
+                if (window.achievementManager) {
+                    await window.achievementManager.checkLevelCompletion(
+                        'aitrix',
+                        this.currentChallenge,
+                        this.score,
+                        this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                        { difficulty: this.currentDifficulty, aiPersona: this.aiPersona }
+                    );
+                }
+                
                 // Dispatch event to update command center display
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
@@ -1767,6 +1778,21 @@ DOWNLOADED: 4612 - FOUND: 4`;
         try {
             if (window.progressTracker) {
                 await window.progressTracker.markRoomComplete('aitrix', this.score);
+                
+                // Check for room completion badge
+                if (window.achievementManager) {
+                    const totalTime = this.roomStartTime ? Math.floor((Date.now() - this.roomStartTime) / 1000) : 0;
+                    await window.achievementManager.checkRoomCompletion(
+                        'aitrix',
+                        this.score,
+                        totalTime,
+                        5, // All 5 levels completed
+                        { difficulty: this.currentDifficulty, aiPersona: this.aiPersona }
+                    );
+                    
+                    // Check for cross-room achievements
+                    await window.achievementManager.checkAllRoomsCompletion();
+                }
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {

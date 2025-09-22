@@ -1135,6 +1135,149 @@ def award_badge(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Achievement API Routes
+@app.route('/api/badges/award', methods=['POST'])
+def award_badge_authenticated():
+    """Award a badge to the authenticated user"""
+    try:
+        # Get user from session/token or header
+        user_id = session.get('user_id') or request.headers.get('X-User-ID')
+        if not user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+            
+        data = request.get_json()
+        if not data or not data.get('badge_name'):
+            return jsonify({'error': 'Badge name is required'}), 400
+
+        # Check if badge already exists for this user
+        existing_badges = sb_select('badges', filters={
+            'user_id': user_id,
+            'badge_name': data['badge_name']
+        })
+        
+        if existing_badges:
+            return jsonify({'message': 'Badge already earned'}), 200
+
+        # Award the badge
+        row = {
+            'user_id': int(user_id),
+            'badge_name': data['badge_name'],
+            'badge_type': data.get('badge_type', 'achievement'),
+            'earned_at': datetime.now().isoformat()
+        }
+        
+        try:
+            inserted = sb_insert('badges', row)
+            badge_id = inserted[0].get('id') if inserted else None
+            
+            # Update user's total score if points provided
+            if data.get('points'):
+                users = sb_select('users', filters={'id': user_id})
+                if users:
+                    current_score = users[0].get('total_score', 0)
+                    sb_update('users', {'total_score': current_score + data['points']}, {'id': user_id})
+            
+            return jsonify({'id': badge_id, 'message': 'Badge awarded successfully'}), 201
+        except Exception as e:
+            # Badge might already exist, which is fine
+            return jsonify({'message': 'Badge already earned or database error'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/achievements/award', methods=['POST'])
+def award_achievement():
+    """Award an achievement to the authenticated user"""
+    try:
+        # Get user from session/token or header
+        user_id = session.get('user_id') or request.headers.get('X-User-ID')
+        if not user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+            
+        data = request.get_json()
+        if not data or not data.get('achievement_key'):
+            return jsonify({'error': 'Achievement key is required'}), 400
+
+        # Check if achievement definition exists
+        achievement_def = sb_select('achievements', filters={'achievement_key': data['achievement_key']})
+        
+        if not achievement_def:
+            # Create achievement definition if it doesn't exist
+            achievement_row = {
+                'achievement_key': data['achievement_key'],
+                'title': data.get('title', 'Achievement'),
+                'description': data.get('description', ''),
+                'icon': data.get('icon', 'bi-trophy'),
+                'badge_color': data.get('badge_color', '#FFD700'),
+                'points': data.get('points', 0),
+                'category': data.get('category', 'general'),
+                'is_active': True
+            }
+            try:
+                sb_insert('achievements', achievement_row)
+                achievement_def = sb_select('achievements', filters={'achievement_key': data['achievement_key']})
+            except:
+                # Achievement might already exist due to race condition
+                achievement_def = sb_select('achievements', filters={'achievement_key': data['achievement_key']})
+
+        if not achievement_def:
+            return jsonify({'error': 'Failed to create achievement definition'}), 500
+
+        achievement_id = achievement_def[0]['id']
+
+        # Check if user already has this achievement
+        existing_achievements = sb_select('user_achievements', filters={
+            'user_id': user_id,
+            'achievement_id': achievement_id
+        })
+        
+        if existing_achievements:
+            return jsonify({'message': 'Achievement already earned'}), 200
+
+        # Award the achievement
+        user_achievement_row = {
+            'user_id': int(user_id),
+            'achievement_id': achievement_id,
+            'earned_at': datetime.now().isoformat(),
+            'progress_data': data.get('progress_data', {})
+        }
+        
+        try:
+            inserted = sb_insert('user_achievements', user_achievement_row)
+            return jsonify({'message': 'Achievement awarded successfully'}), 201
+        except:
+            # Achievement might already exist
+            return jsonify({'message': 'Achievement already earned'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/achievements/user', methods=['GET'])
+def get_user_achievements():
+    """Get all achievements for the authenticated user"""
+    try:
+        # Get user from session/token or header
+        user_id = session.get('user_id') or request.headers.get('X-User-ID')
+        if not user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        # Get user badges as achievements (simplified approach)
+        badges = sb_select('badges', filters={'user_id': user_id}, order='-earned_at')
+        
+        # Convert badges to achievement format
+        achievements = []
+        for badge in badges:
+            achievements.append({
+                'badge_name': badge['badge_name'],
+                'earned_at': badge['earned_at'],
+                'badge_type': badge.get('badge_type', 'achievement')
+            })
+        
+        return jsonify(achievements), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Serve static files
 @app.route('/<path:path>')
 def serve_static(path):

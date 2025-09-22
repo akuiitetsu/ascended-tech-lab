@@ -2349,6 +2349,17 @@ class FlowByteGame {
                     mistakeCount: this.mistakeCount
                 });
                 
+                // Check for level completion badge
+                if (window.achievementManager) {
+                    await window.achievementManager.checkLevelCompletion(
+                        'flowbyte',
+                        this.currentLevel,
+                        this.score,
+                        this.challengeStartTime ? Math.floor((Date.now() - this.challengeStartTime) / 1000) : 0,
+                        { difficulty: this.currentDifficulty, attempts: this.attempts, mistakeCount: this.mistakeCount }
+                    );
+                }
+                
                 // Dispatch event to update command center display
                 window.dispatchEvent(new CustomEvent('progressUpdated', {
                     detail: {
@@ -2371,6 +2382,21 @@ class FlowByteGame {
         try {
             if (window.progressTracker) {
                 await window.progressTracker.markRoomComplete('flowchart', this.score);
+                
+                // Check for room completion badge
+                if (window.achievementManager) {
+                    const totalTime = Math.floor((Date.now() - this.roomStartTime) / 1000);
+                    await window.achievementManager.checkRoomCompletion(
+                        'flowbyte',
+                        this.score,
+                        totalTime,
+                        5, // All 5 levels completed
+                        { difficulty: this.currentDifficulty, mistakeCount: this.mistakeCount, totalAttempts: this.attempts }
+                    );
+                    
+                    // Check for cross-room achievements
+                    await window.achievementManager.checkAllRoomsCompletion();
+                }
                 
                 // Dispatch room completion event
                 window.dispatchEvent(new CustomEvent('roomCompleted', {
