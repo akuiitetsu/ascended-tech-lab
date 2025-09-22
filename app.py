@@ -372,13 +372,28 @@ def login_user():
         # Update last_login
         sb_update('users', {'last_login': datetime.now().isoformat()}, match_column='id', match_value=user_row['id'])
 
+        # Create user session for tracking
+        session_token = generate_session_token()
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)  # 24 hour session
+        
+        session_data = {
+            'user_id': user_row['id'],
+            'session_token': session_token,
+            'ip_address': request.environ.get('REMOTE_ADDR', 'unknown'),
+            'user_agent': request.headers.get('User-Agent', 'unknown'),
+            'expires_at': expires_at.isoformat(),
+            'created_at': datetime.now().isoformat()
+        }
+        sb_insert('user_sessions', session_data)
+
         user_data = {
             'id': user_row.get('id'),
             'username': user_row.get('name'),
             'email': user_row.get('email'),
             'role': user_role,
             'total_score': user_row.get('total_score', 0),
-            'current_streak': user_row.get('current_streak', 0)
+            'current_streak': user_row.get('current_streak', 0),
+            'session_token': session_token
         }
 
         return jsonify({'message': 'Login successful', 'user': user_data}), 200
