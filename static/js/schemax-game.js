@@ -1,3 +1,55 @@
+// ============================================
+// MOBILE UTILITIES FOR SCHEMAX LAB
+// ============================================
+
+const SchemaxMobileUtils = {
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    },
+    
+    setupMobileViewport() {
+        const setViewportHeight = () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+        
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setViewportHeight, 100);
+        });
+    },
+    
+    enhanceTouchFeedback() {
+        const interactiveElements = document.querySelectorAll('.difficulty-btn, .sql-btn, .table-cell, button, .btn, .schema-element');
+        
+        interactiveElements.forEach(element => {
+            element.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.95)';
+                this.style.filter = 'brightness(1.2)';
+                this.style.transition = 'all 0.1s ease';
+            });
+            
+            element.addEventListener('touchend', function() {
+                setTimeout(() => {
+                    this.style.transform = '';
+                    this.style.filter = '';
+                    this.style.transition = 'all 0.2s ease';
+                }, 100);
+            });
+        });
+    },
+    
+    init() {
+        this.setupMobileViewport();
+        this.enhanceTouchFeedback();
+        
+        if (this.isMobile()) {
+            document.body.classList.add('mobile-device');
+        }
+    }
+};
+
 class SchemaxLab {
     constructor() {
         this.currentDifficulty = null;
@@ -12,6 +64,9 @@ class SchemaxLab {
         this.executionHistory = [];
         this.challengeStartTime = null;
         this.roomStartTime = null;
+        
+        // Initialize mobile enhancements
+        SchemaxMobileUtils.init();
         
         this.challengeCategories = {
             easy: {
@@ -1273,6 +1328,16 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
                 return this.validateConstraints(lastExecution);
             case 'foreign_keys':
                 return this.validateForeignKeys(lastExecution);
+            case 'normalization':
+                return this.validateNormalization(lastExecution);
+            case 'transactions_schema':
+                return this.validateTransactionsSchema(lastExecution);
+            case 'indexing':
+                return this.validateIndexing(lastExecution);
+            case 'many_to_many':
+                return this.validateManyToMany(lastExecution);
+            case 'security_schema':
+                return this.validateSecuritySchema(lastExecution);
             default:
                 return { isValid: true, message: 'Solution validated successfully!' };
         }
@@ -1281,87 +1346,185 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
     validateTableCreation(execution) {
         const sql = execution.sql.toUpperCase();
         
-        if (!sql.includes('CREATE TABLE STUDENTS')) {
-            return { isValid: false, message: 'Table name should be "students".' };
+        if (!sql.includes('CREATE TABLE EMPLOYEES')) {
+            return { isValid: false, message: 'Table name should be "employees".' };
         }
         
-        if (!sql.includes('STUDENT_ID') || !sql.includes('PRIMARY KEY')) {
-            return { isValid: false, message: 'Missing student_id primary key column.' };
+        if (!sql.includes('EMPLOYEE_ID') || !sql.includes('PRIMARY KEY')) {
+            return { isValid: false, message: 'Missing employee_id primary key column.' };
         }
         
-        if (!sql.includes('NAME') || !sql.includes('AGE') || !sql.includes('COURSE')) {
-            return { isValid: false, message: 'Missing required columns: name, age, course.' };
+        if (!sql.includes('NAME') || !sql.includes('DEPARTMENT') || !sql.includes('ROLE')) {
+            return { isValid: false, message: 'Missing required columns: name, department, role.' };
         }
         
-        return { isValid: true, message: 'Perfect table structure!' };
+        return { isValid: true, message: 'Perfect IT employee table structure!' };
     }
 
     validateDataInsertion(execution) {
         const sql = execution.sql.toUpperCase();
         
-        if (!sql.includes('INSERT INTO STUDENTS')) {
-            return { isValid: false, message: 'Should insert into students table.' };
+        if (!sql.includes('INSERT INTO EMPLOYEES')) {
+            return { isValid: false, message: 'Should insert into employees table.' };
         }
         
-        if (!sql.includes('ANNA CRUZ') || !sql.includes('MARK REYES') || !sql.includes('JOHN LIM')) {
-            return { isValid: false, message: 'Missing required student records.' };
+        if (!sql.includes('SARAH CHEN') || !sql.includes('MICHAEL TORRES') || !sql.includes('JESSICA KIM')) {
+            return { isValid: false, message: 'Missing required IT staff records: Sarah Chen, Michael Torres, Jessica Kim.' };
         }
         
-        return { isValid: true, message: 'All required data inserted correctly!' };
+        return { isValid: true, message: 'All required IT staff data inserted correctly!' };
     }
 
     validateBasicQuery(execution) {
         const sql = execution.sql.toUpperCase();
         
-        if (!sql.includes('SELECT') || !sql.includes('FROM STUDENTS')) {
-            return { isValid: false, message: 'Should be a SELECT query from students table.' };
+        if (!sql.includes('SELECT') || !sql.includes('FROM EMPLOYEES')) {
+            return { isValid: false, message: 'Should be a SELECT query from employees table.' };
         }
         
-        if (!sql.includes('WHERE') || !sql.includes('AGE')) {
-            return { isValid: false, message: 'Missing WHERE clause to filter by age.' };
+        if (!sql.includes('WHERE') || !sql.includes('DEPARTMENT')) {
+            return { isValid: false, message: 'Missing WHERE clause to filter by department.' };
         }
         
-        if (!sql.includes('>') || !sql.includes('18')) {
-            return { isValid: false, message: 'Should filter for students older than 18.' };
+        if (!sql.includes('DEVOPS')) {
+            return { isValid: false, message: 'Should filter for DevOps department employees.' };
         }
         
-        return { isValid: true, message: 'Perfect query with proper filtering!' };
+        return { isValid: true, message: 'Perfect query to find DevOps team members!' };
     }
 
     validateConstraints(execution) {
         const sql = execution.sql.toUpperCase();
         
-        if (!sql.includes('CREATE TABLE COURSES')) {
-            return { isValid: false, message: 'Should create a courses table.' };
+        if (!sql.includes('CREATE TABLE USER_ACCOUNTS')) {
+            return { isValid: false, message: 'Should create a user_accounts table.' };
         }
         
-        if (!sql.includes('COURSE_ID') || !sql.includes('PRIMARY KEY')) {
-            return { isValid: false, message: 'Missing course_id primary key.' };
+        if (!sql.includes('USER_ID') || !sql.includes('PRIMARY KEY')) {
+            return { isValid: false, message: 'Missing user_id primary key.' };
         }
         
-        if (!sql.includes('COURSE_NAME') || !sql.includes('UNIQUE')) {
-            return { isValid: false, message: 'Missing course_name with UNIQUE constraint.' };
+        if (!sql.includes('USERNAME') || !sql.includes('UNIQUE')) {
+            return { isValid: false, message: 'Missing username with UNIQUE constraint.' };
         }
         
-        return { isValid: true, message: 'Excellent use of constraints!' };
+        return { isValid: true, message: 'Excellent security constraints for user accounts!' };
     }
 
     validateForeignKeys(execution) {
         const sql = execution.sql.toUpperCase();
         
-        if (!sql.includes('ALTER TABLE STUDENTS')) {
-            return { isValid: false, message: 'Should modify the students table.' };
+        if (!sql.includes('ALTER TABLE EMPLOYEES')) {
+            return { isValid: false, message: 'Should modify the employees table.' };
         }
         
-        if (!sql.includes('COURSE_ID')) {
-            return { isValid: false, message: 'Should add course_id column.' };
+        if (!sql.includes('DEPT_ID')) {
+            return { isValid: false, message: 'Should add dept_id column.' };
         }
         
         if (!sql.includes('FOREIGN KEY') || !sql.includes('REFERENCES')) {
-            return { isValid: false, message: 'Missing foreign key constraint.' };
+            return { isValid: false, message: 'Missing foreign key constraint to departments table.' };
         }
         
         return { isValid: true, message: 'Perfect foreign key relationship!' };
+    }
+
+    validateNormalization(execution) {
+        const sql = execution.sql.toUpperCase();
+        
+        if (!sql.includes('CREATE TABLE STUDENTS') || !sql.includes('CREATE TABLE COURSES') || !sql.includes('CREATE TABLE ENROLLMENTS')) {
+            return { isValid: false, message: 'Should create three tables: students, courses, and enrollments.' };
+        }
+        
+        if (!sql.includes('PRIMARY KEY') || !sql.includes('FOREIGN KEY')) {
+            return { isValid: false, message: 'Missing primary keys or foreign key relationships.' };
+        }
+        
+        if (!sql.includes('STUDENT_ID') || !sql.includes('COURSE_ID')) {
+            return { isValid: false, message: 'Missing proper ID columns for relationships.' };
+        }
+        
+        return { isValid: true, message: 'Excellent normalized database schema!' };
+    }
+
+    validateTransactionsSchema(execution) {
+        const sql = execution.sql.toUpperCase();
+        
+        if (!sql.includes('CREATE TABLE ACCOUNTS') || !sql.includes('CREATE TABLE TRANSACTIONS')) {
+            return { isValid: false, message: 'Should create both accounts and transactions tables.' };
+        }
+        
+        if (!sql.includes('ACCOUNT_ID') && !sql.includes('TX_ID')) {
+            return { isValid: false, message: 'Missing proper primary keys for financial tables.' };
+        }
+        
+        if (!sql.includes('DECIMAL') && !sql.includes('BALANCE') && !sql.includes('AMOUNT')) {
+            return { isValid: false, message: 'Missing proper decimal columns for financial amounts.' };
+        }
+        
+        if (!sql.includes('FOREIGN KEY') || !sql.includes('REFERENCES')) {
+            return { isValid: false, message: 'Missing foreign key relationship between accounts and transactions.' };
+        }
+        
+        return { isValid: true, message: 'Perfect banking system schema with proper relationships!' };
+    }
+
+    validateIndexing(execution) {
+        const sql = execution.sql.toUpperCase();
+        
+        if (!sql.includes('CREATE INDEX') && !sql.includes('CREATE UNIQUE INDEX')) {
+            return { isValid: false, message: 'Should create an index using CREATE INDEX statement.' };
+        }
+        
+        if (!sql.includes('EMAIL')) {
+            return { isValid: false, message: 'Should create an index on the email column.' };
+        }
+        
+        if (!sql.includes('USERS')) {
+            return { isValid: false, message: 'Should create index on the users table.' };
+        }
+        
+        return { isValid: true, message: 'Excellent index optimization for email searches!' };
+    }
+
+    validateManyToMany(execution) {
+        const sql = execution.sql.toUpperCase();
+        
+        if (!sql.includes('CREATE TABLE STUDENTS') || !sql.includes('CREATE TABLE COURSES') || !sql.includes('CREATE TABLE ENROLLMENTS')) {
+            return { isValid: false, message: 'Should create students, courses, and enrollments junction table.' };
+        }
+        
+        if (!sql.includes('PRIMARY KEY (STUDENT_ID, COURSE_ID)')) {
+            return { isValid: false, message: 'Junction table should have composite primary key (student_id, course_id).' };
+        }
+        
+        if (!sql.includes('FOREIGN KEY')) {
+            return { isValid: false, message: 'Missing foreign key constraints in junction table.' };
+        }
+        
+        return { isValid: true, message: 'Perfect many-to-many relationship with proper junction table!' };
+    }
+
+    validateSecuritySchema(execution) {
+        const sql = execution.sql.toUpperCase();
+        
+        if (!sql.includes('CREATE TABLE USERS')) {
+            return { isValid: false, message: 'Should create a users table.' };
+        }
+        
+        if (!sql.includes('CHECK') || !sql.includes('ROLE')) {
+            return { isValid: false, message: 'Missing CHECK constraint for role validation.' };
+        }
+        
+        if (!sql.includes('UNIQUE') || !sql.includes('USERNAME')) {
+            return { isValid: false, message: 'Missing UNIQUE constraint on username.' };
+        }
+        
+        if (!sql.includes('NOT NULL')) {
+            return { isValid: false, message: 'Missing NOT NULL constraints for required fields.' };
+        }
+        
+        return { isValid: true, message: 'Excellent security schema with proper constraints!' };
     }
 
     clearEditor() {
