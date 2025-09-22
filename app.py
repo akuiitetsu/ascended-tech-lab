@@ -491,6 +491,123 @@ def delete_user(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/users/<int:user_id>/profile', methods=['PUT'])
+def update_user_profile(user_id):
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+            
+        user = users[0]
+        
+        # Update profile data
+        update_data = {}
+        allowed_fields = ['name', 'email']
+        
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field].strip()
+                
+        # Validate email if provided
+        if 'email' in update_data:
+            email = update_data['email']
+            if not email or '@' not in email:
+                return jsonify({'error': 'Invalid email format'}), 400
+                
+            # Check if email is already taken by another user
+            existing_users = sb_select('users', filters={'email': email})
+            if existing_users and existing_users[0]['id'] != user_id:
+                return jsonify({'error': 'Email already in use'}), 400
+                
+        # Validate username if provided
+        if 'name' in update_data:
+            name = update_data['name']
+            if not name or len(name.strip()) < 2:
+                return jsonify({'error': 'Username must be at least 2 characters'}), 400
+                
+            # Check if username is already taken by another user
+            existing_users = sb_select('users', filters={'name': name})
+            if existing_users and existing_users[0]['id'] != user_id:
+                return jsonify({'error': 'Username already in use'}), 400
+                
+        if update_data:
+            sb_update('users', update_data, match_column='id', match_value=user_id)
+            
+        # Return updated user data
+        updated_users = sb_select('users', filters={'id': user_id})
+        updated_user = updated_users[0] if updated_users else user
+        
+        return jsonify({
+            'message': 'Profile updated successfully',
+            'user': {
+                'id': updated_user['id'],
+                'name': updated_user['name'],
+                'email': updated_user['email'],
+                'role': updated_user['role']
+            }
+        })
+    except Exception as e:
+        print(f"Profile update error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>/password', methods=['PUT'])
+def change_user_password(user_id):
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
+        current_password = data.get('currentPassword', '')
+        new_password = data.get('newPassword', '')
+        
+        if not current_password:
+            return jsonify({'error': 'Current password is required'}), 400
+            
+        if not new_password:
+            return jsonify({'error': 'New password is required'}), 400
+            
+        # Check if user exists
+        users = sb_select('users', filters={'id': user_id})
+        if not users:
+            return jsonify({'error': 'User not found'}), 404
+            
+        user = users[0]
+        
+        # Verify current password
+        if not verify_password(current_password, user.get('password_hash', '')):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+            
+        # Validate new password strength
+        if len(new_password) < 12:
+            return jsonify({'error': 'New password must be at least 12 characters long'}), 400
+            
+        # Additional password validations
+        import re
+        if not re.search(r'[A-Z]', new_password):
+            return jsonify({'error': 'Password must contain at least one uppercase letter'}), 400
+        if not re.search(r'[a-z]', new_password):
+            return jsonify({'error': 'Password must contain at least one lowercase letter'}), 400
+        if not re.search(r'[0-9]', new_password):
+            return jsonify({'error': 'Password must contain at least one number'}), 400
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?~`]', new_password):
+            return jsonify({'error': 'Password must contain at least one special character'}), 400
+            
+        # Hash new password
+        new_password_hash = hash_password(new_password)
+        
+        # Update password
+        sb_update('users', {'password_hash': new_password_hash}, match_column='id', match_value=user_id)
+        
+        return jsonify({'message': 'Password changed successfully'})
+    except Exception as e:
+        print(f"Password change error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/items', methods=['GET'])
 def get_items():
     try:

@@ -375,5 +375,84 @@
                 </section>
             </div>
         </main>
+
+        <!-- Edit Profile Modal -->
+        <div id="editProfileModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="bi bi-pencil-square"></i> Edit Profile</h3>
+                    <button class="modal-close" onclick="closeEditProfileModal()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <form id="editProfileForm">
+                    <div class="form-group">
+                        <label for="editUsername">Username</label>
+                        <input type="text" id="editUsername" name="username" placeholder="Enter new username" required>
+                        <div class="error-message" id="usernameError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEmail">Email</label>
+                        <input type="email" id="editEmail" name="email" placeholder="Enter new email" required>
+                        <div class="error-message" id="emailError"></div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="modal-btn secondary" onclick="closeEditProfileModal()">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                        <button type="submit" class="modal-btn primary" id="saveProfileBtn">
+                            <i class="bi bi-check-circle"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Change Password Modal -->
+        <div id="changePasswordModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="bi bi-key"></i> Change Password</h3>
+                    <button class="modal-close" onclick="closeChangePasswordModal()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password</label>
+                        <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" required>
+                        <div class="error-message" id="currentPasswordError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" required>
+                        <div class="error-message" id="newPasswordError"></div>
+                        <div class="password-requirements">
+                            <h4>Password Requirements:</h4>
+                            <ul>
+                                <li id="req-length">At least 12 characters long</li>
+                                <li id="req-uppercase">Contains uppercase letter (A-Z)</li>
+                                <li id="req-lowercase">Contains lowercase letter (a-z)</li>
+                                <li id="req-number">Contains number (0-9)</li>
+                                <li id="req-special">Contains special character (!@#$%^&*)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" required>
+                        <div class="error-message" id="confirmPasswordError"></div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="modal-btn secondary" onclick="closeChangePasswordModal()">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                        <button type="submit" class="modal-btn primary" id="changePasswordBtn">
+                            <i class="bi bi-check-circle"></i> Change Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </body>
 </html>
