@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Notice Test</title>
+    <link rel="stylesheet" href="static/css/main.css">
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="user-login">
+        <div class="login-container">
+            <div class="login-icon">
+                <i class="bi bi-shield-lock"></i>
+            </div>
+            
+            <!-- Data Privacy Notice -->
+            <div class="privacy-notice">
+                <div class="privacy-header">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Data Privacy Notice</span>
+                </div>
+                <div class="privacy-content">
+                    <p>
+                        <strong>Educational Use:</strong> Your data will be used solely for educational purposes 
+                        as part of a capstone project. We collect minimal information (username, email, and 
+                        learning progress) to provide you with a personalized learning experience.
+                    </p>
+                    <p>
+                        <strong>Data Security:</strong> All data is securely stored and will not be shared with 
+                        third parties. Your privacy is our priority.
+                    </p>
+                    <p class="privacy-highlight">
+                        <i class="bi bi-info-circle"></i>
+                        By creating an account or logging in, you consent to the educational use of your data 
+                        for this capstone project.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Test Registration Form -->
+            <div class="auth-form">
+                <h2>Test Registration</h2>
+                <p>Testing the privacy notice and consent system</p>
+                
+                <form class="login-form" onsubmit="testRegistration(event)">
+                    <div class="input-group">
+                        <i class="bi bi-person"></i>
+                        <input type="text" placeholder="Username" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="bi bi-envelope"></i>
+                        <input type="email" placeholder="Email" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="bi bi-lock"></i>
+                        <input type="password" placeholder="Password" required>
+                    </div>
+                    
+                    <!-- Consent Checkbox -->
+                    <div class="consent-checkbox">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="testConsentCheckbox" required>
+                            <span class="checkmark"></span>
+                            <span class="consent-text">
+                                I agree to the educational use of my data for this capstone project and understand that my information will be used solely for learning purposes.
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="login-btn">
+                        <i class="bi bi-person-plus"></i>
+                        Test Registration
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testRegistration(event) {
+            event.preventDefault();
+            
+            const consentChecked = document.getElementById('testConsentCheckbox').checked;
+            
+            if (!consentChecked) {
+                alert('Please agree to the educational use of your data to proceed with registration.');
+                return;
+            }
+            
+            alert('✅ Privacy notice and consent system working correctly!\n\nThe user has:\n• Seen the privacy notice\n• Agreed to educational data use\n• Provided informed consent');
+        }
+    </script>
+</body>
+</html>

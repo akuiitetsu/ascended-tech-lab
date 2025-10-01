@@ -333,9 +333,15 @@ async function handleRegister(event) {
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
     const confirmPassword = document.getElementById('regConfirmPassword').value;
+    const dataConsent = document.getElementById('dataConsentCheckbox').checked;
     
     if (!username || !email || !password || !confirmPassword) {
         alert('Please fill in all fields');
+        return;
+    }
+    
+    if (!dataConsent) {
+        alert('Please agree to the educational use of your data to proceed with registration.');
         return;
     }
     

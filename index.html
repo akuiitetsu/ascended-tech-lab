@@ -18,6 +18,30 @@
                     <i class="bi bi-shield-lock"></i>
                 </div>
                 
+                <!-- Data Privacy Notice -->
+                <div class="privacy-notice">
+                    <div class="privacy-header">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Data Privacy Notice</span>
+                    </div>
+                    <div class="privacy-content">
+                        <p>
+                            <strong>Educational Use:</strong> Your data will be used solely for educational purposes 
+                            as part of a capstone project. We collect minimal information (username, email, and 
+                            learning progress) to provide you with a personalized learning experience.
+                        </p>
+                        <p>
+                            <strong>Data Security:</strong> All data is securely stored and will not be shared with 
+                            third parties. Your privacy is our priority.
+                        </p>
+                        <p class="privacy-highlight">
+                            <i class="bi bi-info-circle"></i>
+                            By creating an account or logging in, you consent to the educational use of your data 
+                            for this capstone project.
+                        </p>
+                    </div>
+                </div>
+                
                 <!-- Login Form -->
                 <div class="auth-form" id="loginForm">
                     <h2> Access Terminal </h2>
@@ -93,6 +117,17 @@
                         <!-- Password Match Indicator -->
                         <div class="password-match-indicator" id="passwordMatchIndicator" style="display: none;"></div>
                         
+                        <!-- Consent Checkbox -->
+                        <div class="consent-checkbox">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="dataConsentCheckbox" required>
+                                <span class="checkmark"></span>
+                                <span class="consent-text">
+                                    I agree to the educational use of my data for this capstone project and understand that my information will be used solely for learning purposes.
+                                </span>
+                            </label>
+                        </div>
+                        
                         <button type="submit" class="login-btn">
                             <i class="bi bi-person-plus"></i>
                             Create Account
@@ -158,6 +193,14 @@
                         <li> Think like a true tech master </li>
                         <li> Don't give up - every expert was once a beginner! </li>
                     </ul>
+                    
+                    <h4> Data Privacy </h4>
+                    <p style="font-size: 0.9rem; color: #FFB347;">
+                        This platform is part of an educational capstone project. Your data 
+                        (username, email, and learning progress) is used solely for educational 
+                        purposes and research. We prioritize your privacy and do not share your 
+                        information with third parties.
+                    </p>
                 </div>
             </div>
         </div>
