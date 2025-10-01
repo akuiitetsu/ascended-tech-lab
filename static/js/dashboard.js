@@ -4,6 +4,99 @@
 
 import auth from './auth.js';
 
+// Test API connectivity
+async function testApiConnectivity() {
+    console.log('🔍 Testing API connectivity...');
+    try {
+        const response = await fetch('/api/test', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('✅ Test API response status:', response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Test API response data:', data);
+            return true;
+        } else {
+            console.error('❌ Test API failed with status:', response.status);
+            console.error('❌ Response text:', await response.text());
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Test API error:', error);
+        return false;
+    }
+}
+
+// Ensure user ID is available in localStorage
+async function ensureUserId() {
+    let userId = localStorage.getItem('userId');
+    
+    if (userId) {
+        console.log('✅ UserId already available:', userId);
+        return userId;
+    }
+    
+    console.log('🔧 UserId not found, attempting recovery...');
+    
+    // Try to get it from auth service
+    if (auth && auth.getCurrentUser()) {
+        const currentUser = auth.getCurrentUser();
+        if (currentUser && currentUser.id) {
+            userId = currentUser.id.toString();
+            localStorage.setItem('userId', userId);
+            console.log('✅ Retrieved userId from auth service:', userId);
+            return userId;
+        }
+    }
+    
+    // Try to recover from server
+    const username = localStorage.getItem('currentUser');
+    if (username) {
+        console.log('🔄 Attempting to recover user data from server...');
+        try {
+            const response = await fetch('/api/user/lookup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username })
+            });
+            
+            if (response.ok) {
+                const userData = await response.json();
+                if (userData.user && userData.user.id) {
+                    userId = userData.user.id.toString();
+                    localStorage.setItem('userId', userId);
+                    
+                    // Also update other user data if available
+                    if (userData.user.role) {
+                        localStorage.setItem('userRole', userData.user.role);
+                    }
+                    if (userData.user.total_score !== undefined) {
+                        localStorage.setItem('totalScore', userData.user.total_score.toString());
+                    }
+                    if (userData.user.current_streak !== undefined) {
+                        localStorage.setItem('currentStreak', userData.user.current_streak.toString());
+                    }
+                    
+                    console.log('✅ Recovered userId from server:', userId);
+                    return userId;
+                }
+            } else {
+                console.error('❌ Server lookup failed:', await response.text());
+            }
+        } catch (error) {
+            console.error('❌ Failed to recover user data:', error);
+        }
+    }
+    
+    console.error('❌ Could not recover userId');
+    return null;
+}
+
 // Import progress tracker if available
 let progressTracker = null;
 if (window.progressTracker) {
@@ -1109,12 +1202,29 @@ function showSuccess(elementId, message) {
 async function saveProfile(event) {
     event.preventDefault();
     
-    const userId = localStorage.getItem('userId');
+    let userId = localStorage.getItem('userId');
     const username = document.getElementById('editUsername').value.trim();
     const email = document.getElementById('editEmail').value.trim();
     const saveBtn = document.getElementById('saveProfileBtn');
     
+    console.log('🔄 Starting profile update...', { userId, username, email });
+    
+    // Ensure userId is available
+    userId = await ensureUserId();
+    
+    // Test API connectivity first
+    const apiWorking = await testApiConnectivity();
+    if (!apiWorking) {
+        showError('usernameError', 'Cannot connect to server. Please check your connection.');
+        return;
+    }
+    
     // Validate inputs
+    if (!userId) {
+        showError('usernameError', 'User ID not found. Please log in again.');
+        return;
+    }
+    
     if (!username || username.length < 2) {
         showError('usernameError', 'Username must be at least 2 characters long');
         return;
@@ -1133,20 +1243,35 @@ async function saveProfile(event) {
     saveBtn.innerHTML = '<i class="bi bi-spinner spin"></i> Saving...';
     
     try {
-        const response = await fetch(`/api/users/${userId}/profile`, {
+        const requestUrl = `/api/users/${userId}/profile`;
+        const requestBody = {
+            name: username,
+            email: email
+        };
+        
+        console.log('📤 Sending profile update request:', { requestUrl, requestBody });
+        
+        const response = await fetch(requestUrl, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                name: username,
-                email: email
-            })
+            body: JSON.stringify(requestBody)
         });
         
-        const data = await response.json();
+        console.log('📥 Response status:', response.status, response.statusText);
+        
+        let data;
+        try {
+            data = await response.json();
+            console.log('📥 Response data:', data);
+        } catch (parseError) {
+            console.error('❌ Failed to parse response JSON:', parseError);
+            throw new Error('Invalid response from server');
+        }
         
         if (response.ok) {
+            console.log('✅ Profile update successful');
             // Update localStorage with new values
             localStorage.setItem('currentUser', data.user.name);
             localStorage.setItem('currentEmail', data.user.email);
@@ -1162,12 +1287,17 @@ async function saveProfile(event) {
             }, 1500);
             
         } else {
-            showError('usernameError', data.error || 'Failed to update profile');
+            console.error('❌ Profile update failed:', data);
+            showError('usernameError', data.error || data.details || 'Failed to update profile');
         }
         
     } catch (error) {
-        console.error('Profile update error:', error);
-        showError('usernameError', 'Network error. Please try again.');
+        console.error('❌ Profile update network error:', error);
+        if (error.message.includes('fetch')) {
+            showError('usernameError', 'Cannot connect to server. Please check your connection.');
+        } else {
+            showError('usernameError', `Error: ${error.message}`);
+        }
     } finally {
         // Re-enable button
         saveBtn.disabled = false;
@@ -1178,13 +1308,30 @@ async function saveProfile(event) {
 async function changeUserPassword(event) {
     event.preventDefault();
     
-    const userId = localStorage.getItem('userId');
+    let userId = localStorage.getItem('userId');
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     const changeBtn = document.getElementById('changePasswordBtn');
     
+    console.log('🔄 Starting password change...', { userId, hasCurrentPassword: !!currentPassword, hasNewPassword: !!newPassword });
+    
+    // Ensure userId is available
+    userId = await ensureUserId();
+    
+    // Test API connectivity first
+    const apiWorking = await testApiConnectivity();
+    if (!apiWorking) {
+        showError('currentPasswordError', 'Cannot connect to server. Please check your connection.');
+        return;
+    }
+    
     // Validate inputs
+    if (!userId) {
+        showError('currentPasswordError', 'User ID not found. Please log in again.');
+        return;
+    }
+    
     if (!currentPassword) {
         showError('currentPasswordError', 'Current password is required');
         return;
@@ -1215,20 +1362,35 @@ async function changeUserPassword(event) {
     changeBtn.innerHTML = '<i class="bi bi-spinner spin"></i> Changing...';
     
     try {
-        const response = await fetch(`/api/users/${userId}/password`, {
+        const requestUrl = `/api/users/${userId}/password`;
+        const requestBody = {
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        };
+        
+        console.log('📤 Sending password change request:', { requestUrl, hasBody: !!requestBody });
+        
+        const response = await fetch(requestUrl, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                currentPassword: currentPassword,
-                newPassword: newPassword
-            })
+            body: JSON.stringify(requestBody)
         });
         
-        const data = await response.json();
+        console.log('📥 Response status:', response.status, response.statusText);
+        
+        let data;
+        try {
+            data = await response.json();
+            console.log('📥 Response data:', data);
+        } catch (parseError) {
+            console.error('❌ Failed to parse response JSON:', parseError);
+            throw new Error('Invalid response from server');
+        }
         
         if (response.ok) {
+            console.log('✅ Password change successful');
             // Show success and close modal
             showSuccess('currentPasswordError', 'Password changed successfully!');
             setTimeout(() => {
@@ -1236,12 +1398,17 @@ async function changeUserPassword(event) {
             }, 1500);
             
         } else {
-            showError('currentPasswordError', data.error || 'Failed to change password');
+            console.error('❌ Password change failed:', data);
+            showError('currentPasswordError', data.error || data.details || 'Failed to change password');
         }
         
     } catch (error) {
-        console.error('Password change error:', error);
-        showError('currentPasswordError', 'Network error. Please try again.');
+        console.error('❌ Password change network error:', error);
+        if (error.message.includes('fetch')) {
+            showError('currentPasswordError', 'Cannot connect to server. Please check your connection.');
+        } else {
+            showError('currentPasswordError', `Error: ${error.message}`);
+        }
     } finally {
         // Re-enable button
         changeBtn.disabled = false;

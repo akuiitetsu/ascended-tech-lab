@@ -586,8 +586,14 @@ def update_user_profile(user_id):
             }
         })
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         print(f"Profile update error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"Full traceback: {error_details}")
+        return jsonify({
+            'error': f'Database error: {str(e)}',
+            'details': 'Check server logs for more information'
+        }), 500
 
 @app.route('/api/users/<int:user_id>/password', methods=['PUT'])
 def change_user_password(user_id):
@@ -639,8 +645,60 @@ def change_user_password(user_id):
         
         return jsonify({'message': 'Password changed successfully'})
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         print(f"Password change error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"Full traceback: {error_details}")
+        return jsonify({
+            'error': f'Database error: {str(e)}',
+            'details': 'Check server logs for more information'
+        }), 500
+
+@app.route('/api/test', methods=['GET'])
+def test_api():
+    """Test endpoint to verify API connectivity."""
+    return jsonify({
+        'status': 'success',
+        'message': 'API is working correctly',
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/user/lookup', methods=['POST'])
+def lookup_user():
+    """Lookup user data by username to recover missing user ID."""
+    try:
+        data = request.get_json()
+        if not data or not data.get('username'):
+            return jsonify({'error': 'Username is required'}), 400
+        
+        username = data.get('username').strip()
+        
+        # Try to find by email or name
+        users_by_email = sb_select('users', filters={'email': username})
+        user_row = users_by_email[0] if users_by_email else None
+        
+        if not user_row:
+            users_by_name = sb_select('users', filters={'name': username})
+            user_row = users_by_name[0] if users_by_name else None
+
+        if not user_row:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Return basic user data (no sensitive info)
+        user_data = {
+            'id': user_row.get('id'),
+            'username': user_row.get('name'),
+            'email': user_row.get('email'),
+            'role': user_row.get('role', 'user'),
+            'total_score': user_row.get('total_score', 0),
+            'current_streak': user_row.get('current_streak', 0)
+        }
+
+        return jsonify({'user': user_data}), 200
+        
+    except Exception as e:
+        print(f"User lookup error: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/items', methods=['GET'])
 def get_items():

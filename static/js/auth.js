@@ -189,10 +189,11 @@ class AuthService {
             }
 
             this.currentUser = result.user;
-            this.sessionToken = result.session_token || 'demo-session';
+            this.sessionToken = result.session_token || result.user.session_token || 'demo-session';
             this.saveUserToStorage();
             
             console.log('Login successful:', this.currentUser);
+            console.log('User ID stored:', localStorage.getItem('userId'));
             return this.currentUser;
             
         } catch (error) {
@@ -208,6 +209,10 @@ class AuthService {
         localStorage.removeItem('currentEmail');
         localStorage.removeItem('sessionToken');
         localStorage.removeItem('isAdmin');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('totalScore');
+        localStorage.removeItem('currentStreak');
     }
 
     isAuthenticated() {
@@ -228,9 +233,25 @@ class AuthService {
             localStorage.setItem('currentEmail', this.currentUser.email);
             localStorage.setItem('sessionToken', this.sessionToken);
             
+            // Store user ID if available
+            if (this.currentUser.id) {
+                localStorage.setItem('userId', this.currentUser.id.toString());
+            }
+            
+            // Store additional user data if available
+            if (this.currentUser.total_score !== undefined) {
+                localStorage.setItem('totalScore', this.currentUser.total_score.toString());
+            }
+            if (this.currentUser.current_streak !== undefined) {
+                localStorage.setItem('currentStreak', this.currentUser.current_streak.toString());
+            }
+            
             // Check if admin
             if (this.currentUser.role === 'admin') {
                 localStorage.setItem('isAdmin', 'true');
+                localStorage.setItem('userRole', 'admin');
+            } else {
+                localStorage.setItem('userRole', this.currentUser.role || 'user');
             }
         }
     }
@@ -239,12 +260,16 @@ class AuthService {
         const username = localStorage.getItem('currentUser');
         const email = localStorage.getItem('currentEmail');
         const sessionToken = localStorage.getItem('sessionToken');
+        const userId = localStorage.getItem('userId');
         
         if (username && email && sessionToken) {
             this.currentUser = { 
                 username, 
                 email,
-                role: localStorage.getItem('isAdmin') ? 'admin' : 'user'
+                role: localStorage.getItem('userRole') || (localStorage.getItem('isAdmin') ? 'admin' : 'user'),
+                id: userId ? parseInt(userId) : null,
+                total_score: parseInt(localStorage.getItem('totalScore') || '0'),
+                current_streak: parseInt(localStorage.getItem('currentStreak') || '0')
             };
             this.sessionToken = sessionToken;
         }
