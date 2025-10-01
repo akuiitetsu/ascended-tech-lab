@@ -780,82 +780,209 @@ main {
         padding: 10px 15px;
         flex-wrap: wrap;
         gap: 10px;
+        min-height: 60px;
     }
     
     .header-left h1 {
-        font-size: 1.2rem;
-        display: none; /* Hide on very small screens */
+        font-size: 1.1rem;
     }
     
     .header-left i {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
     
     .header-right {
-        gap: 10px;
+        gap: 8px;
     }
     
-    .cutscene-btn, .profile-btn {
-        padding: 10px;
-        min-width: 44px;
-        min-height: 44px;
-        font-size: 1.2rem;
+    .cutscene-btn, .profile-btn, .help-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+        padding: 0;
     }
     
-    /* Main dashboard grid */
-    .dashboard {
-        grid-template-columns: 1fr;
+    /* Main content mobile */
+    main {
+        margin-top: 80px;
+        padding: 15px;
+        width: 95%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Dashboard grid mobile */
+    .dashboard-grid {
         gap: 15px;
-        padding: 15px;
-        margin-top: 70px; /* Account for fixed header */
     }
     
-    .dashboard-section {
+    .dashboard-grid section {
         padding: 15px;
-        border-radius: 8px;
     }
     
-    .dashboard-section h2 {
-        font-size: 1.3rem;
+    .dashboard-grid section h2 {
+        font-size: 1.2rem;
         margin-bottom: 15px;
     }
     
-    /* Stats overview mobile */
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-    
-    .stat-card {
-        padding: 15px;
+    /* Welcome section mobile */
+    .welcome-section {
+        grid-column: span 12;
+        flex-direction: column;
         text-align: center;
+        gap: 20px;
+        padding: 20px;
     }
     
-    .stat-card h3 {
-        font-size: 1.8rem;
-    }
-    
-    .stat-card p {
-        font-size: 0.9rem;
-    }
-    
-    /* Progress section mobile */
-    .progress-item {
-        padding: 12px;
+    .welcome-content h2 {
+        font-size: 1.6rem;
         margin-bottom: 10px;
     }
     
-    .progress-item h4 {
+    .welcome-content p {
+        font-size: 1rem;
+        margin-bottom: 15px;
+    }
+    
+    .palbot {
+        width: 120px;
+        height: auto;
+    }
+    
+    /* Overall Progress mobile - CRITICAL FIX */
+    .progress-section {
+        grid-column: span 12; /* Full width on mobile */
+    }
+    
+    .progress-stats {
+        display: grid;
+        grid-template-columns: 1fr; /* Stack vertically on mobile */
+        gap: 10px;
+        margin-top: 15px;
+        padding: 12px;
+    }
+    
+    .stat-item {
+        flex-direction: row;
+        gap: 10px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        justify-content: flex-start;
+        text-align: left;
+    }
+    
+    .stat-item i {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
+    .stat-item span {
+        font-size: 0.9rem;
+    }
+    
+    .stat-item strong {
+        font-size: 1.1rem;
+        margin-left: auto;
+    }
+    
+    /* Badges section mobile - CRITICAL FIX */
+    .badges-section {
+        grid-column: span 12; /* Full width on mobile */
+        padding: 15px;
+    }
+    
+    .badges-section h2 {
+        font-size: 1.2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .badge-controls {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .badge-open-btn {
+        position: static;
+        width: 35px;
+        height: 35px;
         font-size: 1rem;
     }
     
-    .progress-bar {
-        height: 8px;
-        margin: 8px 0;
+    .badge-scroll-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
     }
     
-    .progress-percentage {
-        font-size: 0.9rem;
+    .badge-scroll-btn.left {
+        left: 5px;
+    }
+    
+    .badge-scroll-btn.right {
+        right: 5px;
+    }
+    
+    .badges-grid {
+        gap: 12px;
+        padding: 10px 45px; /* Account for scroll buttons */
+    }
+    
+    .badge-item {
+        min-width: 120px;
+        padding: 12px 8px;
+        gap: 8px;
+    }
+    
+    .badge-item i {
+        font-size: 2rem;
+        margin-bottom: 5px;
+    }
+    
+    .badge-item span {
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+    
+    /* Room progress summary mobile */
+    .room-progress-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 15px 0;
+    }
+    
+    .room-progress-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        font-size: 0.85rem;
+    }
+    
+    .room-progress-item .room-name {
+        font-weight: bold;
+        color: #ffffff;
+    }
+    
+    .room-progress-item .room-percent {
+        color: #10a1fa;
+        font-weight: bold;
+    }
+    
+    /* Progress bar mobile */
+    .progress-bar-container {
+        height: 20px;
+        margin: 10px 0;
+    }
+    
+    .progress-text {
+        font-size: 0.8rem;
     }
     
     /* Rooms grid mobile */
@@ -869,71 +996,96 @@ main {
         border-radius: 8px;
     }
     
-    .room-header h3 {
-        font-size: 1.1rem;
-    }
-    
-    .room-description {
-        font-size: 0.9rem;
-        margin: 10px 0;
-    }
-    
-    .room-stats {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .room-stat {
-        text-align: center;
-        padding: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 6px;
-    }
-    
-    .room-stat span:first-child {
-        font-size: 0.9rem;
-    }
-    
-    .room-stat span:last-child {
-        font-size: 1.1rem;
-    }
-    
-    .room-actions {
-        margin-top: 15px;
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .play-btn, .info-btn {
-        padding: 12px 20px !important;
-        font-size: 14px !important;
-        min-height: 44px;
-        border-radius: 6px;
-        width: 100%;
-        text-align: center;
-    }
-    
-    /* Badges section mobile */
-    .badge-modal-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-    
-    .badge-item {
-        padding: 10px;
-    }
-    
-    .badge-icon {
-        font-size: 2rem;
+    .room-card h3 {
+        font-size: 1.2rem;
         margin-bottom: 8px;
     }
     
-    .badge-name {
-        font-size: 0.9rem;
+    .room-description small {
+        font-size: 0.8rem;
+        line-height: 1.3;
     }
     
-    .badge-description {
+    .room-progress {
+        margin-top: 12px;
+    }
+    
+    .room-progress .progress-bar {
+        height: 6px;
+        margin: 8px 0;
+    }
+    
+    .room-progress .progress-info {
         font-size: 0.8rem;
+        gap: 5px;
+    }
+    
+    .room-progress .progress-details {
+        font-size: 0.75rem;
+        gap: 1px;
+    }
+    
+    .room-progress .progress-score,
+    .room-progress .progress-level {
+        font-size: 0.7rem;
+    }
+    
+    /* Badge modal mobile */
+    .badge-modal-content {
+        width: 95%;
+        height: 90vh;
+        margin: 5vh auto;
+        padding: 0;
+    }
+    
+    .badge-modal-header {
+        padding: 15px 20px;
+    }
+    
+    .badge-modal-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .badge-close-modal {
+        width: 35px;
+        height: 35px;
+        top: 15px;
+        right: 15px;
+    }
+    
+    .badge-modal-sections {
+        padding: 20px;
+    }
+    
+    .badge-modal-section {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .badge-modal-section h3 {
+        font-size: 1.1rem;
+        margin-bottom: 12px;
+    }
+    
+    .badge-modal-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 10px 0;
+    }
+    
+    .badge-modal-grid .badge-item {
+        height: 140px;
+        padding: 12px 8px;
+        min-width: unset;
+    }
+    
+    .badge-modal-grid .badge-item i {
+        font-size: 2rem;
+    }
+    
+    .badge-modal-grid .badge-item span {
+        font-size: 0.8rem;
+        line-height: 1.2;
     }
     
     /* Modal mobile optimization */
@@ -962,46 +1114,173 @@ main {
     /* Ultra-mobile optimizations */
     header {
         padding: 8px 10px;
+        min-height: 50px;
+    }
+    
+    .header-left h1 {
+        font-size: 1rem;
     }
     
     .header-left i {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
     }
     
-    .cutscene-btn, .profile-btn {
-        padding: 8px;
-        min-width: 40px;
-        min-height: 40px;
-        font-size: 1.1rem;
+    .cutscene-btn, .profile-btn, .help-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 0.9rem;
     }
     
-    .dashboard {
+    main {
+        margin-top: 70px;
         padding: 10px;
+    }
+    
+    .dashboard-grid {
         gap: 12px;
     }
     
-    .dashboard-section {
+    .dashboard-grid section {
         padding: 12px;
     }
     
-    .dashboard-section h2 {
-        font-size: 1.2rem;
+    .dashboard-grid section h2 {
+        font-size: 1.1rem;
         margin-bottom: 12px;
     }
     
-    .stats-grid {
-        grid-template-columns: 1fr;
+    /* Welcome section ultra-mobile */
+    .welcome-section {
+        padding: 15px;
+        gap: 15px;
+    }
+    
+    .welcome-content h2 {
+        font-size: 1.4rem;
+    }
+    
+    .welcome-content p {
+        font-size: 0.9rem;
+    }
+    
+    .palbot {
+        width: 100px;
+    }
+    
+    .start-btn {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+    }
+    
+    /* Progress section ultra-mobile */
+    .progress-stats {
+        gap: 8px;
+        padding: 10px;
+    }
+    
+    .stat-item {
+        padding: 10px;
         gap: 8px;
     }
     
-    .stat-card {
+    .stat-item i {
+        font-size: 1.1rem;
+    }
+    
+    .stat-item span {
+        font-size: 0.8rem;
+    }
+    
+    .stat-item strong {
+        font-size: 1rem;
+    }
+    
+    /* Badges ultra-mobile */
+    .badges-section {
         padding: 12px;
     }
     
-    .stat-card h3 {
-        font-size: 1.5rem;
+    .badge-open-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
     }
     
+    .badge-scroll-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+    
+    .badges-grid {
+        padding: 10px 35px;
+        gap: 10px;
+    }
+    
+    .badge-item {
+        min-width: 100px;
+        padding: 10px 6px;
+    }
+    
+    .badge-item i {
+        font-size: 1.8rem;
+    }
+    
+    .badge-item span {
+        font-size: 0.75rem;
+    }
+    
+    /* Badge modal ultra-mobile */
+    .badge-modal-content {
+        width: 98%;
+        height: 95vh;
+        margin: 2.5vh auto;
+    }
+    
+    .badge-modal-header {
+        padding: 12px 15px;
+    }
+    
+    .badge-modal-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .badge-close-modal {
+        width: 30px;
+        height: 30px;
+        top: 12px;
+        right: 12px;
+        font-size: 0.9rem;
+    }
+    
+    .badge-modal-sections {
+        padding: 15px;
+    }
+    
+    .badge-modal-section {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .badge-modal-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .badge-modal-grid .badge-item {
+        height: 120px;
+        padding: 10px 6px;
+    }
+    
+    .badge-modal-grid .badge-item i {
+        font-size: 1.8rem;
+    }
+    
+    .badge-modal-grid .badge-item span {
+        font-size: 0.75rem;
+    }
+    
+    /* Rooms ultra-mobile */
     .rooms-grid {
         gap: 12px;
     }
@@ -1010,15 +1289,41 @@ main {
         padding: 12px;
     }
     
-    .badge-modal-grid {
-        grid-template-columns: 1fr;
-        gap: 8px;
+    .room-card h3 {
+        font-size: 1.1rem;
     }
     
+    .room-description small {
+        font-size: 0.75rem;
+    }
+    
+    .room-progress .progress-info {
+        font-size: 0.75rem;
+    }
+    
+    .room-progress .progress-details {
+        font-size: 0.7rem;
+    }
+    
+    /* Modal ultra-mobile */
     .modal-content {
         width: 98%;
         margin: 10px auto;
         padding: 15px;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .form-group input {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .modal-btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
     }
 }
 
