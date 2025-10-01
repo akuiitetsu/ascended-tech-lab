@@ -179,7 +179,7 @@ class FlowByteGame {
     constructor() {
         this.currentDifficulty = null;
         this.currentLevel = null;
-        this.currentTool = 'arrow';
+        this.currentTool = 'cursor';
         this.nodes = [];
         this.connections = [];
         this.selectedNode = null;
@@ -467,6 +467,7 @@ class FlowByteGame {
 
     setupToolButtons(container) {
         const toolButtons = [
+            { id: '#cursor-tool-btn', tool: 'cursor' },
             { id: '#arrow-tool-btn', tool: 'arrow' },
             { id: '#delete-tool-btn', tool: 'delete' }
         ];
@@ -650,6 +651,9 @@ class FlowByteGame {
                 this.gameContainer.innerHTML = '<svg id="connection-svg" class="connection-svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></svg>';
             }
         }
+        
+        // Initialize cursor tool as active
+        this.selectTool('cursor');
         
         // Show tutorial for this level
         this.showLevelTutorial();
@@ -978,8 +982,8 @@ class FlowByteGame {
                 // Handle tool actions first
                 this.handleNodeClick(node, event);
                 
-                // Only start drag if using arrow tool (default interaction)
-                if (this.currentTool === 'arrow') {
+                // Start drag if using cursor tool (for moving) or arrow tool (default interaction)
+                if (this.currentTool === 'cursor' || this.currentTool === 'arrow') {
                     this.startDrag(node, event);
                 }
             }
@@ -999,7 +1003,14 @@ class FlowByteGame {
         
         nodeElement.style.zIndex = '1000';
         nodeElement.classList.add('dragging');
+        // Use grabbing cursor during drag regardless of current tool
         this.gameContainer.style.cursor = 'grabbing';
+        
+        // Add extra visual feedback for cursor tool drags
+        if (this.currentTool === 'cursor') {
+            nodeElement.style.boxShadow = '0 8px 25px rgba(252, 163, 17, 0.6)';
+            nodeElement.style.transform += ' scale(1.05)';
+        }
     }
 
     handleMouseMove(event) {
@@ -1033,10 +1044,30 @@ class FlowByteGame {
         if (!this.draggedNode) return;
         
         const nodeElement = document.getElementById(this.draggedNode.id);
+        const nodeType = this.draggedNode.type;
+        
+        // Reset visual styles
         nodeElement.style.zIndex = '';
         nodeElement.classList.remove('dragging');
+        
+        // Reset transform and shadow to base state
+        const baseTransform = nodeType === 'diamond' ? 'rotate(45deg)' : 
+                             nodeType === 'parallelogram' ? 'skew(-20deg)' : '';
+        nodeElement.style.transform = baseTransform;
+        nodeElement.style.boxShadow = '';
+        
+        // Reset canvas cursor based on current tool
         this.gameContainer.style.cursor = this.currentTool === 'delete' ? 'not-allowed' : 
-                                         this.currentTool === 'arrow' ? 'crosshair' : 'default';
+                                         this.currentTool === 'arrow' ? 'crosshair' : 
+                                         this.currentTool === 'cursor' ? 'default' : 'default';
+        
+        // Show brief success feedback for cursor tool moves
+        if (this.currentTool === 'cursor') {
+            nodeElement.style.transition = 'all 0.2s ease';
+            setTimeout(() => {
+                nodeElement.style.transition = '';
+            }, 200);
+        }
         
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
@@ -1064,7 +1095,8 @@ class FlowByteGame {
     exitPlacementMode() {
         this.placementMode = null;
         this.gameContainer.style.cursor = this.currentTool === 'delete' ? 'not-allowed' : 
-                                         this.currentTool === 'arrow' ? 'crosshair' : 'default';
+                                         this.currentTool === 'arrow' ? 'crosshair' : 
+                                         this.currentTool === 'cursor' ? 'default' : 'default';
         
         // Remove placement highlighting
         const container = this.container;
@@ -1237,11 +1269,22 @@ class FlowByteGame {
                 break;
         }
 
-        // Add hover effects
+        // Add hover effects with cursor-specific feedback
         element.addEventListener('mouseenter', () => {
             if (!element.classList.contains('dragging')) {
                 element.style.transform += ' scale(1.05)';
                 element.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                
+                // Change cursor based on current tool when hovering over nodes
+                if (this.currentTool === 'cursor') {
+                    element.style.cursor = 'grab';
+                } else if (this.currentTool === 'arrow') {
+                    element.style.cursor = 'crosshair';
+                } else if (this.currentTool === 'delete') {
+                    element.style.cursor = 'not-allowed';
+                } else {
+                    element.style.cursor = 'pointer';
+                }
             }
         });
 
@@ -1251,6 +1294,7 @@ class FlowByteGame {
                                    type === 'parallelogram' ? 'skew(-20deg)' : '';
                 element.style.transform = baseTransform;
                 element.style.boxShadow = '';
+                element.style.cursor = 'inherit';
             }
         });
     }
@@ -1266,7 +1310,10 @@ class FlowByteGame {
         const container = this.container;
         container.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
         
-        if (tool === 'arrow') {
+        if (tool === 'cursor') {
+            const cursorBtn = container.querySelector('#cursor-tool-btn');
+            if (cursorBtn) cursorBtn.classList.add('active');
+        } else if (tool === 'arrow') {
             const arrowBtn = container.querySelector('#arrow-tool-btn');
             if (arrowBtn) arrowBtn.classList.add('active');
         } else if (tool === 'delete') {
@@ -1276,12 +1323,33 @@ class FlowByteGame {
         
         if (this.gameContainer) {
             this.gameContainer.style.cursor = tool === 'delete' ? 'not-allowed' : 
-                                             tool === 'arrow' ? 'crosshair' : 'default';
+                                             tool === 'arrow' ? 'crosshair' : 
+                                             tool === 'cursor' ? 'default' : 'default';
         }
+        
+        // Update cursor style for all existing nodes based on the new tool
+        this.updateNodeCursors();
         
         if (tool !== 'arrow') {
             this.clearConnectionSource();
         }
+    }
+
+    updateNodeCursors() {
+        // Update cursor style for all existing flowchart nodes based on current tool
+        const nodeElements = this.gameContainer?.querySelectorAll('.flowchart-node');
+        if (!nodeElements) return;
+
+        nodeElements.forEach(nodeElement => {
+            if (!nodeElement.classList.contains('dragging')) {
+                // Reset to default first
+                nodeElement.style.cursor = 'inherit';
+                
+                // Apply tool-specific cursor (this will be used in hover states via the mouseenter listener)
+                // The actual cursor change happens in the mouseenter event listener in applyNodeStyles
+                nodeElement.setAttribute('data-tool-cursor', this.currentTool);
+            }
+        });
     }
 
     getDefaultText(type) {
@@ -1346,6 +1414,7 @@ class FlowByteGame {
 
     handleNodeClick(node, event) {
         switch(this.currentTool) {
+            case 'cursor':
             case 'select':
                 this.selectNode(node);
                 break;

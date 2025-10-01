@@ -584,6 +584,11 @@
             font-size: 15px;
         }
 
+        #cursor-tool-btn .shape-preview {
+            font-size: 16px;
+            color: #ffffff;
+        }
+
         .tool-btn:hover {
             background-color: #495057;
             border-color: var(--text-light);
@@ -892,6 +897,12 @@
                 </div>
 
                 <nav class="shape-toolbar">
+                    <button class="tool-btn active" id="cursor-tool-btn" title="Select and move shapes around the canvas. Click and drag to reposition nodes.">
+                        <div class="shape-preview">
+                            <i class="bi bi-cursor"></i>
+                        </div>
+                        <span>Cursor<br>(Select/Move)</span>
+                    </button>
                     <button class="tool-btn" id="add-oval-btn">
                         <div class="shape-preview">
                             ⬭
@@ -916,7 +927,7 @@
                         </div>
                         <span>Parallelogram<br>(Input/Output)</span>
                     </button>
-                    <button class="tool-btn active" id="arrow-tool-btn">
+                    <button class="tool-btn" id="arrow-tool-btn">
                         <div class="shape-preview">
                             <i class="bi bi-arrow-right"></i>
                         </div>
