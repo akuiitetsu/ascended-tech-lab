@@ -1782,6 +1782,26 @@ main {
     font-weight: bold;
 }
 
+.form-group .input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.form-group .input-group .password-toggle {
+    position: absolute;
+    right: 15px;
+    cursor: pointer;
+    color: #10a1fa;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+    z-index: 2;
+}
+
+.form-group .input-group .password-toggle:hover {
+    color: #0d7ec9;
+}
+
 .form-group input {
     width: 100%;
     padding: 12px 15px;
