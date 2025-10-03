@@ -899,3 +899,28 @@ function loadProgressTracker() {
 window.addEventListener('load', function() {
     loadProgressTracker();
 });
+
+/* ============================================
+   PASSWORD VISIBILITY TOGGLE
+   ============================================ */
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = input.nextElementSibling;
+    
+    if (input && icon) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+            icon.setAttribute('title', 'Hide password');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+            icon.setAttribute('title', 'Show password');
+        }
+    }
+}
+
+// Make toggle function globally accessible
+window.togglePasswordVisibility = togglePasswordVisibility;

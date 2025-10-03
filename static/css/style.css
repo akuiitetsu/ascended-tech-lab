@@ -421,6 +421,20 @@ body {
     z-index: 1;
 }
 
+.input-group .password-toggle {
+    left: auto;
+    right: 15px;
+    cursor: pointer;
+    color: #10a1fa;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+    z-index: 2;
+}
+
+.input-group .password-toggle:hover {
+    color: #0d7ec9;
+}
+
 .input-group input {
     width: 100%;
     padding: 15px 15px 15px 45px;
