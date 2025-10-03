@@ -836,6 +836,344 @@
                 font-size: 9px;
                 height: 70px;
             }
+            
+            /* Difficulty screen mobile */
+            .difficulty-modal {
+                padding: 25px 20px;
+                margin: 10px;
+                max-width: 95%;
+            }
+            
+            .database-icon i {
+                font-size: 3rem;
+            }
+            
+            .modal-title {
+                font-size: 1.8rem;
+            }
+            
+            .modal-description {
+                font-size: 0.9rem;
+            }
+            
+            /* Level selection mobile */
+            .level-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .difficulty-modal {
+                padding: 20px 15px;
+                margin: 5px;
+            }
+            
+            .database-icon i {
+                font-size: 2.5rem;
+            }
+            
+            .modal-title {
+                font-size: 1.5rem;
+            }
+            
+            .difficulty-btn {
+                padding: 12px 16px;
+                font-size: 0.85rem;
+            }
+            
+            .lab-sidebar {
+                padding: 6px;
+            }
+            
+            #sql-editor {
+                font-size: 8px;
+                height: 60px;
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media screen and (max-height: 600px) and (orientation: landscape) {
+            .lab-container {
+                flex-direction: row;
+            }
+            
+            .lab-sidebar {
+                width: 260px;
+                max-height: calc(var(--vh, 1vh) * 100);
+                overflow-y: auto;
+            }
+            
+            .difficulty-modal {
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+        }
+
+        /* ============================================
+           ENHANCED RESPONSIVE DESIGN FRAMEWORK
+           Comprehensive support for all screen types
+           ============================================ */
+
+        /* Extra small devices (small phones, 320px - 360px) */
+        @media (max-width: 360px) {
+            body {
+                font-size: 14px;
+            }
+            
+            .difficulty-modal {
+                padding: 15px 10px;
+                margin: 5px;
+            }
+            
+            .database-icon i {
+                font-size: 2rem;
+            }
+            
+            .modal-title {
+                font-size: 1.3rem;
+            }
+            
+            .difficulty-btn {
+                font-size: 0.8rem;
+                padding: 10px 12px;
+            }
+            
+            #sql-editor {
+                font-size: 7px;
+                height: 50px;
+            }
+        }
+
+        /* Tablets in portrait (769px - 1024px) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .difficulty-modal {
+                max-width: 600px;
+                padding: 45px 55px;
+            }
+            
+            .lab-container {
+                flex-direction: row;
+            }
+            
+            .lab-sidebar {
+                width: 280px;
+                min-width: 280px;
+                max-height: calc(100vh - 40px);
+            }
+            
+            .lab-content {
+                width: calc(100vw - 300px);
+            }
+            
+            .level-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+            
+            #sql-editor {
+                font-size: 11px;
+                height: 100px;
+            }
+        }
+
+        /* Tablets in landscape */
+        @media (min-width: 1024px) and (orientation: landscape) and (max-height: 800px) {
+            .lab-sidebar {
+                max-height: calc(var(--vh, 1vh) * 95);
+                overflow-y: auto;
+            }
+        }
+
+        /* Laptops (1025px - 1440px) */
+        @media (min-width: 1025px) and (max-width: 1440px) {
+            .difficulty-modal {
+                max-width: 650px;
+            }
+            
+            .level-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 25px;
+            }
+            
+            .lab-sidebar {
+                width: 300px;
+                min-width: 300px;
+            }
+            
+            #sql-editor {
+                font-size: 12px;
+            }
+        }
+
+        /* Desktops (1441px - 1920px) */
+        @media (min-width: 1441px) and (max-width: 1920px) {
+            .difficulty-modal {
+                max-width: 700px;
+                padding: 50px 60px;
+            }
+            
+            .level-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 30px;
+            }
+            
+            .lab-sidebar {
+                width: 340px;
+                min-width: 340px;
+            }
+            
+            .database-icon i {
+                font-size: 5rem;
+            }
+            
+            .modal-title {
+                font-size: 2.5rem;
+            }
+            
+            #sql-editor {
+                font-size: 13px;
+                height: 150px;
+            }
+        }
+
+        /* Large displays (1921px+, TVs, projectors) */
+        @media (min-width: 1921px) {
+            body {
+                font-size: 18px;
+            }
+            
+            .difficulty-modal {
+                max-width: 900px;
+                padding: 60px 80px;
+            }
+            
+            .database-icon i {
+                font-size: 6rem;
+            }
+            
+            .modal-title {
+                font-size: 3rem;
+                margin-bottom: 30px;
+            }
+            
+            .modal-description {
+                font-size: 1.3rem;
+            }
+            
+            .difficulty-btn {
+                padding: 18px 30px;
+                font-size: 1.2rem;
+                min-height: 60px;
+            }
+            
+            .level-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 35px;
+            }
+            
+            .lab-sidebar {
+                width: 420px;
+                min-width: 420px;
+                padding: 25px;
+            }
+            
+            .lab-header h1 {
+                font-size: 2rem;
+            }
+            
+            #sql-editor {
+                font-size: 16px;
+                height: 200px;
+            }
+            
+            .btn {
+                padding: 16px 24px;
+                font-size: 1.1rem;
+                min-height: 56px;
+            }
+            
+            .challenge-workspace {
+                padding: 20px;
+            }
+        }
+
+        /* Ultra-wide displays (21:9 aspect ratio) */
+        @media (min-aspect-ratio: 21/9) {
+            .difficulty-modal {
+                max-width: 800px;
+            }
+            
+            .lab-container {
+                max-width: 2400px;
+                margin: 0 auto;
+            }
+            
+            .level-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Non-standard screens (smart refrigerators, tall kiosks) */
+        @media (max-width: 800px) and (min-height: 1000px) {
+            /* Portrait-oriented tall screens */
+            .difficulty-modal {
+                max-width: 90%;
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+            
+            .level-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .lab-container {
+                flex-direction: column;
+            }
+            
+            .lab-sidebar {
+                max-height: 350px;
+            }
+            
+            .lab-content {
+                min-height: 650px;
+            }
+            
+            .challenge-workspace {
+                min-height: 450px;
+            }
+        }
+
+        /* Touch optimization for all interactive elements */
+        @media (hover: none) and (pointer: coarse) {
+            /* Touch devices */
+            .difficulty-btn, .btn, .execute-btn, .clear-btn {
+                min-height: 48px;
+                padding: 14px 16px;
+            }
+            
+            .difficulty-btn:active,
+            .btn:active,
+            .execute-btn:active {
+                transform: scale(0.96);
+            }
+            
+            #sql-editor {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+        }
+
+        /* High DPI displays optimization */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .database-icon i {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            
+            #sql-editor {
+                -webkit-font-smoothing: antialiased;
+                text-rendering: optimizeLegibility;
+            }
         }
 
         /* Ensure content is always accessible */
