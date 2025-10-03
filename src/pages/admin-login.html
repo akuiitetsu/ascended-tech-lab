@@ -85,6 +85,26 @@
             font-size: 0.9rem;
         }
 
+        .form-group .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-group .input-group .password-toggle {
+            position: absolute;
+            right: 15px;
+            cursor: pointer;
+            color: var(--admin-primary);
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+            z-index: 2;
+        }
+
+        .form-group .input-group .password-toggle:hover {
+            color: #8a4aff;
+        }
+
         .form-input {
             padding: 15px 20px;
             background: rgba(255, 255, 255, 0.05);
@@ -93,6 +113,7 @@
             color: white;
             font-size: 1rem;
             transition: all 0.3s ease;
+            width: 100%;
         }
 
         .form-input:focus {
@@ -249,14 +270,17 @@
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    class="form-input" 
-                    placeholder="Enter your password"
-                    required
-                >
+                <div class="input-group">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="Enter your password"
+                        required
+                    >
+                    <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('password')" title="Show password"></i>
+                </div>
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">
@@ -379,6 +403,27 @@
         document.addEventListener('DOMContentLoaded', () => {
             new AdminLogin();
         });
+
+        // Password visibility toggle function
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling;
+            
+            if (input && icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                    icon.setAttribute('title', 'Hide password');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                    icon.setAttribute('title', 'Show password');
+                }
+            }
+        }
     </script>
 </body>
 </html>
+
