@@ -59,6 +59,7 @@
                         <div class="input-group">
                             <i class="bi bi-lock"></i>
                             <input type="password" id="password" placeholder="Password" required>
+                            <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('password')" title="Show/Hide Password"></i>
                         </div>
                         
                         <button type="submit" class="login-btn">
@@ -91,6 +92,7 @@
                         <div class="input-group">
                             <i class="bi bi-lock"></i>
                             <input type="password" id="regPassword" placeholder="Password" required>
+                            <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('regPassword')" title="Show/Hide Password"></i>
                         </div>
                         
                         <!-- Password Strength Indicator -->
@@ -112,6 +114,7 @@
                         <div class="input-group">
                             <i class="bi bi-lock-fill"></i>
                             <input type="password" id="regConfirmPassword" placeholder="Confirm Password" required>
+                            <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('regConfirmPassword')" title="Show/Hide Password"></i>
                         </div>
                         
                         <!-- Password Match Indicator -->

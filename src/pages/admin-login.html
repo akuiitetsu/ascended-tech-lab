@@ -106,6 +106,28 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        .password-toggle-admin {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--admin-primary);
+            cursor: pointer;
+            z-index: 2;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .password-toggle-admin:hover {
+            color: #ffffff;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .password-toggle-admin:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+
         .login-btn {
             background: linear-gradient(135deg, var(--admin-primary), #8a4aff);
             color: white;
@@ -249,14 +271,17 @@
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    class="form-input" 
-                    placeholder="Enter your password"
-                    required
-                >
+                <div style="position: relative;">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="Enter your password"
+                        required
+                    >
+                    <i class="bi bi-eye password-toggle-admin" onclick="togglePasswordVisibility('password')" title="Show/Hide Password"></i>
+                </div>
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">
@@ -372,6 +397,24 @@
             hideMessages() {
                 document.getElementById('errorMessage').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'none';
+            }
+        }
+
+        // Password visibility toggle function
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const toggleIcon = input.parentElement.querySelector('.password-toggle-admin');
+            
+            if (!input || !toggleIcon) return;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggleIcon.classList.remove('bi-eye');
+                toggleIcon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                toggleIcon.classList.remove('bi-eye-slash');
+                toggleIcon.classList.add('bi-eye');
             }
         }
 

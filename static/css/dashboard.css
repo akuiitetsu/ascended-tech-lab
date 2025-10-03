@@ -1805,6 +1805,29 @@ main {
     color: rgba(255, 255, 255, 0.5);
 }
 
+/* Password Toggle Icon for Dashboard */
+.password-toggle-dashboard {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #10a1fa;
+    cursor: pointer;
+    z-index: 2;
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+}
+
+.password-toggle-dashboard:hover {
+    color: #ffffff;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.password-toggle-dashboard:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+
 .modal-actions {
     display: flex;
     gap: 15px;

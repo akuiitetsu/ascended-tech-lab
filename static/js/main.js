@@ -814,6 +814,27 @@ window.addEventListener('resize', function() {
     }
 });
 
+/* ============================================
+   PASSWORD VISIBILITY TOGGLE FUNCTION
+   ============================================ */
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const toggleIcon = input.parentElement.querySelector('.password-toggle, .password-toggle-admin, .password-toggle-dashboard');
+    
+    if (!input || !toggleIcon) return;
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        toggleIcon.classList.remove('bi-eye');
+        toggleIcon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        toggleIcon.classList.remove('bi-eye-slash');
+        toggleIcon.classList.add('bi-eye');
+    }
+}
+
+
 // No profile management functions needed here - they're handled in dashboard.js
 
 // Make functions globally accessible
@@ -828,6 +849,7 @@ window.logout = logout;
 window.startGame = startGame;
 window.skipCutscene = skipCutscene;
 window.manualPlay = manualPlay;
+window.togglePasswordVisibility = togglePasswordVisibility;
 
 // No modal setup needed - profile functionality is in dashboard.js
 

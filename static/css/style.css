@@ -443,6 +443,27 @@ body {
     background: rgba(255, 255, 255, 0.15);
 }
 
+/* Password Toggle Icon */
+.password-toggle {
+    position: absolute;
+    right: 15px;
+    color: #10a1fa;
+    cursor: pointer;
+    z-index: 2;
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+}
+
+.password-toggle:hover {
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.password-toggle:active {
+    transform: scale(0.95);
+}
+
+
 .login-btn {
     padding: 15px;
     background: linear-gradient(135deg, #1E5299 0%, #A109F8 100%);
