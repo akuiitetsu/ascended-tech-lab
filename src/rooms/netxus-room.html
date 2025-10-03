@@ -180,12 +180,13 @@
             text-align: center;
             margin-bottom: 30px;
             position: relative;
-            padding: 0 60px;
         }
         
         .back-btn {
-            position: static;
-            margin: 0;
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
             background: rgba(0, 184, 216, 0.1);
             border: 2px solid var(--color-cyan);
             border-radius: 50%;
@@ -203,7 +204,7 @@
         
         .back-btn:hover {
             background: rgba(0, 184, 216, 0.2);
-            transform: scale(1.1);
+            transform: translateY(-50%) scale(1.1);
         }
         
         .level-header h1 {
