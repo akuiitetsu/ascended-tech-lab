@@ -350,7 +350,7 @@ async function handleRegister(event) {
     if (!passwordValidation.isValid) {
         const errorMessage = 'Password security requirements not met:\n\n• ' + 
             passwordValidation.errors.join('\n• ') + 
-            '\n\nPassword Requirements:\n• 12+ characters minimum\n• At least one uppercase letter (A-Z)\n• At least one lowercase letter (a-z)\n• At least one number (0-9)\n• At least one special character (!@#$%^&*)\n• No common weak patterns or sequential characters';
+            '\n\nPassword Requirements:\n• 12+ characters minimum\n• At least one uppercase letter (A-Z)\n• At least one lowercase letter (a-z)\n• At least one number (0-9)\n• At least one special character (!@#$%^&*)\n• No common sequences (e.g., "123456", "abc")\n• No common words (e.g., "password", "admin")\n• No repeated patterns (e.g., "abcabc", "111")';
         alert(errorMessage);
         return;
     }
@@ -514,21 +514,24 @@ function updateRequirements(password) {
 }
 
 function hasWeakPatterns(password) {
-    const commonPatterns = [
-        /123456/,
-        /password/i,
-        /qwerty/i,
-        /admin/i,
-        /letmein/i,
-        /welcome/i,
-        /^(.)\1{2,}/, // Repeated characters
-        /(.{2,})\1{2,}/ // Repeated sequences
-    ];
+    // Check for common number sequences
+    if (/123456|234567|345678|456789|567890|678901|789012|890123|901234|012345/.test(password)) {
+        return true;
+    }
     
-    for (let pattern of commonPatterns) {
-        if (pattern.test(password)) {
-            return true;
-        }
+    // Check for common words and patterns
+    if (/password|qwerty|admin|letmein|welcome/i.test(password)) {
+        return true;
+    }
+    
+    // Check for repeated characters (e.g., aaa, 111)
+    if (/^(.)\1{2,}/.test(password)) {
+        return true;
+    }
+    
+    // Check for repeated sequences (e.g., abcabc, 123123)
+    if (/(.{2,})\1{2,}/.test(password)) {
+        return true;
     }
     
     // Check for sequential characters

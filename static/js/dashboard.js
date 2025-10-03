@@ -1439,6 +1439,47 @@ function validatePasswordStrength(password) {
         errors.push('Password must contain at least one special character');
     }
     
+    // Check for common number sequences
+    if (/123456|234567|345678|456789|567890|678901|789012|890123|901234|012345/.test(password)) {
+        errors.push('Password should not contain common number sequences like "123456"');
+    }
+    
+    // Check for common words and patterns
+    if (/password/i.test(password)) {
+        errors.push('Password should not contain the word "password"');
+    }
+    
+    if (/qwerty/i.test(password)) {
+        errors.push('Password should not contain keyboard patterns like "qwerty"');
+    }
+    
+    if (/admin|letmein|welcome/i.test(password)) {
+        errors.push('Password should not contain common words like "admin", "letmein", or "welcome"');
+    }
+    
+    // Check for repeated characters (e.g., aaa, 111)
+    if (/^(.)\1{2,}/.test(password)) {
+        errors.push('Password should not start with repeated characters (e.g., "aaa" or "111")');
+    }
+    
+    // Check for repeated sequences (e.g., abcabc, 123123)
+    if (/(.{2,})\1{2,}/.test(password)) {
+        errors.push('Password should not contain repeated sequences (e.g., "abcabc" or "123123")');
+    }
+    
+    // Check for sequential characters
+    for (let i = 0; i < password.length - 2; i++) {
+        const char1 = password.charCodeAt(i);
+        const char2 = password.charCodeAt(i + 1);
+        const char3 = password.charCodeAt(i + 2);
+        
+        if ((char2 === char1 + 1 && char3 === char2 + 1) || 
+            (char2 === char1 - 1 && char3 === char2 - 1)) {
+            errors.push('Password should not contain 3 or more sequential characters (e.g., "abc", "123", "xyz", or "987")');
+            break;
+        }
+    }
+    
     return errors;
 }
 

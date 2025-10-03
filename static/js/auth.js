@@ -36,22 +36,30 @@ class AuthService {
         }
         
         // Check for common weak patterns
-        const commonPatterns = [
-            /123456/,
-            /password/i,
-            /qwerty/i,
-            /admin/i,
-            /letmein/i,
-            /welcome/i,
-            /^(.)\1{2,}/, // Repeated characters (e.g., aaa, 111)
-            /(.{2,})\1{2,}/ // Repeated sequences (e.g., abcabc, 123123)
-        ];
+        if (/123456|234567|345678|456789|567890|678901|789012|890123|901234|012345/.test(password)) {
+            errors.push('Password should not contain common number sequences like "123456"');
+        }
         
-        for (let pattern of commonPatterns) {
-            if (pattern.test(password)) {
-                errors.push('Password contains common weak patterns. Please choose a more unique password');
-                break;
-            }
+        if (/password/i.test(password)) {
+            errors.push('Password should not contain the word "password"');
+        }
+        
+        if (/qwerty/i.test(password)) {
+            errors.push('Password should not contain keyboard patterns like "qwerty"');
+        }
+        
+        if (/admin|letmein|welcome/i.test(password)) {
+            errors.push('Password should not contain common words like "admin", "letmein", or "welcome"');
+        }
+        
+        // Check for repeated characters (e.g., aaa, 111)
+        if (/^(.)\1{2,}/.test(password)) {
+            errors.push('Password should not start with repeated characters (e.g., "aaa" or "111")');
+        }
+        
+        // Check for repeated sequences (e.g., abcabc, 123123)
+        if (/(.{2,})\1{2,}/.test(password)) {
+            errors.push('Password should not contain repeated sequences (e.g., "abcabc" or "123123")');
         }
         
         // Check for sequential characters
@@ -69,7 +77,7 @@ class AuthService {
         }
         
         if (hasSequential) {
-            errors.push('Password should not contain sequential characters (e.g., abc, 123, xyz)');
+            errors.push('Password should not contain 3 or more sequential characters (e.g., "abc", "123", "xyz", or "987")');
         }
         
         return {
