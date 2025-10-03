@@ -664,7 +664,6 @@ header {
 
 .loading-screen i {
     font-size: 3rem;
-    animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
