@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title> AscendEd: Tech Lab Breakout </title>
+        <link rel="stylesheet" href="static/css/main.css">
+        <link rel="stylesheet" href="static/css/style.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+        <script type="module" src="static/js/main.js"></script>
+
+    </head>
+    <body>
+        <!-- User Log In -->
+        <div class="user-login" id="loginScreen">
+            <div class="login-container">
+                <div class="login-icon">
+                    <i class="bi bi-shield-lock"></i>
+                </div>
+                
+                <!-- Data Privacy Notice -->
+                <div class="privacy-notice">
+                    <div class="privacy-header">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Data Privacy Notice</span>
+                    </div>
+                    <div class="privacy-content">
+                        <p>
+                            <strong>Educational Use:</strong> Your data will be used solely for educational purposes 
+                            as part of a capstone project. We collect minimal information (username, email, and 
+                            learning progress) to provide you with a personalized learning experience.
+                        </p>
+                        <p>
+                            <strong>Data Security:</strong> All data is securely stored and will not be shared with 
+                            third parties. Your privacy is our priority.
+                        </p>
+                        <p class="privacy-highlight">
+                            <i class="bi bi-info-circle"></i>
+                            By creating an account or logging in, you consent to the educational use of your data 
+                            for this capstone project.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Login Form -->
+                <div class="auth-form" id="loginForm">
+                    <h2> Access Terminal </h2>
+                    <p> Enter your credentials to access AscendEd Tech Lab </p>
+                    <p style="color: #FFB347; font-size: 0.9rem; margin-bottom: 20px; font-style: italic;">
+                        💻 Best experience on PC/Laptop
+                    </p>
+                    
+                    <form class="login-form" onsubmit="handleLogin(event)">
+                        <div class="input-group">
+                            <i class="bi bi-person"></i>
+                            <input type="text" id="username" placeholder="Username" required>
+                        </div>
+                        
+                        <div class="input-group">
+                            <i class="bi bi-lock"></i>
+                            <input type="password" id="password" placeholder="Password" required>
+                            <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('password')" title="Show password"></i>
+                        </div>
+                        
+                        <button type="submit" class="login-btn">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            Access Lab
+                        </button>
+                    </form>
+                    
+                    <div class="auth-switch">
+                        <p> Don't have an account? <a href="#" onclick="toggleAuthMode()">Register here</a></p>
+                    </div>
+                </div>
+
+                <!-- Register Form -->
+                <div class="auth-form" id="registerForm" style="display: none;">
+                    <h2> Create Account </h2>
+                    <p> Register to access AscendEd Tech Lab </p>
+                    
+                    <form class="login-form" onsubmit="handleRegister(event)">
+                        <div class="input-group">
+                            <i class="bi bi-person"></i>
+                            <input type="text" id="regUsername" placeholder="Username" required>
+                        </div>
+                        
+                        <div class="input-group">
+                            <i class="bi bi-envelope"></i>
+                            <input type="email" id="regEmail" placeholder="Email" required>
+                        </div>
+                        
+                        <div class="input-group">
+                            <i class="bi bi-lock"></i>
+                            <input type="password" id="regPassword" placeholder="Password" required>
+                            <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('regPassword')" title="Show password"></i>
+                        </div>
+                        
+                        <!-- Password Strength Indicator -->
+                        <div class="password-strength-container" id="passwordStrengthContainer" style="display: none;">
+                            <div class="password-strength-meter">
+                                <div class="strength-bar" id="strengthBar"></div>
+                            </div>
+                            <div class="password-strength-text" id="strengthText">Password strength: None</div>
+                            <div class="password-requirements" id="passwordRequirements">
+                                <div class="requirement" id="reqLength">✗ At least 12 characters</div>
+                                <div class="requirement" id="reqUppercase">✗ One uppercase letter (A-Z)</div>
+                                <div class="requirement" id="reqLowercase">✗ One lowercase letter (a-z)</div>
+                                <div class="requirement" id="reqNumber">✗ One number (0-9)</div>
+                                <div class="requirement" id="reqSpecial">✗ One special character (!@#$%^&*)</div>
+                                <div class="requirement" id="reqPatterns">✗ No common sequences or patterns (e.g., "123456", "password")</div>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <i class="bi bi-lock-fill"></i>
+                            <input type="password" id="regConfirmPassword" placeholder="Confirm Password" required>
+                            <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('regConfirmPassword')" title="Show password"></i>
+                        </div>
+                        
+                        <!-- Password Match Indicator -->
+                        <div class="password-match-indicator" id="passwordMatchIndicator" style="display: none;"></div>
+                        
+                        <!-- Consent Checkbox -->
+                        <div class="consent-checkbox">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="dataConsentCheckbox" required>
+                                <span class="checkmark"></span>
+                                <span class="consent-text">
+                                    I agree to the educational use of my data for this capstone project and understand that my information will be used solely for learning purposes.
+                                </span>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="login-btn">
+                            <i class="bi bi-person-plus"></i>
+                            Create Account
+                        </button>
+                    </form>
+                    
+                    <div class="auth-switch">
+                        <p> Already have an account? <a href="#" onclick="toggleAuthMode()"> Login here </a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen" style="display: none;">
+            <div class="welcome-icon">
+                <i class="bi bi-cpu"></i>
+            </div>
+
+            <div class="welcome-text">
+                <h1> AscendEd </h1>
+                <h2> Tech Lab Breakout </h2>
+                <p>
+                    A Gamified Learning Simulation for Mastering Technical
+                    Skills - Only A True Tech Master Can Escape!
+                </p>
+            </div>
+
+            <div class="welcome-button">
+                <a href="#" class="start-btn" onclick="startGame(event)"> <i class="bi bi-play"></i> Link Start! </a>
+            </div>
+
+            <button class="help-btn" onclick="toggleHelp()">
+                <i class="bi bi-question-circle"></i>
+            </button>
+
+            <!-- Help Panel -->
+            <div class="help-panel" id="helpPanel">
+                <div class="help-header">
+                    <h3> Help & Information </h3>
+                    <button class="close-help" onclick="toggleHelp()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+
+                <div class="help-content">
+                    <h4> About AscendEd </h4>
+                    <p>
+                        Welcome to Tech Lab Breakout! This is a gamified learning 
+                        simulation designed to help you master technical skills.
+                    </p>
+                    
+                    <h4> How to Play </h4>
+                    <ul>
+                        <li> Click "Link Start!" to begin your journey </li>
+                        <li> Complete challenges to advance through levels </li>
+                        <li> Use your technical knowledge to escape the lab </li>
+                    </ul>
+                    
+                    <h4> Tips </h4>
+                    <ul>
+                        <li> Read each challenge carefully </li>
+                        <li> Think like a true tech master </li>
+                        <li> Don't give up - every expert was once a beginner! </li>
+                    </ul>
+                    
+                    <h4> Data Privacy </h4>
+                    <p style="font-size: 0.9rem; color: #FFB347;">
+                        This platform is part of an educational capstone project. Your data 
+                        (username, email, and learning progress) is used solely for educational 
+                        purposes and research. We prioritize your privacy and do not share your 
+                        information with third parties.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intro Cutscene -->
+        <div class="cutscene-screen" id="cutsceneScreen" style="display: none;">
+            <video id="introCutscene" class="cutscene-video" preload="auto">
+                <source src="static/video/intro-cutscene.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            
+            <div class="cutscene-controls">
+                <button class="skip-btn" onclick="skipCutscene()">
+                    <i class="bi bi-fast-forward"></i>
+                    Skip Intro
+                </button>
+                
+                <span class="skip-hint">
+                    <i class="bi bi-keyboard"></i>
+                    Press SPACE to skip
+                </span>
+
+                <div class="cutscene-progress">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+            
+            <div class="cutscene-overlay" id="cutsceneOverlay">
+                <div class="loading-spinner">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <p>Loading cutscene...</p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
