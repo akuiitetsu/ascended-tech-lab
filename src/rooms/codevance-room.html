@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>CODEVANCE - Programming Challenge Lab</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../../static/css/responsive-framework.css">
+    <style>
+        :root {
+            --bg-main: #0f0f23;
+            --bg-panel: #1a1a2e;
+            --bg-canvas: #16213e;
+            --color-programming: #9333ea;
+            --color-programming-light: #a855f7;
+            --color-programming-dark: #7c3aed;
+            --color-success: #00ff88;
+            --color-warning: #ffaa00;
+            --color-error: #ff4444;
+            --color-info: #00aaff;
+            --text-light: #ffffff;
+            --text-muted: #cccccc;
+            --border-color: #444;
+            --vh: 1vh; /* Mobile viewport height */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(147, 51, 234, 0.3);
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Allow text selection for code and inputs */
+        .challenge-code, input, textarea, .selectable {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
+            -webkit-text-size-adjust: 100%;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+            background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-panel) 100%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ============================================
+           MOBILE RESPONSIVENESS FRAMEWORK
+           ============================================ */
+
+        /* Touch-friendly buttons */
+        button, .btn, .difficulty-btn, .option-btn, .action-btn {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            font-size: 16px;
+        }
+
+        /* Touch feedback */
+        button:active, .btn:active, .difficulty-btn:active, .option-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Mobile text sizes */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.3rem; }
+            h3 { font-size: 1.1rem; }
+            p, span, div { font-size: 0.9rem; line-height: 1.4; }
+            .challenge-code { font-size: 13px; }
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.3rem; }
+            h2 { font-size: 1.1rem; }
+            h3 { font-size: 1rem; }
+            p, span, div { font-size: 0.85rem; }
+            .challenge-code { font-size: 12px; }
+        }
+
+        /* Mobile grid layouts */
+        .mobile-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .mobile-grid.tablet-cols-2 { grid-template-columns: repeat(2, 1fr); }
+            .mobile-grid.tablet-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-grid.desktop-cols-3 { grid-template-columns: repeat(3, 1fr); }
+            .mobile-grid.desktop-cols-4 { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        /* Scrollable areas with momentum */
+        .scrollable {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* ============================================
+           END MOBILE FRAMEWORK
+           ============================================ */
+
+        /* Difficulty Selection Screen */
+        .codevance-difficulty-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #2d1447 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            padding: 20px;
+        }
+
+        .difficulty-container {
+            text-align: center;
+            background: rgba(26, 26, 46, 0.9);
+            border: 2px solid var(--color-programming);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 0 50px rgba(147, 51, 234, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .difficulty-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .difficulty-btn {
+            background: linear-gradient(45deg, var(--color-programming-dark), var(--color-programming));
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            min-height: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(147, 51, 234, 0.4);
+        }
+
+        /* Mobile responsive difficulty screen */
+        @media (max-width: 768px) {
+            .difficulty-container {
+                padding: 30px 20px;
+                margin: 0 10px;
+            }
+            
+            .difficulty-buttons {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                margin-top: 25px;
+            }
+            
+            .difficulty-btn {
+                min-height: 50px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .difficulty-container {
+                padding: 25px 15px;
+                border-radius: 15px;
+            }
+            
+            .difficulty-btn {
+                min-height: 48px;
+                font-size: 15px;
+            }
+        }
+
+        .difficulty-modal {
+            background: rgba(42, 42, 62, 0.95);
+            border: 2px solid var(--color-programming);
+            border-radius: 20px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(147, 51, 234, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .programming-icon {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .programming-icon i {
+            font-size: 4rem;
+            color: var(--color-programming);
+            animation: pulse-programming 2s infinite;
+        }
+
+        @keyframes pulse-programming {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .modal-title {
+            color: var(--text-light);
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-description {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.4;
+            margin: 0 0 30px 0;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .difficulty-btn {
+            width: 100%;
+            padding: 12px 25px;
+            font-size: 0.95em;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .easy-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .easy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .hard-btn {
+            background: linear-gradient(135deg, var(--color-programming), var(--color-programming-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3);
+        }
+
+        .hard-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.4);
+        }
+
+        /* Level Selection Screen */
+        .codevance-room {
+            padding: 30px 20px;
+            color: white;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            height: 100%;
+            position: relative;
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .level-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--color-programming);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: var(--color-programming);
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-btn:hover {
+            background: rgba(147, 51, 234, 0.2);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .level-header h1 {
+            font-size: 2.5rem;
+            color: var(--color-programming);
+            margin: 0;
+        }
+
+        .level-header p {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin: 8px 0 0 0;
+        }
+
+        .level-selection h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--text-light);
+            font-size: 1.5rem;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .level-card {
+            background: rgba(147, 51, 234, 0.1);
+            border: 2px solid #333;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .level-card:hover {
+            border-color: var(--color-programming);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(147, 51, 234, 0.2);
+        }
+
+        .level-number {
+            background: linear-gradient(135deg, var(--color-programming), var(--color-programming-dark));
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .concepts-list {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--color-programming-light);
+        }
+
+        /* Lab Interface Screen */
+        .lab-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            padding: 8px;
+            gap: 8px;
+            background: var(--bg-main);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .lab-sidebar {
+            width: 280px;
+            min-width: 260px;
+            max-width: 320px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 2px solid var(--color-programming);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .lab-header {
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--color-programming);
+            position: relative;
+        }
+
+        .lab-header .programming-icon {
+            font-size: 1.8rem;
+            color: var(--color-programming);
+            margin-bottom: 8px;
+        }
+
+        .lab-header h1 {
+            color: var(--color-programming);
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+
+        .back-to-levels {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--color-error);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-to-levels:hover {
+            background: #cc3333;
+        }
+
+        .lab-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: rgba(147, 51, 234, 0.1);
+            border: 1px solid var(--color-programming);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .stat-box span:first-child {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .stat-box .value {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--color-programming);
+        }
+
+        .lab-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-complete { background: var(--color-success); color: white; }
+        .btn-hint { background: var(--color-info); color: white; }
+        .btn-reset { background: var(--color-warning); color: white; }
+        .btn-back { background: var(--color-error); color: white; }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .code-tutor-panel {
+            background: rgba(147, 51, 234, 0.05);
+            border: 1px solid var(--color-programming);
+            border-radius: 8px;
+            padding: 12px;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-tutor-panel h3 {
+            color: var(--color-programming);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1rem;
+        }
+
+        .code-message {
+            background: rgba(147, 51, 234, 0.1);
+            border-left: 3px solid var(--color-programming);
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-radius: 0 6px 6px 0;
+            font-style: italic;
+            font-size: 0.85rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0 0 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-programming), var(--color-programming-light));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Main Content Area */
+        .lab-content {
+            width: calc(100vw - 300px);
+            max-width: calc(100vw - 300px);
+            min-width: 400px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 2px solid var(--color-programming);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+            height: calc(100vh - 16px);
+            flex-shrink: 1;
+        }
+
+        .challenge-workspace {
+            flex: 1;
+            min-height: 0;
+            background: var(--bg-canvas);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        .challenge-interface {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 100%;
+        }
+
+        .challenge-interface.active {
+            display: flex;
+        }
+
+        .challenge-header {
+            background: rgba(147, 51, 234, 0.1);
+            border: 1px solid var(--color-programming);
+            border-radius: 6px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .challenge-header h3 {
+            color: var(--color-programming);
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        .requirements-panel {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--color-success);
+            border-radius: 6px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .requirements-panel h4 {
+            color: var(--color-success);
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .code-workspace {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .editor-header h4 {
+            color: var(--color-programming);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .run-btn {
+            background: var(--color-programming);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .run-btn:hover {
+            background: var(--color-programming-dark);
+            transform: translateY(-1px);
+        }
+
+        .clear-btn {
+            background: var(--color-warning);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .clear-btn:hover {
+            background: #e6a100;
+            transform: translateY(-1px);
+        }
+
+        #code-editor {
+            width: 100%;
+            height: 140px;
+            max-height: 180px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Courier New', 'Monaco', monospace;
+            font-size: 11px;
+            resize: vertical;
+            min-height: 100px;
+            tab-size: 4;
+            box-sizing: border-box;
+            line-height: 1.2;
+        }
+
+        #code-editor:focus {
+            outline: none;
+            border-color: var(--color-programming);
+            box-shadow: 0 0 6px rgba(147, 51, 234, 0.3);
+        }
+
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .output-panel, .validation-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            overflow-y: auto;
+            min-height: 100px;
+            max-height: 180px;
+        }
+
+        .output-panel h5, .validation-panel h5 {
+            color: var(--color-programming);
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        #html-preview {
+            width: 100%;
+            height: 200px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+        }
+
+        #python-output {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            min-height: 120px;
+            white-space: pre-wrap;
+            font-size: 10px;
+            border-radius: 4px;
+            overflow-y: auto;
+        }
+
+        /* Syntax highlighting */
+        .html-syntax { color: #d4d4d4; }
+        .python-syntax { color: #d4d4d4; }
+
+        /* CODEVANCE Specific Responsive Enhancements */
+        
+        /* Code editor optimizations for different screen sizes */
+        @media (min-width: 1920px) {
+            #code-editor {
+                height: 200px;
+                max-height: 250px;
+                font-size: 14px;
+            }
+            
+            .results-section {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+            
+            .output-panel, .validation-panel {
+                max-height: 220px;
+            }
+        }
+        
+        /* Ultra-wide screen optimizations */
+        @media (min-width: 2560px) {
+            .lab-container {
+                max-width: 2400px;
+                margin: 0 auto;
+                gap: 25px;
+            }
+            
+            .results-section {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+            }
+            
+            #code-editor {
+                height: 250px;
+                font-size: 16px;
+            }
+        }
+        
+        /* Refrigerator and smart appliance displays */
+        @media screen and (max-height: 800px) and (min-width: 600px) and (max-width: 1200px) {
+            .codevance-difficulty-screen {
+                padding: 10px;
+            }
+            
+            .difficulty-container {
+                padding: 20px;
+                max-width: 80%;
+            }
+            
+            .programming-icon i {
+                font-size: 2rem;
+            }
+            
+            .difficulty-btn {
+                min-height: 40px;
+                font-size: 0.9rem;
+                padding: 8px 16px;
+            }
+            
+            .lab-container {
+                padding: 5px;
+                gap: 5px;
+            }
+            
+            .lab-sidebar {
+                width: 240px;
+                min-width: 240px;
+                padding: 10px;
+            }
+            
+            #code-editor {
+                height: 120px;
+                font-size: 10px;
+            }
+            
+            .results-section {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+        
+        /* Aspect ratio optimizations */
+        @media (aspect-ratio: 4/3) {
+            .lab-container {
+                gap: 12px;
+                padding: 12px;
+            }
+            
+            .lab-sidebar {
+                width: 300px;
+                min-width: 300px;
+            }
+            
+            .results-section {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (aspect-ratio: 21/9), (aspect-ratio: 32/9) {
+            .lab-container {
+                max-width: 85%;
+                margin: 0 auto;
+            }
+            
+            .results-section {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 25px;
+            }
+            
+            .level-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                max-width: 1800px;
+            }
+        }
+        
+        /* Touch device specific optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            #code-editor {
+                font-size: 16px; /* Prevent zoom on iOS */
+                min-height: 180px;
+            }
+            
+            .run-btn, .clear-btn {
+                min-height: 48px;
+                min-width: 80px;
+                font-size: 16px;
+            }
+            
+            .difficulty-btn:active, .level-card:active {
+                transform: scale(0.95);
+                filter: brightness(1.2);
+            }
+        }
+        
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .difficulty-modal, .lab-sidebar, .lab-content {
+                backdrop-filter: blur(20px);
+            }
+            
+            #code-editor {
+                border-width: 2px;
+            }
+        }
+        
+        /* Fold and foldable displays */
+        @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+            .lab-container {
+                flex-direction: column;
+            }
+            
+            .lab-sidebar {
+                width: 100%;
+                max-height: 40vh;
+                order: 1;
+            }
+            
+            .lab-content {
+                order: 2;
+                min-height: 60vh;
+            }
+            
+            #code-editor {
+                height: 150px;
+            }
+            
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* TV remote control navigation */
+        @media (min-width: 1920px) {
+            .difficulty-btn:focus, .level-card:focus, .btn:focus {
+                outline: 4px solid var(--color-programming);
+                outline-offset: 4px;
+                transform: scale(1.05);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Difficulty Selection Screen -->
+        <div id="difficulty-screen" class="codevance-difficulty-screen">
+            <div class="difficulty-modal">
+                <div class="programming-icon">
+                    <i class="bi bi-code-slash"></i>
+                </div>
+                
+                <h1 class="modal-title">CODEVANCE</h1>
+                
+                <p class="modal-description">
+                    Programming Challenge Lab<br>
+                    Master HTML/CSS and Python fundamentals!
+                </p>
+                
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn easy-btn" id="easy-difficulty-btn">
+                        EASY MODE (HTML/CSS)
+                    </button>
+                    <button class="difficulty-btn hard-btn" id="hard-difficulty-btn">
+                        HARD MODE (PYTHON)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Selection Screen -->
+        <div id="level-screen" class="codevance-room hidden">
+            <div class="level-header">
+                <button class="back-btn" id="back-to-difficulty-btn">
+                    <i class="bi bi-arrow-left-circle"></i>
+                </button>
+                <h1 id="difficulty-title">CODEVANCE</h1>
+                <p id="difficulty-description"></p>
+            </div>
+            <div class="level-selection">
+                <h2>Select Programming Challenge</h2>
+                <div class="level-grid" id="level-grid">
+                    <!-- Level cards will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Lab Interface Screen -->
+        <div id="game-screen" class="lab-container hidden">
+            <aside class="lab-sidebar">
+                <header class="lab-header">
+                    <div class="programming-icon">
+                        <i class="bi bi-code-slash"></i>
+                    </div>
+                    <h1>CODEVANCE Lab</h1>
+                    <button class="back-to-levels" id="back-to-levels-btn">← Challenges</button>
+                </header>
+
+                <section class="lab-stats">
+                    <div class="stat-box">
+                        <span>Current Challenge</span>
+                        <span class="value" id="current-challenge-display">1/5</span>
+                    </div>
+                    <div class="stat-box">
+                        <span>Progress</span>
+                        <span class="value" id="challenge-progress">0%</span>
+                    </div>
+                </section>
+
+                <section class="lab-controls">
+                    <button class="btn btn-complete" id="validate-solution-btn">✓ Validate</button>
+                    <button class="btn btn-hint" id="get-hint-btn">💡 Hint</button>
+                    <button class="btn btn-reset" id="reset-challenge-btn">🔄 Reset</button>
+                    <button class="btn btn-back" id="abort-mission-btn">✗ Abort</button>
+                </section>
+
+                <section class="code-tutor-panel">
+                    <h3>
+                        <i class="bi bi-code-slash"></i>
+                        Code Tutor
+                    </h3>
+                    <div id="code-conversation">
+                        <div class="code-message" id="code-current-message">
+                            Welcome to CODEVANCE! Let's learn programming fundamentals through hands-on challenges.
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="tutor-progress" style="width: 0%"></div>
+                    </div>
+                </section>
+            </aside>
+
+            <main class="lab-content">
+                <div class="challenge-workspace" id="challenge-workspace">
+                    <!-- Challenge interfaces will be loaded here -->
+                    <div class="challenge-interface active" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted);">
+                        <div style="text-align: center;">
+                            <div class="programming-icon" style="font-size: 3rem; margin-bottom: 20px;">
+                                <i class="bi bi-code-slash"></i>
+                            </div>
+                            <h3>Select a Challenge to Begin</h3>
+                            <p>Choose a difficulty level and challenge from the sidebar to start coding!</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Load responsive framework and CODEVANCE JavaScript -->
+    <script src="../../static/js/responsive-manager.js"></script>
+    <script src="../../static/js/codevance-game.js"></script>
+    
+    <script>
+        // Initialize mobile enhancements for CODEVANCE
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile viewport handling
+            function setViewportHeight() {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+            
+            setViewportHeight();
+            window.addEventListener('resize', setViewportHeight);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(setViewportHeight, 100);
+            });
+            
+            // Add mobile device classes
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isTablet = /iPad|Android(?!.*Mobile)/i.test(navigator.userAgent);
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            if (isMobile) document.body.classList.add('mobile-device');
+            if (isTablet) document.body.classList.add('tablet-device');
+            if (isTouchDevice) document.body.classList.add('touch-device');
+            
+            // Enhanced touch feedback for interactive elements
+            const interactiveElements = document.querySelectorAll('.difficulty-btn, .challenge-btn, .option-btn, button, .btn');
+            
+            interactiveElements.forEach(element => {
+                element.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.95)';
+                    this.style.filter = 'brightness(1.2)';
+                    this.style.transition = 'all 0.1s ease';
+                });
+                
+                element.addEventListener('touchend', function() {
+                    setTimeout(() => {
+                        this.style.transform = '';
+                        this.style.filter = '';
+                        this.style.transition = 'all 0.2s ease';
+                    }, 100);
+                });
+            });
+            
+            // Prevent zoom on inputs
+            const inputs = document.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                if (input.type !== 'file') {
+                    input.style.fontSize = '16px';
+                }
+            });
+            
+            console.log('CODEVANCE mobile enhancements initialized');
+        });
+        
+        console.log('CODEVANCE room HTML loaded and ready for command center integration');
+    </script>
+</body>
+</html>

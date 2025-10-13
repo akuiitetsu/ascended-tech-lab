@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - AscendEd Tech Lab</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --admin-primary: #A069FF;
+            --admin-secondary: #10a1fa;
+            --admin-dark: #0D1A2C;
+            --admin-panel: #1a2332;
+            --admin-success: #4CAF50;
+            --admin-warning: #FFC107;
+            --admin-danger: #FF5252;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0D1A2C 0%, #09398E 50%, #A109F8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .login-container {
+            background: rgba(26, 35, 50, 0.95);
+            border: 2px solid var(--admin-primary);
+            border-radius: 20px;
+            padding: 40px 50px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(160, 105, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .admin-icon {
+            font-size: 4rem;
+            color: var(--admin-primary);
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: white;
+        }
+
+        .login-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-group .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-group .input-group .password-toggle {
+            position: absolute;
+            right: 15px;
+            cursor: pointer;
+            color: var(--admin-primary);
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+            z-index: 2;
+        }
+
+        .form-group .input-group .password-toggle:hover {
+            color: #8a4aff;
+        }
+
+        .form-input {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(160, 105, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+            box-shadow: 0 0 20px rgba(160, 105, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, var(--admin-primary), #8a4aff);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(160, 105, 255, 0.4);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--admin-danger);
+            color: var(--admin-danger);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid var(--admin-success);
+            color: var(--admin-success);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .back-link a {
+            color: var(--admin-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .demo-credentials {
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid var(--admin-warning);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+        }
+
+        .demo-credentials h4 {
+            color: var(--admin-warning);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .demo-credentials p {
+            margin: 5px 0;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 20px;
+                padding: 30px 25px;
+            }
+            
+            .login-title {
+                font-size: 1.5rem;
+            }
+            
+            .admin-icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="bi bi-shield-lock admin-icon"></i>
+            <h1 class="login-title">Admin Access</h1>
+            <p class="login-subtitle">AscendEd Technology Lab</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="username">Username or Email</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-input" 
+                    placeholder="Enter your admin username"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-group">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="Enter your password"
+                        required
+                    >
+                    <i class="bi bi-eye password-toggle" onclick="togglePasswordVisibility('password')" title="Show password"></i>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span class="loading-spinner" id="loadingSpinner"></span>
+                <span id="loginBtnText">Login to Admin Panel</span>
+            </button>
+        </form>
+
+        <div class="demo-credentials">
+            <h4>🚨 Demo Credentials</h4>
+            <p><strong>Username:</strong> admin</p>
+            <p><strong>Password:</strong> admin123</p>
+            <p><em>Change these credentials in production!</em></p>
+        </div>
+
+        <div class="back-link">
+            <a href="/index.html">← Back to Main Site</a>
+        </div>
+    </div>
+
+    <script>
+        class AdminLogin {
+            constructor() {
+                this.apiBaseUrl = '/api';
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const form = document.getElementById('loginForm');
+                form.addEventListener('submit', (e) => this.handleLogin(e));
+            }
+
+            async handleLogin(event) {
+                event.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    this.showError('Please enter both username and password');
+                    return;
+                }
+
+                this.setLoading(true);
+                this.hideMessages();
+
+                try {
+                    // Use regular login endpoint first
+                    const response = await fetch(`${this.apiBaseUrl}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Check if user is admin
+                        if (data.user.role === 'admin') {
+                            // Store user data
+                            localStorage.setItem('currentUser', data.user.username);
+                            localStorage.setItem('currentEmail', data.user.email);
+                            localStorage.setItem('userRole', data.user.role);
+                            localStorage.setItem('userId', data.user.id);
+                            localStorage.setItem('totalScore', data.user.total_score);
+                            localStorage.setItem('currentStreak', data.user.current_streak);
+                            localStorage.setItem('isAdmin', 'true');
+                            
+                            this.showSuccess('Admin login successful! Redirecting...');
+                            
+                            // Redirect to admin dashboard
+                            setTimeout(() => {
+                                window.location.href = '/src/pages/dashboard/admin-dashboard.html';
+                            }, 1000);
+                        } else {
+                            this.showError('Access denied. Admin privileges required.');
+                        }
+                    } else {
+                        this.showError(data.error || 'Login failed');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showError('Network error. Please try again.');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            setLoading(loading) {
+                const loginBtn = document.getElementById('loginBtn');
+                const spinner = document.getElementById('loadingSpinner');
+                const btnText = document.getElementById('loginBtnText');
+
+                loginBtn.disabled = loading;
+                spinner.style.display = loading ? 'inline-block' : 'none';
+                btnText.textContent = loading ? 'Logging in...' : 'Login to Admin Panel';
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+
+            showSuccess(message) {
+                const successDiv = document.getElementById('successMessage');
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            }
+
+            hideMessages() {
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+            }
+        }
+
+        // Initialize admin login when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AdminLogin();
+        });
+
+        // Password visibility toggle function
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling;
+            
+            if (input && icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                    icon.setAttribute('title', 'Hide password');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                    icon.setAttribute('title', 'Show password');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

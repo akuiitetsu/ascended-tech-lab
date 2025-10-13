@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AscendEd - Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="admin-header">
+        <div class="header-left">
+            <i class="bi bi-shield-lock"></i>
+            <h1>AscendEd Admin</h1>
+            <div class="system-status" id="systemStatus">
+                <span class="status-indicator healthy"></span>
+                <span class="status-text">System Healthy</span>
+            </div>
+        </div>
+        <div class="admin-info">
+            <div class="admin-details">
+                <span class="admin-name" id="adminName">Loading...</span>
+                <span class="admin-role">Super Admin</span>
+            </div>
+            <div class="admin-actions">
+                <button class="notification-btn" onclick="toggleNotifications()">
+                    <i class="bi bi-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">3</span>
+                </button>
+                <button class="admin-menu-btn" onclick="toggleAdminMenu()">
+                    <i class="bi bi-person-gear"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-layout">
+        <nav class="admin-sidebar">
+            <div class="nav-section">
+                <h3>🔐 Management</h3>
+                <ul>
+                    <li class="nav-item active" data-section="dashboard">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="nav-item" data-section="users">
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
+                        <span class="nav-badge" id="usersBadge">0</span>
+                    </li>
+                    <li class="nav-item" data-section="analytics">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Analytics</span>
+                    </li>
+                    <li class="nav-item" data-section="progress">
+                        <i class="bi bi-trophy"></i>
+                        <span>Progress Tracking</span>
+                    </li>
+                    <li class="nav-item" data-section="reports">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>Reports</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="nav-section">
+                <h3>📊 Monitoring</h3>
+                <ul>
+                    <li class="nav-item" data-section="activity">
+                        <i class="bi bi-activity"></i>
+                        <span>User Activity</span>
+                    </li>
+                    <li class="nav-item" data-section="system">
+                        <i class="bi bi-cpu"></i>
+                        <span>System Health</span>
+                    </li>
+                    <li class="nav-item" data-section="audit">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Audit Log</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-section">
+                <h3>⚙️ System</h3>
+                <ul>
+                    <li class="nav-item" data-section="settings">
+                        <i class="bi bi-gear"></i>
+                        <span>Settings</span>
+                    </li>
+                    <li class="nav-item" onclick="adminLogout()">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="admin-content">
+            <!-- Dashboard Section -->
+            <div class="content-section active" id="dashboard">
+                <div class="section-header">
+                    <h2>📊 Admin Dashboard</h2>
+                    <div class="quick-actions">
+                        <button class="action-btn" onclick="refreshDashboard()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Refresh
+                        </button>
+                        <button class="action-btn primary" onclick="showSection('users')">
+                            <i class="bi bi-plus-circle"></i>
+                            Manage Users
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card users">
+                        <div class="stat-icon">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Users</h3>
+                            <span class="stat-value" id="totalUsers">0</span>
+                            <span class="stat-change" id="usersChange">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card active">
+                        <div class="stat-icon">
+                            <i class="bi bi-person-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Active Users (24h)</h3>
+                            <span class="stat-value" id="activeUsers">0</span>
+                            <span class="stat-change" id="activeChange">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card completion">
+                        <div class="stat-icon">
+                            <i class="bi bi-award"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Completion Rate</h3>
+                            <span class="stat-value" id="completionRate">0%</span>
+                            <span class="stat-change" id="completionChange">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card sessions">
+                        <div class="stat-icon">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Avg Session Time</h3>
+                            <span class="stat-value" id="avgSession">0m</span>
+                            <span class="stat-change" id="sessionChange">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>📈 Daily Registrations</h3>
+                        <canvas id="registrationsChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🎯 Room Completion Rates</h3>
+                        <canvas id="completionsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="data-grid">
+                    <div class="data-card recent-users">
+                        <div class="card-header">
+                            <h3>👥 Recent Users</h3>
+                            <button class="btn-small" onclick="showSection('users')">View All</button>
+                        </div>
+                        <div class="user-list" id="recentUsersList">
+                            <div class="loading">Loading recent users...</div>
+                        </div>
+                    </div>
+
+                    <div class="data-card activity-log">
+                        <div class="card-header">
+                            <h3>🔄 Recent Activity</h3>
+                            <button class="btn-small" onclick="showSection('audit')">View All</button>
+                        </div>
+                        <div class="activity-list" id="recentActivityList">
+                            <div class="loading">Loading activity...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Section -->
+            <div class="content-section" id="users">
+                <div class="section-header">
+                    <h2>👥 User Management</h2>
+                    <div class="user-controls">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="userSearch" placeholder="Search users..." onkeyup="filterUsers()">
+                        </div>
+                        <select id="roleFilter" onchange="filterUsers()">
+                            <option value="all">All Roles</option>
+                            <option value="admin">Admins Only</option>
+                            <option value="user">Regular Users</option>
+                        </select>
+                        <button class="action-btn primary" onclick="addNewUser()">
+                            <i class="bi bi-person-plus"></i>
+                            Add User
+                        </button>
+                    </div>
+                </div>
+
+                <div class="users-stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-label">Total:</span>
+                        <span class="stat-number" id="filteredUsersCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Admins:</span>
+                        <span class="stat-number" id="adminUsersCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Active:</span>
+                        <span class="stat-number" id="activeUsersCount">0</span>
+                    </div>
+                </div>
+
+                <div class="users-table-container">
+                    <table class="users-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Progress</th>
+                                <th>Last Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="6" class="loading-row">Loading users...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="usersPagination">
+                    <!-- Pagination will be generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div class="content-section" id="analytics">
+                <div class="section-header">
+                    <h2>📊 Analytics Dashboard</h2>
+                    <div class="analytics-controls">
+                        <select id="analyticsTimeframe" onchange="updateAnalytics()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="365">Last Year</option>
+                        </select>
+                        <button class="action-btn" onclick="exportAnalytics()">
+                            <i class="bi bi-download"></i>
+                            Export Data
+                        </button>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <h3>📈 User Growth Trend</h3>
+                        <canvas id="userGrowthChart"></canvas>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>🎮 Room Popularity</h3>
+                        <canvas id="roomPopularityChart"></canvas>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>⏱️ Session Duration Distribution</h3>
+                        <canvas id="sessionDurationChart"></canvas>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>🏆 Completion Success Rate</h3>
+                        <canvas id="successRateChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="metrics-summary">
+                    <div class="metric-item">
+                        <div class="metric-value" id="avgProgressMetric">0%</div>
+                        <div class="metric-label">Avg User Progress</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="retentionMetric">0%</div>
+                        <div class="metric-label">7-Day Retention</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="engagementMetric">0m</div>
+                        <div class="metric-label">Avg Daily Usage</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="badgesMetric">0</div>
+                        <div class="metric-label">Total Badges Earned</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Tracking Section -->
+            <div class="content-section" id="progress">
+                <div class="section-header">
+                    <h2>🏆 Progress Tracking & Analytics</h2>
+                    <div class="progress-controls">
+                        <select id="progressTimeframe" onchange="updateProgressData()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <button class="action-btn" onclick="refreshProgressData()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Refresh
+                        </button>
+                        <button class="action-btn primary" onclick="exportProgressReport()">
+                            <i class="bi bi-download"></i>
+                            Export Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="progress-overview-grid">
+                    <div class="progress-card overall-stats">
+                        <h3><i class="bi bi-speedometer2"></i> Overall Progress Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalProgressUsers">0</div>
+                                <div class="stat-label">Active Users</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="avgProgressPercentage">0%</div>
+                                <div class="stat-label">Avg Progress</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="completedChallengesCount">0</div>
+                                <div class="stat-label">Challenges Completed</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalTimeSpent">0h</div>
+                                <div class="stat-label">Total Time Spent</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card room-performance">
+                        <h3><i class="bi bi-trophy"></i> Room Performance</h3>
+                        <div class="chart-container">
+                            <canvas id="roomPerformanceChart" style="max-height: 300px; height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-detailed-grid">
+                    <div class="progress-card top-performers">
+                        <div class="card-header">
+                            <h3><i class="bi bi-star"></i> Top Performers</h3>
+                            <button class="btn-small" onclick="showAllTopPerformers()">View All</button>
+                        </div>
+                        <div class="performers-list" id="topPerformersList">
+                            <div class="loading">Loading top performers...</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card struggling-users">
+                        <div class="card-header">
+                            <h3><i class="bi bi-exclamation-triangle"></i> Users Needing Help</h3>
+                            <button class="btn-small" onclick="showStrugglingUsers()">View All</button>
+                        </div>
+                        <div class="struggling-list" id="strugglingUsersList">
+                            <div class="loading">Loading users needing assistance...</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card recent-achievements">
+                        <div class="card-header">
+                            <h3><i class="bi bi-award"></i> Recent Achievements</h3>
+                            <button class="btn-small" onclick="showAllAchievements()">View All</button>
+                        </div>
+                        <div class="achievements-list" id="recentAchievementsList">
+                            <div class="loading">Loading recent achievements...</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-card completion-trends">
+                        <h3><i class="bi bi-graph-up-arrow"></i> Completion Trends</h3>
+                        <div class="chart-container">
+                            <canvas id="completionTrendsChart" style="max-height: 300px; height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-insights">
+                    <div class="insights-card">
+                        <h3><i class="bi bi-lightbulb"></i> Progress Insights</h3>
+                        <div class="insights-content" id="progressInsights">
+                            <div class="loading">Analyzing progress patterns...</div>
+                        </div>
+                    </div>
+
+                    <div class="room-breakdown-card">
+                        <h3><i class="bi bi-pie-chart"></i> Room Breakdown</h3>
+                        <div class="room-stats-detailed" id="roomStatsDetailed">
+                            <div class="loading">Loading room statistics...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="content-section" id="reports">
+                <div class="section-header">
+                    <h2>📄 Reports & Export</h2>
+                    <div class="report-actions">
+                        <button class="action-btn primary" onclick="generateAllReports()">
+                            <i class="bi bi-files"></i>
+                            Generate All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="report-builder">
+                    <div class="report-config">
+                        <h3>🔧 Report Configuration</h3>
+                        <div class="config-grid">
+                            <div class="config-group">
+                                <label>Report Type:</label>
+                                <select id="reportType">
+                                    <option value="user_performance">User Performance</option>
+                                    <option value="challenge_completion">Challenge Completion</option>
+                                    <option value="engagement_trends">Engagement Trends</option>
+                                    <option value="system_effectiveness">System Effectiveness</option>
+                                </select>
+                            </div>
+                            <div class="config-group">
+                                <label>Date Range:</label>
+                                <select id="reportDateRange">
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                    <option value="90">Last 3 Months</option>
+                                    <option value="365">Last Year</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+                            <div class="config-group">
+                                <label>Export Format:</label>
+                                <select id="exportFormat">
+                                    <option value="json">JSON</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="excel">Excel</option>
+                                    <option value="pdf">PDF</option>
+                                </select>
+                            </div>
+                            <div class="config-group">
+                                <button class="action-btn" onclick="generateCustomReport()">
+                                    <i class="bi bi-play-circle"></i>
+                                    Generate Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quick-reports">
+                        <h3>⚡ Quick Reports</h3>
+                        <div class="quick-report-buttons">
+                            <button class="report-btn" onclick="generateQuickReport('weekly_summary')">
+                                <i class="bi bi-calendar-week"></i>
+                                Weekly Summary
+                            </button>
+                            <button class="report-btn" onclick="generateQuickReport('user_rankings')">
+                                <i class="bi bi-trophy"></i>
+                                User Rankings
+                            </button>
+                            <button class="report-btn" onclick="generateQuickReport('completion_rates')">
+                                <i class="bi bi-bar-chart"></i>
+                                Completion Rates
+                            </button>
+                            <button class="report-btn" onclick="generateQuickReport('activity_summary')">
+                                <i class="bi bi-activity"></i>
+                                Activity Summary
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-history">
+                    <h3>📋 Report History</h3>
+                    <div class="report-list" id="reportHistoryList">
+                        <div class="loading">Loading report history...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Monitoring Section -->
+            <div class="content-section" id="activity">
+                <div class="section-header">
+                    <h2>📈 User Activity Monitor</h2>
+                    <div class="activity-controls">
+                        <button class="action-btn" onclick="refreshActivityData()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Refresh
+                        </button>
+                        <select id="activityTimeframe" onchange="updateActivityView()">
+                            <option value="live">Live (Last Hour)</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="activity-dashboard">
+                    <div class="activity-stats">
+                        <div class="activity-stat">
+                            <div class="stat-value" id="liveUsersCount">0</div>
+                            <div class="stat-label">Users Online</div>
+                        </div>
+                        <div class="activity-stat">
+                            <div class="stat-value" id="activeSessionsCount">0</div>
+                            <div class="stat-label">Active Sessions</div>
+                        </div>
+                        <div class="activity-stat">
+                            <div class="stat-value" id="roomsInUseCount">0</div>
+                            <div class="stat-label">Rooms In Use</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-feed" id="activityFeed">
+                        <h4>🔄 Live Activity Feed</h4>
+                        <div class="feed-list" id="activityFeedList">
+                            <div class="loading">Loading activity feed...</div>
+                        </div>
+                    </div>
+
+                    <div class="popular-rooms">
+                        <h4>🏆 Most Popular Rooms</h4>
+                        <div class="room-stats-list" id="popularRoomsList">
+                            <div class="loading">Loading room statistics...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Health Section -->
+            <div class="content-section" id="system">
+                <div class="section-header">
+                    <h2>🖥️ System Health Monitor</h2>
+                    <div class="system-actions">
+                        <button class="action-btn success" onclick="createBackup()">
+                            <i class="bi bi-shield-check"></i>
+                            Create Backup
+                        </button>
+                        <button class="action-btn warning" onclick="clearOldSessions()">
+                            <i class="bi bi-trash"></i>
+                            Clear Old Sessions
+                        </button>
+                    </div>
+                </div>
+
+                <div class="system-overview">
+                    <div class="health-cards">
+                        <div class="health-card database">
+                            <div class="card-icon">
+                                <i class="bi bi-database"></i>
+                            </div>
+                            <div class="card-info">
+                                <h4>Database Status</h4>
+                                <div class="status-indicator healthy" id="dbStatus">Healthy</div>
+                                <div class="health-details">
+                                    <span>Size: <span id="dbSize">0 MB</span></span>
+                                    <span>Tables: <span id="dbTables">0</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="health-card sessions">
+                            <div class="card-icon">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div class="card-info">
+                                <h4>Active Sessions</h4>
+                                <div class="status-indicator healthy" id="sessionsStatus">Normal</div>
+                                <div class="health-details">
+                                    <span>Admin: <span id="adminSessions">0</span></span>
+                                    <span>Users: <span id="userSessions">0</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="health-card performance">
+                            <div class="card-icon">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                            <div class="card-info">
+                                <h4>Performance</h4>
+                                <div class="status-indicator healthy" id="performanceStatus">Optimal</div>
+                                <div class="health-details">
+                                    <span>Uptime: <span id="systemUptime">N/A</span></span>
+                                    <span>Memory: <span id="memoryUsage">N/A</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="maintenance-tools">
+                        <h3>🔧 Maintenance Tools</h3>
+                        <div class="tool-buttons">
+                            <button class="tool-btn" onclick="optimizeDatabase()">
+                                <i class="bi bi-speedometer2"></i>
+                                Optimize Database
+                            </button>
+                            <button class="tool-btn" onclick="clearCache()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Clear Cache
+                            </button>
+                            <button class="tool-btn" onclick="validateData()">
+                                <i class="bi bi-check-circle"></i>
+                                Validate Data
+                            </button>
+                            <button class="tool-btn" onclick="exportSettings()">
+                                <i class="bi bi-download"></i>
+                                Export Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Log Section -->
+            <div class="content-section" id="audit">
+                <div class="section-header">
+                    <h2>🛡️ Audit & Security Log</h2>
+                    <div class="audit-controls">
+                        <input type="text" id="auditSearch" placeholder="Search audit log..." onkeyup="filterAuditLog()">
+                        <select id="auditActionFilter" onchange="filterAuditLog()">
+                            <option value="all">All Actions</option>
+                            <option value="LOGIN">Logins</option>
+                            <option value="DELETE_USER">User Deletions</option>
+                            <option value="PROMOTE">Role Changes</option>
+                            <option value="GENERATE_REPORT">Reports</option>
+                        </select>
+                        <button class="action-btn" onclick="exportAuditLog()">
+                            <i class="bi bi-download"></i>
+                            Export Log
+                        </button>
+                    </div>
+                </div>
+
+                <div class="audit-summary">
+                    <div class="audit-stat">
+                        <div class="stat-value" id="totalAuditActions">0</div>
+                        <div class="stat-label">Total Actions</div>
+                    </div>
+                    <div class="audit-stat">
+                        <div class="stat-value" id="todayAuditActions">0</div>
+                        <div class="stat-label">Today's Actions</div>
+                    </div>
+                    <div class="audit-stat">
+                        <div class="stat-value" id="securityEvents">0</div>
+                        <div class="stat-label">Security Events</div>
+                    </div>
+                </div>
+
+                <div class="audit-log-container">
+                    <table class="audit-table" id="auditTable">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Admin</th>
+                                <th>Action</th>
+                                <th>Target</th>
+                                <th>IP Address</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr>
+                                <td colspan="6" class="loading-row">Loading audit log...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="auditPagination">
+                    <!-- Pagination will be generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="content-section" id="settings">
+                <div class="section-header">
+                    <h2>⚙️ System Settings</h2>
+                    <div class="settings-actions">
+                        <button class="action-btn success" onclick="saveAllSettings()">
+                            <i class="bi bi-check-circle"></i>
+                            Save All Changes
+                        </button>
+                        <button class="action-btn" onclick="resetToDefaults()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>🔐 Security Settings</h3>
+                        <div class="setting-item">
+                            <label>Session Timeout (hours):</label>
+                            <input type="number" id="sessionTimeout" value="8" min="1" max="24">
+                        </div>
+                        <div class="setting-item">
+                            <label>Max Login Attempts:</label>
+                            <input type="number" id="maxLoginAttempts" value="5" min="3" max="10">
+                        </div>
+                        <div class="setting-item">
+                            <label>Require Email Verification:</label>
+                            <input type="checkbox" id="requireEmailVerification" checked>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>📧 Notification Settings</h3>
+                        <div class="setting-item">
+                            <label>Email Notifications:</label>
+                            <input type="checkbox" id="emailNotifications" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label>Admin Alerts:</label>
+                            <input type="checkbox" id="adminAlerts" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label>Weekly Reports:</label>
+                            <input type="checkbox" id="weeklyReports" checked>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>🎮 System Preferences</h3>
+                        <div class="setting-item">
+                            <label>Default User Role:</label>
+                            <select id="defaultUserRole">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>Auto-save Progress:</label>
+                            <input type="checkbox" id="autoSaveProgress" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label>Maintenance Mode:</label>
+                            <input type="checkbox" id="maintenanceMode">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Processing...</div>
+    </div>
+
+    <!-- Modal Container -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content" id="modalContent">
+            <!-- Modal content will be inserted here -->
+        </div>
+    </div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

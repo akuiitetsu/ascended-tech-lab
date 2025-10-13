@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>FLOWBYTE - Flowchart Construction Lab</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../../static/css/responsive-framework.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #343a40;
+            --bg-panel: #495057;
+            --bg-canvas: #1c2541;
+            --border-color: #6c757d;
+            --vh: 1vh; /* Mobile viewport height */
+            --text-light: #f8f9fa;
+            --text-muted: #ced4da;
+            --font-main: 'VT323', monospace;
+            --color-green: #52b788;
+            --color-red: #e63946;
+            --color-orange: #fca311;
+            --color-blue: #457b9d;
+            --color-purple: #9d4edd;
+            --color-brown: #a67c52;
+        }
+
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-main);
+            color: var(--text-light);
+            font-size: 18px;
+            overflow-x: hidden;
+        }
+
+        /* Ensure proper display hierarchy */
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            overflow: auto;
+        }
+
+        /* Difficulty and Level Selection Styles */
+        .flowbyte-difficulty-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .difficulty-modal {
+            background: rgba(64, 64, 64, 0.95);
+            border: 2px solid #5a5a5a;
+            border-radius: 20px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 100%;
+            margin: 20px;
+            position: relative;
+            box-sizing: border-box;
+        }
+        
+        .difficulty-modal .flowchart-icon {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 80px;
+        }
+        
+        .difficulty-modal .flowchart-icon i {
+            font-size: 4rem;
+            color: #4CAF50;
+        }
+        
+        .modal-title {
+            color: #ffffff;
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+        
+        .modal-description {
+            color: #cccccc;
+            font-size: 1rem;
+            line-height: 1.4;
+            margin: 0 0 30px 0;
+            font-weight: 400;
+        }
+        
+        .difficulty-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .difficulty-btn {
+            width: 100%;
+            max-width: 280px;
+            padding: 12px 25px;
+            font-size: 0.95em;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .easy-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .easy-btn:hover {
+            background: linear-gradient(135deg, #45a049, #3e8e41);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .hard-btn {
+            background: linear-gradient(135deg, #ff5722, #e64a19);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 87, 34, 0.3);
+        }
+        
+        .hard-btn:hover {
+            background: linear-gradient(135deg, #e64a19, #d84315);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 87, 34, 0.4);
+        }
+        
+        .back-to-command-center {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(108, 117, 125, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            z-index: 20;
+        }
+        
+        .back-to-command-center:hover {
+            background: rgba(90, 98, 104, 0.9);
+            transform: translateY(-1px);
+        }
+
+        /* Level Selection Styles */
+        .flowbyte-room {
+            padding: 30px 20px;
+            color: white;
+            background: linear-gradient(135deg, #0f0f23 0%, #16213e 100%);
+            height: 100%;
+            position: relative;
+            z-index: 10;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        .level-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            padding: 0 60px;
+        }
+        
+        .back-btn {
+            position: static;
+            margin: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00FFFF;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: #00FFFF;
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .back-btn:hover {
+            background: rgba(16, 161, 250, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .level-header h1 {
+            font-size: 2.5rem;
+            color: #4CAF50;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .level-header p {
+            font-size: 1rem;
+            color: #cccccc;
+            margin: 8px 0 0 0;
+            line-height: 1.4;
+        }
+        
+        .level-selection h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ffffff;
+            font-size: 1.5rem;
+        }
+        
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .level-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #3d3d3d;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            position: relative;
+        }
+        
+        .level-card:hover {
+            border-color: #4CAF50;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .level-number {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin: 0 auto 12px;
+        }
+
+        /* Game Interface - Lab Container */
+        .lab-container {
+            display: flex;
+            width: 100%;
+            height: calc(100vh - 120px);
+            padding: 15px;
+            background-color: #212529;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+            gap: 15px;
+            overflow: hidden;
+            align-items: stretch;
+        }
+
+        /* Left Control Panel */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 320px;
+            min-width: 320px;
+            max-width: 320px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .lab-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .lab-header h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-light);
+            line-height: 1.2;
+            flex: 1;
+        }
+
+        .lab-header .back-to-levels {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--color-red);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 0.65rem;
+            z-index: 10;
+            line-height: 1;
+            min-height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lab-header .back-to-levels:hover {
+            background: #c53030;
+        }
+
+        .flowchart-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-blue);
+            flex-shrink: 0;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .stat-box {
+            padding: 10px 6px;
+            border-radius: 6px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.75rem;
+            text-align: center;
+            min-height: 50px;
+            justify-content: center;
+        }
+
+        .stat-box span:first-child {
+            font-size: 0.65rem;
+            opacity: 0.9;
+            line-height: 1;
+        }
+
+        .stat-box .value {
+            font-size: 1rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .progress-box { background-color: var(--color-green); }
+        .level-box { background-color: var(--color-brown); }
+        .mistakes-box { background-color: var(--color-red); }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 8px 6px;
+            border: none;
+            border-radius: 6px;
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            color: white;
+            text-align: center;
+            line-height: 1.1;
+            min-height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-complete { background-color: var(--color-green); }
+        .btn-abort { background-color: var(--color-red); }
+        .btn-hint { background-color: var(--color-orange); }
+        .btn-reset { background-color: var(--color-blue); }
+
+        .info-panel {
+            background-color: var(--bg-panel);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 8px;
+        }
+
+        .info-panel h2 {
+            margin: 0 0 6px 0;
+            font-size: 0.85rem;
+            line-height: 1.2;
+            color: var(--text-light);
+        }
+
+        .info-panel p {
+            margin: 0;
+            line-height: 1.2;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
+        .info-panel strong {
+            color: var(--text-light);
+        }
+
+        .task-panel {
+            flex: 1;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .hint-panel {
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        /* Right Canvas Area */
+        .canvas-area {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .canvas-area > h2 {
+            margin: 0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1rem;
+            border-bottom: 2px solid var(--border-color);
+            padding: 10px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            position: relative;
+            flex-shrink: 0;
+            height: auto;
+            box-sizing: border-box;
+        }
+
+        /* Remove the old back-to-levels positioning */
+        .canvas-area .back-to-levels {
+            display: none;
+        }
+
+        .scenario-panel {
+            margin: 0;
+            padding: 8px;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            height: auto;
+            box-sizing: border-box;
+        }
+
+        /* Responsive Flowchart Grid */
+        .flowchart-grid {
+            flex: 1;
+            background-color: var(--bg-canvas);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background-image: 
+                linear-gradient(rgba(108, 117, 125, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108, 117, 125, 0.2) 1px, transparent 1px);
+            background-size: 20px 20px;
+            position: relative;
+            overflow: auto;
+            min-height: 200px;
+            width: 100%;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+
+        /* Shape Toolbar - Always below grid */
+        .shape-toolbar {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            background-color: var(--bg-panel);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+            order: 999;
+            height: auto;
+        }
+
+        .tool-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 6px 3px;
+            background-color: #343a40;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-family: var(--font-main);
+            font-size: 0.6rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            min-height: 55px;
+            justify-content: center;
+        }
+
+        #add-oval-btn .shape-preview {
+            font-size: 18px;
+        }
+
+        #add-parallelogram-btn .shape-preview {
+            font-size: 15px;
+        }
+
+        #cursor-tool-btn .shape-preview {
+            font-size: 16px;
+            color: #ffffff;
+        }
+
+        .tool-btn:hover {
+            background-color: #495057;
+            border-color: var(--text-light);
+        }
+
+        .tool-btn.active {
+            background-color: var(--color-blue);
+            border-color: var(--color-blue);
+            color: white;
+        }
+
+        .tool-btn.placing {
+            background-color: var(--color-orange);
+            border-color: var(--color-orange);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(252, 163, 17, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(252, 163, 17, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(252, 163, 17, 0); }
+        }
+
+        .flowchart-node {
+            cursor: grab;
+        }
+
+        .flowchart-node.dragging {
+            cursor: grabbing;
+            z-index: 1000;
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .flowchart-node.selected {
+            border-color: #fca311;
+            box-shadow: 0 0 15px rgba(252, 163, 17, 0.5);
+        }
+
+        .flowchart-node.highlight-source {
+            border-color: #e63946;
+            box-shadow: 0 0 15px rgba(230, 57, 70, 0.5);
+            animation: highlight-pulse 1.5s infinite;
+        }
+
+        @keyframes highlight-pulse {
+            0%, 100% { border-color: #e63946; }
+            50% { border-color: #ff6b6b; }
+        }
+
+        /* Mobile double-tap success animation */
+        @keyframes nodeUpdateSuccess {
+            0% { 
+                transform: scale(1); 
+                border-color: initial; 
+                box-shadow: none; 
+            }
+            25% { 
+                transform: scale(1.05); 
+                border-color: #4CAF50; 
+                box-shadow: 0 0 15px rgba(76, 175, 80, 0.5); 
+            }
+            50% { 
+                transform: scale(1.02); 
+                border-color: #66BB6A; 
+                box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); 
+            }
+            75% { 
+                transform: scale(1.01); 
+                border-color: #4CAF50; 
+                box-shadow: 0 0 5px rgba(76, 175, 80, 0.2); 
+            }
+            100% { 
+                transform: scale(1); 
+                border-color: initial; 
+                box-shadow: none; 
+            }
+        }
+
+        /* Mobile touch feedback animations */
+        @keyframes fadeOutUp {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        #flowchart-canvas {
+            cursor: default;
+        }
+
+        #flowchart-canvas.placement-mode {
+            cursor: crosshair;
+        }
+
+        /* Difficulty and Level Selection Styles */
+        .flowbyte-difficulty-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Level Selection Styles */
+        .flowbyte-room {
+            padding: 30px 20px;
+            color: white;
+            background: linear-gradient(135deg, #0f0f23 0%, #16213e 100%);
+            height: 100%;
+            position: relative;
+            z-index: 10;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        /* Game Interface - Lab Container */
+        .lab-container {
+            display: flex;
+            width: 100%;
+            height: calc(100vh - 120px);
+            padding: 15px;
+            background-color: #212529;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+            gap: 15px;
+            overflow: hidden;
+            align-items: stretch;
+        }
+
+        /* Remove fixed positioning from back button */
+        .back-to-command-center {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(108, 117, 125, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            z-index: 20;
+        }
+
+        /* Ensure all screens have proper positioning */
+        .flowbyte-room,
+        .lab-container {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Override any hidden states when screen should be visible */
+        .flowbyte-difficulty-screen:not(.hidden) {
+            display: flex !important;
+        }
+
+        .flowbyte-room:not(.hidden) {
+            display: block !important;
+        }
+
+        .lab-container:not(.hidden) {
+            display: flex !important;
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive adjustments for command center layout */
+        @media (max-width: 1200px) {
+            #game-container {
+                height: calc(100vh - 100px);
+            }
+        }
+
+        @media (max-width: 992px) {
+            #game-container {
+                height: calc(100vh - 80px);
+            }
+            
+            .lab-container {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 120px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #game-container {
+                height: calc(100vh - 60px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Game Container -->
+    <div id="game-container">
+        <!-- Difficulty Selection Screen (Show by default) -->
+        <div id="difficulty-screen" class="flowbyte-difficulty-screen">
+            <div class="difficulty-modal">
+                <div class="flowchart-icon">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                
+                <h1 class="modal-title">Flowchart Construction Lab</h1>
+                
+                <p class="modal-description">
+                    Learn to create proper<br>
+                    flowcharts step by step!
+                </p>
+                
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn easy-btn" id="easy-difficulty-btn">
+                        EASY DIFFICULTY
+                    </button>
+                    <button class="difficulty-btn hard-btn" id="hard-difficulty-btn">
+                        HARD DIFFICULTY
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Selection Screen -->
+        <div id="level-screen" class="flowbyte-room hidden">
+            <div class="level-header">
+                <button class="back-btn" id="back-to-difficulty-btn">
+                    <i class="bi bi-arrow-left-circle"></i>
+                </button>
+                <h1 id="difficulty-title">FLOWBYTE</h1>
+                <p id="difficulty-description"></p>
+            </div>
+            <div class="level-selection">
+                <h2>Select Level</h2>
+                <div class="level-grid" id="level-grid">
+                    <!-- Level cards will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Interface Screen -->
+        <div id="game-screen" class="lab-container hidden">
+            <!-- LEFT CONTROL PANEL -->
+            <aside class="control-panel">
+                <header class="lab-header">
+                    <svg class="flowchart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a4 4 0 0 1 4 4v2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4v2a4 4 0 1 1-8 0v-2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V6a4 4 0 0 1 4-4z"/>
+                    </svg>
+                    <h1>Flowchart Construction Lab</h1>
+                </header>
+
+                <section class="stats-panel">
+                    <div class="stat-box progress-box">
+                        <span>Learning Progress</span>
+                        <span class="value" id="learning-progress">0%</span>
+                    </div>
+                    <div class="stat-box level-box">
+                        <span>Current Level</span>
+                        <span class="value" id="current-level-display">1/5</span>
+                    </div>
+                    <div class="stat-box mistakes-box">
+                        <span>Number of Mistakes</span>
+                        <span class="value" id="mistake-count">0</span>
+                    </div>
+                </section>
+
+                <section class="action-buttons">
+                    <button class="btn btn-complete" id="complete-level-btn">✓ Complete Level</button>
+                    <button class="btn btn-abort" id="abort-mission-btn">✗ Abort Mission</button>
+                    <button class="btn btn-hint" id="get-hint-btn">ⓘ Get Hint</button>
+                    <button class="btn btn-reset" id="reset-canvas-btn">↺ Reset Canvas</button>
+                </section>
+
+                <section class="info-panel task-panel">
+                    <h2>Your Task:</h2>
+                    <p id="level-objective">Create a basic start-to-end flowchart</p>
+                </section>
+
+                <section class="info-panel hint-panel">
+                    <h2>💡 Hint:</h2>
+                    <p>Every business process needs a clear beginning and end. Use oval shapes for START and END points.</p>
+                </section>
+            </aside>
+
+            <!-- RIGHT CANVAS AREA -->
+            <main class="canvas-area">
+                <h2>Flowchart Canvas</h2>
+
+                <section class="info-panel scenario-panel">
+                    <p><strong>■ Scenario:</strong><br><span id="level-scenario">You're designing a software deployment pipeline for TechCorp. Create a flowchart that outlines the basic steps from code commit to production deployment, showing a clear start and end to the process.</span></p>
+                </section>
+
+                <div class="flowchart-grid" id="flowchart-canvas">
+                    <svg id="connection-svg" class="connection-svg"></svg>
+                </div>
+
+                <nav class="shape-toolbar">
+                    <button class="tool-btn active" id="cursor-tool-btn" title="Select and move shapes around the canvas. Click and drag to reposition nodes.">
+                        <div class="shape-preview">
+                            <i class="bi bi-cursor"></i>
+                        </div>
+                        <span>Cursor<br>(Select/Move)</span>
+                    </button>
+                    <button class="tool-btn" id="add-oval-btn">
+                        <div class="shape-preview">
+                            ⬭
+                        </div>
+                        <span>Oval<br>(Start/End)</span>
+                    </button>
+                    <button class="tool-btn" id="add-rectangle-btn">
+                        <div class="shape-preview">
+                            <i class="bi bi-square"></i>
+                        </div>
+                        <span>Rectangle<br>(Process)</span>
+                    </button>
+                    <button class="tool-btn" id="add-diamond-btn">
+                        <div class="shape-preview">
+                            <i class="bi bi-diamond"></i>
+                        </div>
+                        <span>Diamond<br>(Decision)</span>
+                    </button>
+                    <button class="tool-btn" id="add-parallelogram-btn">
+                        <div class="shape-preview">
+                            ▱
+                        </div>
+                        <span>Parallelogram<br>(Input/Output)</span>
+                    </button>
+                    <button class="tool-btn" id="arrow-tool-btn">
+                        <div class="shape-preview">
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+                        <span>Arrow<br>(Connector)</span>
+                    </button>
+                    <button class="tool-btn" id="delete-tool-btn">
+                        <div class="shape-preview">
+                            <i class="bi bi-trash"></i>
+                        </div>
+                        <span>Delete<br>(Remove)</span>
+                    </button>
+                </nav>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Load the game JavaScript -->
+    <script src="../../static/js/flowchart-game.js"></script>
+    
+    <script>
+        // Only log that the HTML is loaded - let command center handle initialization
+        console.log('FLOWBYTE room HTML loaded and ready for command center integration');
+    </script>
+                        <i class="bi bi-check-circle"></i> Complete Level
+                    </button>
+                    <button class="action-btn abort-btn" id="abort-mission-btn">
+                        <i class="bi bi-x-circle"></i> Abort Mission
+                    </button>
+                    <button class="action-btn hint-btn" id="get-hint-btn">
+                        <i class="bi bi-lightbulb"></i> Get Hint
+                    </button>
+                    <button class="action-btn reset-btn" id="reset-canvas-btn">
+                        <i class="bi bi-arrow-clockwise"></i> Reset Canvas
+                    </button>
+                </div>
+                
+                <div class="task-section">
+                    <h4>Your Task:</h4>
+                    <p id="level-objective"></p>
+                </div>
+                
+                <div class="hint-section">
+                    <h4><i class="bi bi-lightbulb"></i> Hint:</h4>
+                    <p>Every business process needs a clear beginning and end. Use oval shapes for START and END points.</p>
+                </div>
+            </div>
+            
+            <!-- Main Canvas Area -->
+            <div class="canvas-section">
+                <div class="canvas-header">
+                    <h2>Flowchart Canvas</h2>
+                    <button class="back-to-levels" id="back-to-levels-btn">
+                        ← Back to Levels
+                    </button>
+                </div>
+                
+                <div class="scenario-section">
+                    <h4>Scenario:</h4>
+                    <p id="level-scenario"></p>
+                </div>
+                
+                <div class="canvas-container">
+                    <div id="flowchart-canvas" class="flowchart-canvas">
+                        <svg id="connection-svg" class="connection-svg"></svg>
+                    </div>
+                </div>
+                
+                <div class="node-creation-panel">
+                    <button class="node-create-btn oval-btn" id="add-oval-btn">
+                        <div class="node-icon oval"></div>
+                        Start/End
+                    </button>
+                    <button class="node-create-btn rectangle-btn" id="add-rectangle-btn">
+                        <div class="node-icon rectangle"></div>
+                        Process
+                    </button>
+                    <button class="node-create-btn diamond-btn" id="add-diamond-btn">
+                        <div class="node-icon diamond"></div>
+                        Decision
+                    </button>
+                    <button class="node-create-btn parallelogram-btn" id="add-parallelogram-btn">
+                        <div class="node-icon parallelogram"></div>
+                        Input/Output
+                    </button>
+                    <button class="node-create-btn connector-btn active" id="arrow-tool-btn">
+                        <div class="node-icon connector"></div>
+                        Arrow/Connector
+                    </button>
+                    <button class="node-create-btn delete-btn" id="delete-tool-btn">
+                        <div class="node-icon delete"></div>
+                        Delete Element
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Message Template (hidden by default) -->
+    <div id="error-message" class="error-message" style="display: none;">
+        <h2>Game Loading Error</h2>
+        <p>Failed to initialize FLOWBYTE. Please check your connection and try again.</p>
+        <button class="retry-btn" onclick="location.reload()">Retry</button>
+    </div>
+    
+    <!-- Load the game JavaScript -->
+    <script src="../../static/js/flowchart-game.js"></script>
+    
+    <script>
+        // Initialize the game with error handling
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Hide loading screen after a brief delay
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    const gameContainer = document.getElementById('game-container');
+                    
+                    if (loadingScreen && gameContainer) {
+                        loadingScreen.style.display = 'none';
+                        gameContainer.style.display = 'block';
+                        
+                        // Initialize the FLOWBYTE game with container
+                        if (typeof FlowByteGame !== 'undefined') {
+                            window.flowByteGame = new FlowByteGame();
+                            window.flowByteGame.init(gameContainer);
+                            console.log('FLOWBYTE Game loaded successfully');
+                        } else {
+                            throw new Error('FlowByteGame class not found');
+                        }
+                    }
+                }, 1500); // Show loading for 1.5 seconds
+                
+            } catch (error) {
+                console.error('Failed to initialize FLOWBYTE:', error);
+                showError();
+            }
+        });
+        
+        // Error handling function
+        function showError() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const errorMessage = document.getElementById('error-message');
+            
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+            
+            if (errorMessage) {
+                errorMessage.style.display = 'block';
+            }
+        }
+        
+        // Global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Game Error:', event.error);
+            // Don't show error for minor issues, only critical ones
+            if (event.error && event.error.message.includes('FlowByteGame')) {
+                showError();
+            }
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled Promise Rejection:', event.reason);
+        });
+        
+        // Ensure game container takes full viewport
+        function adjustGameContainer() {
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                gameContainer.style.minHeight = window.innerHeight + 'px';
+            }
+        }
+        
+        // Adjust on resize
+        window.addEventListener('resize', adjustGameContainer);
+        
+        // Navigation helper functions (can be used by other parts of the system)
+        window.FlowByteNavigation = {
+            goToRoom: function(roomName) {
+                // This can be expanded to navigate to other rooms
+                console.log(`Navigating to ${roomName}`);
+                // Example: window.location.href = `../${roomName}/${roomName}-room.html`;
+            },
+            
+            goToMainMenu: function() {
+                // Navigate back to main menu
+                console.log('Navigating to main menu');
+                // Example: window.location.href = '../../../index.html';
+            }
+        };
+    </script>
+</body>
+</html>
+                    <h2>Flowchart Canvas</h2>
+                    <button class="back-to-levels" id="back-to-levels-btn">
+                        ← Back to Levels
+                    </button>
+                </div>
+                
+                <div class="scenario-section">
+                    <h4>Scenario:</h4>
+                    <p id="level-scenario"></p>
+                </div>
+                
+                <div class="canvas-container">
+                    <div id="flowchart-canvas" class="flowchart-canvas">
+                        <svg id="connection-svg" class="connection-svg"></svg>
+                    </div>
+                </div>
+                
+                <div class="node-creation-panel">
+                    <button class="node-create-btn oval-btn" id="add-oval-btn">
+                        <div class="node-icon oval"></div>
+                        Start/End
+                    </button>
+                    <button class="node-create-btn rectangle-btn" id="add-rectangle-btn">
+                        <div class="node-icon rectangle"></div>
+                        Process
+                    </button>
+                    <button class="node-create-btn diamond-btn" id="add-diamond-btn">
+                        <div class="node-icon diamond"></div>
+                        Decision
+                    </button>
+                    <button class="node-create-btn parallelogram-btn" id="add-parallelogram-btn">
+                        <div class="node-icon parallelogram"></div>
+                        Input/Output
+                    </button>
+                    <button class="node-create-btn connector-btn active" id="arrow-tool-btn">
+                        <div class="node-icon connector"></div>
+                        Arrow/Connector
+                    </button>
+                    <button class="node-create-btn delete-btn" id="delete-tool-btn">
+                        <div class="node-icon delete"></div>
+                        Delete Element
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Message Template (hidden by default) -->
+    <div id="error-message" class="error-message" style="display: none;">
+        <h2>Game Loading Error</h2>
+        <p>Failed to initialize FLOWBYTE. Please check your connection and try again.</p>
+        <button class="retry-btn" onclick="location.reload()">Retry</button>
+    </div>
+    
+    <!-- Load the game JavaScript -->
+    <script src="../../static/js/flowchart-game.js"></script>
+    
+    <script>
+        // Initialize the game with error handling
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Hide loading screen after a brief delay
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    const gameContainer = document.getElementById('game-container');
+                    
+                    if (loadingScreen && gameContainer) {
+                        loadingScreen.style.display = 'none';
+                        gameContainer.style.display = 'block';
+                        
+                        // Initialize the FLOWBYTE game with container
+                        if (typeof FlowByteGame !== 'undefined') {
+                            window.flowByteGame = new FlowByteGame();
+                            window.flowByteGame.init(gameContainer);
+                            console.log('FLOWBYTE Game loaded successfully');
+                        } else {
+                            throw new Error('FlowByteGame class not found');
+                        }
+                    }
+                }, 1500); // Show loading for 1.5 seconds
+                
+            } catch (error) {
+                console.error('Failed to initialize FLOWBYTE:', error);
+                showError();
+            }
+        });
+        
+        // Error handling function
+        function showError() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const errorMessage = document.getElementById('error-message');
+            
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+            
+            if (errorMessage) {
+                errorMessage.style.display = 'block';
+            }
+        }
+        
+        // Global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Game Error:', event.error);
+            // Don't show error for minor issues, only critical ones
+            if (event.error && event.error.message.includes('FlowByteGame')) {
+                showError();
+            }
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled Promise Rejection:', event.reason);
+        });
+        
+        // Ensure game container takes full viewport
+        function adjustGameContainer() {
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                gameContainer.style.minHeight = window.innerHeight + 'px';
+            }
+        }
+        
+        // Adjust on resize
+        window.addEventListener('resize', adjustGameContainer);
+        
+        // Navigation helper functions (can be used by other parts of the system)
+        window.FlowByteNavigation = {
+            goToRoom: function(roomName) {
+                // This can be expanded to navigate to other rooms
+                console.log(`Navigating to ${roomName}`);
+                // Example: window.location.href = `../${roomName}/${roomName}-room.html`;
+            },
+            
+            goToMainMenu: function() {
+                // Navigate back to main menu
+                console.log('Navigating to main menu');
+                // Example: window.location.href = '../../../index.html';
+            }
+        };
+    </script>
+</body>
+</html>

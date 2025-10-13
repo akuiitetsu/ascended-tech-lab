@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>NETXUS - Cisco Packet Tracer Lab</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../../static/css/responsive-framework.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #1a1a2e;
+            --bg-panel: #16213e;
+            --bg-canvas: #0f3460;
+            --border-color: #4a5568;
+            --text-light: #f7fafc;
+            --text-muted: #a0aec0;
+            --font-main: 'VT323', monospace;
+            --color-blue: #3182ce;
+            --color-green: #38a169;
+            --color-red: #e53e3e;
+            --color-orange: #dd6b20;
+            --color-purple: #805ad5;
+            --color-cyan: #00b4d8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-main);
+            color: var(--text-light);
+            font-size: 18px;
+            overflow-x: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: auto;
+        }
+
+        /* Difficulty Selection Screen */
+        .netxus-difficulty-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .difficulty-modal {
+            background: rgba(22, 33, 62, 0.95);
+            border: 2px solid var(--color-cyan);
+            border-radius: 20px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 184, 216, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 100%;
+            margin: 20px;
+            position: relative;
+            box-sizing: border-box;
+        }
+        
+        .difficulty-modal .network-icon {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 80px;
+        }
+        
+        .difficulty-modal .network-icon i {
+            font-size: 4rem;
+            color: var(--color-cyan);
+            animation: pulse-network 2s infinite;
+        }
+
+        @keyframes pulse-network {
+            0%, 100% { color: var(--color-cyan); transform: scale(1); }
+            50% { color: #90e0ef; transform: scale(1.1); }
+        }
+        
+        .modal-title {
+            color: #ffffff;
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+            text-shadow: 0 0 20px rgba(0, 184, 216, 0.5);
+        }
+        
+        .modal-description {
+            color: #cccccc;
+            font-size: 1rem;
+            line-height: 1.4;
+            margin: 0 0 30px 0;
+            font-weight: 400;
+        }
+        
+        .difficulty-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .difficulty-btn {
+            width: 100%;
+            max-width: 280px;
+            padding: 12px 25px;
+            font-size: 0.95em;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .easy-btn {
+            background: linear-gradient(135deg, var(--color-green), #2f855a);
+            color: white;
+            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.3);
+        }
+        
+        .easy-btn:hover {
+            background: linear-gradient(135deg, #2f855a, #276749);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 161, 105, 0.4);
+        }
+        
+        .hard-btn {
+            background: linear-gradient(135deg, var(--color-red), #c53030);
+            color: white;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+        }
+        
+        .hard-btn:hover {
+            background: linear-gradient(135deg, #c53030, #9c2626);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
+        }
+
+        /* Level Selection Screen */
+        .netxus-room {
+            padding: 30px 20px;
+            color: white;
+            background: linear-gradient(135deg, #0f0f23 0%, #16213e 100%);
+            height: 100%;
+            position: relative;
+            z-index: 10;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        .level-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            padding: 0 60px;
+        }
+        
+        .back-btn {
+            position: static;
+            margin: 0;
+            background: rgba(0, 184, 216, 0.1);
+            border: 2px solid var(--color-cyan);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: var(--color-cyan);
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .back-btn:hover {
+            background: rgba(0, 184, 216, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .level-header h1 {
+            font-size: 2.5rem;
+            color: var(--color-cyan);
+            margin: 0;
+            line-height: 1.2;
+            text-shadow: 0 0 20px rgba(0, 184, 216, 0.5);
+        }
+        
+        .level-header p {
+            font-size: 1rem;
+            color: #cccccc;
+            margin: 8px 0 0 0;
+            line-height: 1.4;
+        }
+        
+        .level-selection h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ffffff;
+            font-size: 1.5rem;
+        }
+        
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .level-card {
+            background: rgba(0, 184, 216, 0.1);
+            border: 2px solid #3d3d3d;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            position: relative;
+            backdrop-filter: blur(5px);
+        }
+        
+        .level-card:hover {
+            border-color: var(--color-cyan);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 184, 216, 0.3);
+        }
+        
+        .level-number {
+            background: linear-gradient(135deg, var(--color-cyan), #0077b6);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin: 0 auto 12px;
+        }
+
+        /* Lab Interface */
+        .lab-container {
+            display: flex;
+            width: 100%;
+            height: calc(100vh - 120px);
+            padding: 15px;
+            background-color: var(--bg-main);
+            box-sizing: border-box;
+            gap: 15px;
+            overflow: hidden;
+            align-items: stretch;
+        }
+
+        .lab-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 350px;
+            min-width: 350px;
+            max-width: 350px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 15px;
+            background: var(--bg-panel);
+            border-radius: 10px;
+            border: 1px solid var(--color-cyan);
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .lab-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 184, 216, 0.1);
+            border-radius: 8px;
+            border: 1px solid var(--color-cyan);
+            position: relative;
+        }
+
+        .lab-header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--color-cyan);
+            line-height: 1.2;
+            flex: 1;
+        }
+
+        .lab-header .back-to-levels {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--color-red);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 0.65rem;
+            z-index: 10;
+            line-height: 1;
+            min-height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lab-header .back-to-levels:hover {
+            background: #c53030;
+        }
+
+        .network-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-cyan);
+            flex-shrink: 0;
+        }
+
+        .lab-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            padding: 12px 8px;
+            border-radius: 6px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.8rem;
+            text-align: center;
+            min-height: 60px;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-box span:first-child {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            line-height: 1;
+        }
+
+        .stat-box .value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .level-box { background-color: var(--color-blue); }
+        .progress-box { background-color: var(--color-green); }
+
+        .lab-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 8px;
+            border: none;
+            border-radius: 6px;
+            font-family: var(--font-main);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            text-align: center;
+            line-height: 1.1;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-complete { background-color: var(--color-green); }
+        .btn-hint { background-color: var(--color-orange); }
+        .btn-reset { background-color: var(--color-red); }
+        .btn-back { background-color: var(--color-purple); }
+
+        .lab-content {
+            flex: 1;
+            background: var(--bg-panel);
+            border-radius: 10px;
+            border: 1px solid var(--color-cyan);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lab-instructions {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: rgba(0, 184, 216, 0.05);
+        }
+
+        .lab-instructions h2 {
+            color: var(--color-cyan);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .lab-instructions h3 {
+            color: var(--color-green);
+            margin: 20px 0 10px 0;
+            font-size: 1.2rem;
+        }
+
+        .lab-instructions h4 {
+            color: var(--color-orange);
+            margin: 15px 0 8px 0;
+            font-size: 1rem;
+        }
+
+        .lab-instructions p {
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .lab-instructions ul, .lab-instructions ol {
+            margin: 10px 0 10px 20px;
+        }
+
+        .lab-instructions li {
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .command-block {
+            background: #1a202c;
+            border: 1px solid var(--color-cyan);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #90cdf4;
+            position: relative;
+        }
+
+        .command-block::before {
+            content: "Command";
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: var(--bg-panel);
+            color: var(--color-cyan);
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            border-radius: 3px;
+        }
+
+        .topology-info {
+            background: rgba(56, 161, 105, 0.1);
+            border: 1px solid var(--color-green);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .expected-output {
+            background: rgba(0, 184, 216, 0.1);
+            border: 1px solid var(--color-cyan);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Override any hidden states when screen should be visible */
+        .netxus-difficulty-screen:not(.hidden) {
+            display: flex !important;
+        }
+
+        .netxus-room:not(.hidden) {
+            display: block !important;
+        }
+
+        .lab-container:not(.hidden) {
+            display: flex !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            #game-container {
+                height: calc(100vh - 100px);
+            }
+        }
+
+        @media (max-width: 992px) {
+            #game-container {
+                height: calc(100vh - 80px);
+            }
+            
+            .lab-container {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 120px);
+            }
+            
+            .lab-sidebar {
+                width: 100%;
+                min-width: auto;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #game-container {
+                height: calc(100vh - 60px);
+            }
+        }
+
+        /* Network Simulation Styles */
+        .simulation-workspace {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .workspace-header {
+            padding: 15px;
+            background: rgba(0, 184, 216, 0.1);
+            border-bottom: 1px solid var(--color-cyan);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .workspace-header h3 {
+            margin: 0;
+            color: var(--color-cyan);
+            font-size: 1.2rem;
+        }
+
+        .simulation-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sim-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            background: var(--color-blue);
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sim-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .sim-btn.active {
+            background: var(--color-green);
+        }
+
+        .network-canvas {
+            flex: 1;
+            background: linear-gradient(
+                90deg, 
+                rgba(0, 184, 216, 0.1) 1px, 
+                transparent 1px
+            ),
+            linear-gradient(
+                0deg, 
+                rgba(0, 184, 216, 0.1) 1px, 
+                transparent 1px
+            );
+            background-size: 20px 20px;
+            position: relative;
+            overflow: hidden;
+            cursor: default;
+        }
+
+        .network-canvas.connection-mode {
+            cursor: crosshair;
+        }
+
+        /* Device Toolbar */
+        .device-toolbar {
+            display: flex;
+            padding: 10px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--color-cyan);
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .device-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(0, 184, 216, 0.1);
+            border: 2px solid #3d3d3d;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .device-btn:hover {
+            border-color: var(--color-cyan);
+            background: rgba(0, 184, 216, 0.2);
+        }
+
+        .device-btn.active {
+            border-color: var(--color-green);
+            background: rgba(56, 161, 105, 0.2);
+        }
+
+        .device-btn .device-icon {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+            color: var(--color-cyan);
+        }
+
+        .device-btn .device-label {
+            font-size: 0.7rem;
+            color: white;
+            line-height: 1.1;
+        }
+
+        /* Network Devices */
+        .network-device {
+            position: absolute;
+            background: var(--bg-panel);
+            border: 2px solid var(--color-cyan);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .network-device:hover {
+            border-color: var(--color-green);
+            box-shadow: 0 4px 12px rgba(0, 184, 216, 0.3);
+        }
+
+        .network-device.selected {
+            border-color: var(--color-orange);
+            box-shadow: 0 4px 12px rgba(221, 107, 32, 0.5);
+        }
+
+        .network-device .device-icon {
+            font-size: 2rem;
+            color: var(--color-cyan);
+            margin-bottom: 4px;
+        }
+
+        .network-device .device-name {
+            font-size: 0.7rem;
+            color: white;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .device-pc .device-icon { color: #60a5fa; }
+        .device-router .device-icon { color: #34d399; }
+        .device-switch .device-icon { color: #fbbf24; }
+        .device-server .device-icon { color: #a78bfa; }
+        .device-laptop .device-icon { color: #fb7185; }
+
+        /* Cables and Connections */
+        .network-cables {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .network-cable {
+            stroke: var(--color-green);
+            stroke-width: 3;
+            fill: none;
+        }
+
+        .cable-straight { stroke: var(--color-green); }
+        .cable-crossover { stroke: var(--color-orange); }
+        .cable-serial { stroke: var(--color-red); }
+
+        /* Device Configuration Modal */
+        .device-config-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .config-panel {
+            background: var(--bg-panel);
+            border: 2px solid var(--color-cyan);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--color-cyan);
+        }
+
+        .config-header h3 {
+            margin: 0;
+            color: var(--color-cyan);
+        }
+
+        .config-close {
+            background: var(--color-red);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+
+        .config-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #3d3d3d;
+        }
+
+        .config-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .config-tab.active {
+            color: var(--color-cyan);
+            border-bottom-color: var(--color-cyan);
+        }
+
+        .config-content {
+            color: white;
+        }
+
+        .config-section {
+            margin-bottom: 20px;
+        }
+
+        .config-section h4 {
+            margin: 0 0 10px 0;
+            color: var(--color-green);
+            font-size: 1rem;
+        }
+
+        .config-form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 6px 10px;
+            background: var(--bg-main);
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--color-cyan);
+        }
+
+        /* CLI Terminal */
+        .cli-terminal {
+            background: #000;
+            border: 1px solid var(--color-cyan);
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #00ff00;
+            height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+
+        .cli-input {
+            display: flex;
+            margin-top: 5px;
+        }
+
+        .cli-prompt {
+            color: #00ff00;
+            margin-right: 5px;
+        }
+
+        .cli-command {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: inherit;
+            font-size: inherit;
+            flex: 1;
+            outline: none;
+        }
+
+        /* Test Results */
+        .test-results {
+            background: rgba(0, 184, 216, 0.1);
+            border: 1px solid var(--color-cyan);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .test-results h4 {
+            margin: 0 0 10px 0;
+            color: var(--color-cyan);
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .test-pass {
+            background: var(--color-green);
+            color: white;
+        }
+
+        .test-fail {
+            background: var(--color-red);
+            color: white;
+        }
+
+        .test-pending {
+            background: var(--color-orange);
+            color: white;
+        }
+
+        /* ...existing code... */
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Difficulty Selection Screen -->
+        <div id="difficulty-screen" class="netxus-difficulty-screen">
+            <div class="difficulty-modal">
+                <div class="network-icon">
+                    <i class="bi bi-router"></i>
+                </div>
+                
+                <h1 class="modal-title">NETXUS Lab</h1>
+                
+                <p class="modal-description">
+                    Master Cisco Packet Tracer<br>
+                    networking fundamentals!
+                </p>
+                
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn easy-btn" id="easy-difficulty-btn">
+                        EASY LABS
+                    </button>
+                    <button class="difficulty-btn hard-btn" id="hard-difficulty-btn">
+                        ADVANCED LABS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Selection Screen -->
+        <div id="level-screen" class="netxus-room hidden">
+            <div class="level-header">
+                <button class="back-btn" id="back-to-difficulty-btn">
+                    <i class="bi bi-arrow-left-circle"></i>
+                </button>
+                <h1 id="difficulty-title">NETXUS</h1>
+                <p id="difficulty-description"></p>
+            </div>
+            <div class="level-selection">
+                <h2>Select Lab Challenge</h2>
+                <div class="level-grid" id="level-grid">
+                    <!-- Level cards will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Lab Interface Screen -->
+        <div id="game-screen" class="lab-container hidden">
+            <aside class="lab-sidebar">
+                <header class="lab-header">
+                    <i class="bi bi-router network-icon"></i>
+                    <h1>NETXUS Lab</h1>
+                    <button class="back-to-levels" id="back-to-levels-btn">← Labs</button>
+                </header>
+
+                <section class="lab-stats">
+                    <div class="stat-box level-box">
+                        <span>Current Lab</span>
+                        <span class="value" id="current-lab-display">1/5</span>
+                    </div>
+                    <div class="stat-box progress-box">
+                        <span>Progress</span>
+                        <span class="value" id="lab-progress">0%</span>
+                    </div>
+                </section>
+
+                <section class="lab-controls">
+                    <button class="btn btn-complete" id="complete-lab-btn">✓ Complete Lab</button>
+                    <button class="btn btn-hint" id="get-hint-btn">💡 Get Hint</button>
+                    <button class="btn btn-reset" id="reset-lab-btn">🔄 Reset Lab</button>
+                    <button class="btn btn-back" id="abort-mission-btn">✗ Abort Mission</button>
+                </section>
+
+                <section class="simulation-controls">
+                    <button class="sim-btn" id="clear-workspace-btn">Clear All</button>
+                    <button class="sim-btn" id="test-configuration-btn">Test Network</button>
+                    <button class="sim-btn" id="connection-mode-btn">Connect Devices</button>
+                </section>
+
+                <div class="test-results" id="test-results">
+                    <h4>Test Results</h4>
+                    <div id="test-output">Click "Test Network" to validate your configuration</div>
+                </div>
+            </aside>
+
+            <main class="lab-content">
+                <div class="simulation-workspace">
+                    <div class="workspace-header">
+                        <h3>Network Simulation Workspace</h3>
+                        <div class="simulation-controls">
+                            <button class="sim-btn" id="simulation-mode-btn">Simulation</button>
+                            <button class="sim-btn" id="realtime-mode-btn">Realtime</button>
+                        </div>
+                    </div>
+
+                    <div class="network-canvas" id="network-canvas">
+                        <svg class="network-cables" id="network-cables" style="
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            pointer-events: none;
+                            z-index: 5;
+                        "></svg>
+                    </div>
+
+                    <div class="device-toolbar">
+                        <button class="device-btn" data-device="pc">
+                            <div class="device-icon">
+                                <i class="bi bi-pc-display"></i>
+                            </div>
+                            <div class="device-label">PC</div>
+                        </button>
+                        <button class="device-btn" data-device="laptop">
+                            <div class="device-icon">
+                                <i class="bi bi-laptop"></i>
+                            </div>
+                            <div class="device-label">Laptop</div>
+                        </button>
+                        <button class="device-btn" data-device="router">
+                            <div class="device-icon">
+                                <i class="bi bi-router"></i>
+                            </div>
+                            <div class="device-label">Router</div>
+                        </button>
+                        <button class="device-btn" data-device="switch">
+                            <div class="device-icon">
+                                <i class="bi bi-hdd-network"></i>
+                            </div>
+                            <div class="device-label">Switch</div>
+                        </button>
+                        <button class="device-btn" data-device="server">
+                            <div class="device-icon">
+                                <i class="bi bi-server"></i>
+                            </div>
+                            <div class="device-label">Server</div>
+                        </button>
+                        <button class="device-btn" data-device="wireless">
+                            <div class="device-icon">
+                                <i class="bi bi-wifi"></i>
+                            </div>
+                            <div class="device-label">Wireless AP</div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lab-instructions" id="lab-instructions">
+                    <!-- Lab instructions will be populated by JavaScript -->
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Load responsive framework and game JavaScript -->
+    <script src="../../static/js/responsive-manager.js"></script>
+    <script src="../../static/js/netxus.js"></script>
+    <script>
+        console.log('NETXUS room HTML loaded and ready for command center integration');
+    </script>
+</body>
+</html>

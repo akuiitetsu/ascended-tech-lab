@@ -1,0 +1,761 @@
+/* ============================================
+   UNIVERSAL RESPONSIVE FRAMEWORK
+   For all 5 game rooms across all screen types
+   ============================================ */
+
+:root {
+    /* Viewport variables */
+    --vh: 1vh;
+    --vw: 1vw;
+    --vmin: 1vmin;
+    --vmax: 1vmax;
+    
+    /* Base scaling factors */
+    --mobile-scale: 1;
+    --tablet-scale: 1.1;
+    --laptop-scale: 1.2;
+    --desktop-scale: 1.3;
+    --tv-scale: 1.5;
+    --fridge-scale: 0.8;
+    
+    /* Touch target sizes */
+    --touch-target-min: 44px;
+    --touch-target-large: 56px;
+    --touch-target-xl: 64px;
+    
+    /* Font scaling */
+    --font-scale-mobile: 0.875;
+    --font-scale-tablet: 1;
+    --font-scale-laptop: 1.125;
+    --font-scale-desktop: 1.25;
+    --font-scale-tv: 1.5;
+    --font-scale-fridge: 0.75;
+    
+    /* Grid breakpoints */
+    --breakpoint-xs: 320px;
+    --breakpoint-sm: 480px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1200px;
+    --breakpoint-xxl: 1440px;
+    --breakpoint-tv: 1920px;
+    --breakpoint-ultra: 2560px;
+}
+
+/* ============================================
+   UNIVERSAL BASE STYLES
+   ============================================ */
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Allow text selection for specific elements */
+input, textarea, select, [contenteditable], 
+.selectable, .challenge-code, .matching-content,
+.code-editor, .scenario-text {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+html {
+    height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    font-size: 16px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
+    overflow-x: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.4;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS & DEVICE DETECTION
+   ============================================ */
+
+/* Mobile Phones (Portrait) */
+@media screen and (max-width: 479px) {
+    :root {
+        --current-scale: var(--mobile-scale);
+        --current-font-scale: var(--font-scale-mobile);
+        --grid-columns: 1;
+        --sidebar-width: 100%;
+        --content-padding: 10px;
+        --gap-size: 10px;
+    }
+    
+    html { font-size: 14px; }
+    body { font-size: 0.875rem; }
+}
+
+/* Mobile Phones (Landscape) & Small Tablets */
+@media screen and (min-width: 480px) and (max-width: 767px) {
+    :root {
+        --current-scale: var(--mobile-scale);
+        --current-font-scale: var(--font-scale-mobile);
+        --grid-columns: 2;
+        --sidebar-width: 100%;
+        --content-padding: 15px;
+        --gap-size: 12px;
+    }
+    
+    html { font-size: 15px; }
+    body { font-size: 0.9rem; }
+}
+
+/* Tablets (Portrait) */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+    :root {
+        --current-scale: var(--tablet-scale);
+        --current-font-scale: var(--font-scale-tablet);
+        --grid-columns: 2;
+        --sidebar-width: 320px;
+        --content-padding: 20px;
+        --gap-size: 15px;
+    }
+    
+    html { font-size: 16px; }
+    body { font-size: 1rem; }
+}
+
+/* Laptops & Tablets (Landscape) */
+@media screen and (min-width: 1024px) and (max-width: 1199px) {
+    :root {
+        --current-scale: var(--laptop-scale);
+        --current-font-scale: var(--font-scale-laptop);
+        --grid-columns: 3;
+        --sidebar-width: 350px;
+        --content-padding: 25px;
+        --gap-size: 20px;
+    }
+    
+    html { font-size: 17px; }
+    body { font-size: 1.125rem; }
+}
+
+/* Desktops */
+@media screen and (min-width: 1200px) and (max-width: 1919px) {
+    :root {
+        --current-scale: var(--desktop-scale);
+        --current-font-scale: var(--font-scale-desktop);
+        --grid-columns: 4;
+        --sidebar-width: 380px;
+        --content-padding: 30px;
+        --gap-size: 25px;
+    }
+    
+    html { font-size: 18px; }
+    body { font-size: 1.25rem; }
+}
+
+/* TVs & Large Displays */
+@media screen and (min-width: 1920px) and (max-width: 2559px) {
+    :root {
+        --current-scale: var(--tv-scale);
+        --current-font-scale: var(--font-scale-tv);
+        --grid-columns: 5;
+        --sidebar-width: 450px;
+        --content-padding: 40px;
+        --gap-size: 30px;
+    }
+    
+    html { font-size: 22px; }
+    body { font-size: 1.5rem; }
+}
+
+/* Ultra-wide & 4K+ Displays */
+@media screen and (min-width: 2560px) {
+    :root {
+        --current-scale: calc(var(--tv-scale) * 1.2);
+        --current-font-scale: calc(var(--font-scale-tv) * 1.2);
+        --grid-columns: 6;
+        --sidebar-width: 500px;
+        --content-padding: 50px;
+        --gap-size: 35px;
+    }
+    
+    html { font-size: 26px; }
+    body { font-size: 1.8rem; }
+}
+
+/* Refrigerator & Unusual Aspect Ratios */
+@media screen and (max-height: 800px) and (min-width: 600px) and (max-width: 1200px) {
+    :root {
+        --current-scale: var(--fridge-scale);
+        --current-font-scale: var(--font-scale-fridge);
+        --grid-columns: 3;
+        --sidebar-width: 250px;
+        --content-padding: 15px;
+        --gap-size: 10px;
+    }
+    
+    html { font-size: 12px; }
+    body { font-size: 0.75rem; }
+}
+
+/* ============================================
+   RESPONSIVE LAYOUT SYSTEM
+   ============================================ */
+
+/* Container System */
+.responsive-container {
+    width: 100%;
+    max-width: 100vw;
+    padding: var(--content-padding);
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.responsive-flex {
+    display: flex;
+    gap: var(--gap-size);
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.responsive-grid {
+    display: grid;
+    gap: var(--gap-size);
+    grid-template-columns: repeat(var(--grid-columns), 1fr);
+    align-items: stretch;
+}
+
+/* Flex direction utilities */
+.flex-column { flex-direction: column; }
+.flex-row { flex-direction: row; }
+
+@media (max-width: 767px) {
+    .flex-mobile-column { flex-direction: column !important; }
+    .flex-mobile-row { flex-direction: row !important; }
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY
+   ============================================ */
+
+h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+    margin: 0 0 0.5em 0;
+    font-weight: 600;
+}
+
+h1 { font-size: calc(2rem * var(--current-font-scale)); }
+h2 { font-size: calc(1.75rem * var(--current-font-scale)); }
+h3 { font-size: calc(1.5rem * var(--current-font-scale)); }
+h4 { font-size: calc(1.25rem * var(--current-font-scale)); }
+h5 { font-size: calc(1.125rem * var(--current-font-scale)); }
+h6 { font-size: calc(1rem * var(--current-font-scale)); }
+
+p, span, div {
+    font-size: calc(1rem * var(--current-font-scale));
+    line-height: 1.5;
+}
+
+small { font-size: calc(0.875rem * var(--current-font-scale)); }
+
+/* Code and monospace text */
+code, pre, .code-text {
+    font-family: 'Courier New', Monaco, 'Cascadia Code', monospace;
+    font-size: calc(0.9rem * var(--current-font-scale));
+    line-height: 1.4;
+}
+
+/* ============================================
+   RESPONSIVE BUTTONS & INTERACTIVE ELEMENTS
+   ============================================ */
+
+button, .btn, .interactive-btn, 
+.difficulty-btn, .challenge-btn, .action-btn {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    padding: calc(12px * var(--current-scale)) calc(16px * var(--current-scale));
+    border-radius: calc(8px * var(--current-scale));
+    font-size: calc(1rem * var(--current-font-scale));
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(8px * var(--current-scale));
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Large touch targets for mobile */
+@media (max-width: 767px) {
+    button, .btn, .interactive-btn, 
+    .difficulty-btn, .challenge-btn, .action-btn {
+        min-height: var(--touch-target-large);
+        padding: calc(14px * var(--current-scale)) calc(20px * var(--current-scale));
+        font-size: calc(1.1rem * var(--current-font-scale));
+    }
+}
+
+/* Extra large for TV/large displays */
+@media (min-width: 1920px) {
+    button, .btn, .interactive-btn, 
+    .difficulty-btn, .challenge-btn, .action-btn {
+        min-height: var(--touch-target-xl);
+        padding: calc(18px * var(--current-scale)) calc(24px * var(--current-scale));
+        border-radius: calc(12px * var(--current-scale));
+    }
+}
+
+/* Button hover and active states */
+button:hover, .btn:hover, .interactive-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active, .btn:active, .interactive-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Touch feedback for mobile */
+@media (hover: none) and (pointer: coarse) {
+    button:active, .btn:active, .interactive-btn:active {
+        transform: scale(0.95);
+        filter: brightness(1.1);
+    }
+}
+
+/* ============================================
+   RESPONSIVE FORMS
+   ============================================ */
+
+input, textarea, select {
+    min-height: var(--touch-target-min);
+    padding: calc(12px * var(--current-scale)) calc(16px * var(--current-scale));
+    font-size: calc(1rem * var(--current-font-scale));
+    border-radius: calc(6px * var(--current-scale));
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: inherit;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+}
+
+/* Prevent zoom on iOS */
+@media (max-width: 767px) {
+    input, textarea, select {
+        font-size: 16px;
+        min-height: var(--touch-target-large);
+    }
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: currentColor;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   RESPONSIVE GAME INTERFACE COMPONENTS
+   ============================================ */
+
+/* Game Container */
+.game-container {
+    width: 100%;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Difficulty Selection Modal */
+.difficulty-modal, .room-modal {
+    background: rgba(42, 42, 62, 0.95);
+    border: 2px solid currentColor;
+    border-radius: calc(20px * var(--current-scale));
+    padding: calc(40px * var(--current-scale)) calc(50px * var(--current-scale));
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(15px);
+    max-width: calc(500px * var(--current-scale));
+    width: 90%;
+    margin: 0 auto;
+    position: relative;
+}
+
+@media (max-width: 767px) {
+    .difficulty-modal, .room-modal {
+        padding: calc(25px * var(--current-scale)) calc(20px * var(--current-scale));
+        margin: 10px;
+        max-width: 95%;
+        border-radius: calc(15px * var(--current-scale));
+    }
+}
+
+/* Level Selection Grid */
+.level-grid, .challenge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(300px * var(--current-scale)), 1fr));
+    gap: calc(20px * var(--current-scale));
+    max-width: calc(1200px * var(--current-scale));
+    margin: 0 auto;
+    padding: var(--content-padding);
+}
+
+@media (max-width: 767px) {
+    .level-grid, .challenge-grid {
+        grid-template-columns: 1fr;
+        gap: calc(15px * var(--current-scale));
+        padding: calc(10px * var(--current-scale));
+    }
+}
+
+/* Level Cards */
+.level-card, .challenge-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    padding: calc(20px * var(--current-scale));
+    border-radius: calc(12px * var(--current-scale));
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: calc(150px * var(--current-scale));
+}
+
+.level-card:hover, .challenge-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border-color: currentColor;
+}
+
+/* Game Layout - Sidebar + Content */
+.lab-container, .game-layout {
+    display: flex;
+    width: 100%;
+    height: calc(100vh - calc(20px * var(--current-scale)));
+    padding: calc(10px * var(--current-scale));
+    gap: calc(15px * var(--current-scale));
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.lab-sidebar, .game-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: calc(12px * var(--current-scale));
+    border: 2px solid currentColor;
+    padding: calc(20px * var(--current-scale));
+    display: flex;
+    flex-direction: column;
+    gap: calc(15px * var(--current-scale));
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.lab-content, .game-content {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: calc(12px * var(--current-scale));
+    border: 2px solid currentColor;
+    padding: calc(20px * var(--current-scale));
+    display: flex;
+    flex-direction: column;
+    gap: calc(15px * var(--current-scale));
+    overflow-y: auto;
+    min-width: 0;
+}
+
+/* Mobile layout - stack vertically */
+@media (max-width: 1023px) {
+    .lab-container, .game-layout {
+        flex-direction: column;
+        height: auto;
+        min-height: calc(var(--vh, 1vh) * 100);
+    }
+    
+    .lab-sidebar, .game-sidebar {
+        width: 100%;
+        min-width: auto;
+        max-height: calc(40vh);
+        order: 1;
+    }
+    
+    .lab-content, .game-content {
+        order: 2;
+        min-height: calc(60vh);
+    }
+}
+
+/* ============================================
+   RESPONSIVE GAME ELEMENTS
+   ============================================ */
+
+/* Stats and Info Boxes */
+.stat-box, .info-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid currentColor;
+    border-radius: calc(8px * var(--current-scale));
+    padding: calc(12px * var(--current-scale));
+    text-align: center;
+    min-height: calc(60px * var(--current-scale));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Progress Bars */
+.progress-bar {
+    width: 100%;
+    height: calc(8px * var(--current-scale));
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: calc(4px * var(--current-scale));
+    overflow: hidden;
+    margin: calc(10px * var(--current-scale)) 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, currentColor, rgba(255, 255, 255, 0.7));
+    border-radius: calc(4px * var(--current-scale));
+    transition: width 0.3s ease;
+}
+
+/* Modal Dialogs and Panels */
+.panel, .modal-panel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid currentColor;
+    border-radius: calc(10px * var(--current-scale));
+    padding: calc(15px * var(--current-scale));
+    margin: calc(10px * var(--current-scale)) 0;
+    backdrop-filter: blur(10px);
+}
+
+/* Code Editor Areas */
+.code-editor, .editor-area {
+    width: 100%;
+    min-height: calc(200px * var(--current-scale));
+    max-height: calc(400px * var(--current-scale));
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: calc(6px * var(--current-scale));
+    padding: calc(12px * var(--current-scale));
+    font-family: 'Courier New', Monaco, monospace;
+    font-size: calc(0.9rem * var(--current-font-scale));
+    resize: vertical;
+    box-sizing: border-box;
+    line-height: 1.4;
+}
+
+@media (max-width: 767px) {
+    .code-editor, .editor-area {
+        min-height: calc(150px * var(--current-scale));
+        max-height: calc(300px * var(--current-scale));
+    }
+}
+
+/* ============================================
+   RESPONSIVE UTILITIES
+   ============================================ */
+
+/* Visibility utilities */
+.mobile-only { display: block; }
+.tablet-only { display: none; }
+.desktop-only { display: none; }
+.tv-only { display: none; }
+
+@media (min-width: 768px) {
+    .mobile-only { display: none; }
+    .tablet-only { display: block; }
+}
+
+@media (min-width: 1024px) {
+    .tablet-only { display: none; }
+    .desktop-only { display: block; }
+}
+
+@media (min-width: 1920px) {
+    .desktop-only { display: none; }
+    .tv-only { display: block; }
+}
+
+/* Spacing utilities */
+.p-xs { padding: calc(5px * var(--current-scale)); }
+.p-sm { padding: calc(10px * var(--current-scale)); }
+.p-md { padding: calc(15px * var(--current-scale)); }
+.p-lg { padding: calc(20px * var(--current-scale)); }
+.p-xl { padding: calc(30px * var(--current-scale)); }
+
+.m-xs { margin: calc(5px * var(--current-scale)); }
+.m-sm { margin: calc(10px * var(--current-scale)); }
+.m-md { margin: calc(15px * var(--current-scale)); }
+.m-lg { margin: calc(20px * var(--current-scale)); }
+.m-xl { margin: calc(30px * var(--current-scale)); }
+
+/* Gap utilities */
+.gap-xs { gap: calc(5px * var(--current-scale)); }
+.gap-sm { gap: calc(10px * var(--current-scale)); }
+.gap-md { gap: calc(15px * var(--current-scale)); }
+.gap-lg { gap: calc(20px * var(--current-scale)); }
+.gap-xl { gap: calc(30px * var(--current-scale)); }
+
+/* Text alignment */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+/* Flex utilities */
+.flex-1 { flex: 1; }
+.flex-auto { flex: auto; }
+.flex-none { flex: none; }
+
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-around { justify-content: space-around; }
+.justify-start { justify-content: flex-start; }
+.justify-end { justify-content: flex-end; }
+
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.items-stretch { align-items: stretch; }
+
+/* Display utilities */
+.hidden { display: none !important; }
+.block { display: block; }
+.inline-block { display: inline-block; }
+.flex { display: flex; }
+.grid { display: grid; }
+
+/* ============================================
+   ACCESSIBILITY & MOTION
+   ============================================ */
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    button, .btn, .interactive-btn {
+        border: 2px solid currentColor;
+    }
+    
+    .level-card, .challenge-card, .panel {
+        border-width: 3px;
+    }
+}
+
+/* Focus indicators */
+button:focus-visible, 
+.btn:focus-visible, 
+input:focus-visible, 
+textarea:focus-visible, 
+select:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION OPTIMIZATIONS
+   ============================================ */
+
+@media screen and (max-height: 600px) and (orientation: landscape) {
+    :root {
+        --content-padding: calc(var(--content-padding) * 0.8);
+        --gap-size: calc(var(--gap-size) * 0.8);
+    }
+    
+    .difficulty-modal, .room-modal {
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: calc(20px * var(--current-scale));
+    }
+    
+    .lab-container, .game-layout {
+        flex-direction: row;
+        height: calc(var(--vh, 1vh) * 100);
+    }
+    
+    .lab-sidebar, .game-sidebar {
+        width: calc(var(--sidebar-width) * 0.8);
+        min-width: calc(var(--sidebar-width) * 0.8);
+        max-height: none;
+    }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+    * {
+        background: transparent !important;
+        color: black !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+    
+    .mobile-only, .tablet-only, .desktop-only, .tv-only {
+        display: block !important;
+    }
+    
+    button, .btn, .interactive-btn {
+        border: 1px solid black;
+        background: white;
+        color: black;
+    }
+    
+    .hidden {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        color-scheme: light;
+    }
+    
+    /* Adjust for light mode if needed */
+    .difficulty-modal, .room-modal,
+    .panel, .modal-panel,
+    .lab-sidebar, .game-sidebar,
+    .lab-content, .game-content {
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+    }
+}
