@@ -41,6 +41,8 @@
             color: var(--text-light);
             font-size: 18px;
             overflow-x: hidden;
+            min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
         }
 
         #game-container {
@@ -535,6 +537,138 @@
         @media (max-width: 768px) {
             #game-container {
                 height: calc(100vh - 60px);
+                padding: 0;
+            }
+            
+            .lab-container {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 60px);
+                padding: 10px;
+                gap: 10px;
+                overflow-y: auto;
+            }
+            
+            .lab-sidebar {
+                width: 100%;
+                min-width: auto;
+                max-width: none;
+                height: auto;
+                min-height: auto;
+                max-height: 40vh;
+                order: 1;
+                flex-shrink: 0;
+            }
+            
+            .lab-content {
+                order: 2;
+                min-height: 60vh;
+                flex: 1;
+                overflow-y: auto;
+            }
+            
+            .lab-instructions {
+                padding: 15px;
+                max-height: none;
+            }
+            
+            .network-canvas {
+                min-height: 300px;
+            }
+            
+            .device-toolbar {
+                padding: 8px;
+                gap: 6px;
+            }
+            
+            .device-btn {
+                min-width: 50px;
+                padding: 6px 8px;
+            }
+            
+            .device-btn .device-icon {
+                font-size: 1.2rem;
+            }
+            
+            .device-btn .device-label {
+                font-size: 0.6rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .lab-container {
+                padding: 8px;
+                gap: 8px;
+            }
+            
+            .lab-sidebar {
+                padding: 12px;
+                max-height: 35vh;
+            }
+            
+            .lab-header h1 {
+                font-size: 1rem;
+            }
+            
+            .lab-stats {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .lab-controls {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .btn {
+                font-size: 0.8rem;
+                padding: 8px 10px;
+            }
+            
+            .lab-content {
+                min-height: 65vh;
+                padding: 12px;
+            }
+            
+            .workspace-header {
+                padding: 10px;
+            }
+            
+            .workspace-header h3 {
+                font-size: 1rem;
+            }
+            
+            .device-toolbar {
+                flex-wrap: wrap;
+                justify-content: space-around;
+            }
+            
+            .device-btn {
+                min-width: 45px;
+                padding: 4px 6px;
+            }
+            
+            /* Ensure smooth scrolling on touch devices */
+            .lab-content,
+            .lab-sidebar,
+            .lab-instructions,
+            .network-canvas {
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Prevent zoom on form inputs */
+            input, textarea, select {
+                font-size: 16px;
+            }
+            
+            /* Fix any position fixed elements */
+            .device-config-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 9999;
             }
         }
 
@@ -1077,6 +1211,37 @@
     <script src="../../static/js/responsive-manager.js"></script>
     <script src="../../static/js/netxus.js"></script>
     <script>
+        // Mobile viewport height fix
+        function setViewportHeight() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setViewportHeight, 100);
+        });
+        
+        // Prevent mobile content overlap on initial load
+        document.addEventListener('DOMContentLoaded', function() {
+            const gameContainer = document.getElementById('game-container');
+            const labContainer = document.getElementById('game-screen');
+            const labContent = document.querySelector('.lab-content');
+            
+            if (window.innerWidth <= 768) {
+                gameContainer.style.overflowY = 'auto';
+                if (labContainer) {
+                    labContainer.style.height = 'auto';
+                    labContainer.style.minHeight = 'calc(100vh - 60px)';
+                }
+                if (labContent) {
+                    labContent.style.minHeight = '60vh';
+                    labContent.style.overflowY = 'auto';
+                }
+            }
+        });
+        
         console.log('NETXUS room HTML loaded and ready for command center integration');
     </script>
 </body>

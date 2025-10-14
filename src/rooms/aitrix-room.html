@@ -54,6 +54,8 @@
             color: var(--text-light);
             overflow-x: hidden;
             font-size: 14px;
+            min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
         }
 
         #game-container {
@@ -717,6 +719,153 @@
             }
         }
         
+        /* Mobile responsive design fixes */
+        @media (max-width: 768px) {
+            #game-container {
+                height: calc(100vh - 60px);
+                padding: 0;
+            }
+            
+            .lab-container {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 60px);
+                padding: 10px;
+                gap: 10px;
+                overflow-y: auto;
+            }
+            
+            .lab-sidebar {
+                width: 100%;
+                min-width: auto;
+                max-width: none;
+                height: auto;
+                min-height: auto;
+                max-height: 40vh;
+                order: 1;
+                flex-shrink: 0;
+                overflow-y: auto;
+            }
+            
+            .lab-content {
+                order: 2;
+                min-height: 60vh;
+                flex: 1;
+                overflow-y: auto;
+                padding: 15px;
+            }
+            
+            .challenge-workspace {
+                padding: 15px;
+                overflow-y: auto;
+                min-height: 50vh;
+            }
+            
+            .matching-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .scenario-card, .os-card {
+                margin: 8px 0;
+                padding: 12px;
+            }
+            
+            .ai-tutor-panel {
+                max-height: 25vh;
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .lab-container {
+                padding: 8px;
+                gap: 8px;
+            }
+            
+            .lab-sidebar {
+                padding: 12px;
+                max-height: 35vh;
+            }
+            
+            .lab-header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .lab-stats {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .lab-controls {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .btn {
+                font-size: 0.8rem;
+                padding: 8px 12px;
+            }
+            
+            .lab-content {
+                min-height: 65vh;
+                padding: 12px;
+            }
+            
+            .challenge-workspace {
+                padding: 12px;
+                min-height: 45vh;
+            }
+            
+            .ai-tutor-panel {
+                max-height: 20vh;
+                padding: 12px;
+            }
+            
+            .ai-message {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .password-item {
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
+            }
+            
+            .password-actions {
+                justify-content: center;
+            }
+            
+            .strength-btn {
+                flex: 1;
+                max-width: 120px;
+            }
+            
+            /* Ensure smooth scrolling on touch devices */
+            .lab-content,
+            .lab-sidebar,
+            .challenge-workspace,
+            .ai-tutor-panel {
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Prevent zoom on form inputs */
+            input, textarea, select {
+                font-size: 16px;
+            }
+            
+            /* Fix modal positioning on mobile */
+            .device-config-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 9999;
+            }
+        }
+        
         /* Fold and flexible displays */
         @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
             .lab-container {
@@ -965,6 +1114,30 @@
             
             if (window.matchMedia('(prefers-contrast: high)').matches) {
                 body.classList.add('high-contrast');
+            }
+            
+            // Prevent mobile content overlap
+            if (window.innerWidth <= 768) {
+                const gameContainer = document.getElementById('game-container');
+                const labContainer = document.getElementById('game-screen');
+                const labContent = document.querySelector('.lab-content');
+                const challengeWorkspace = document.querySelector('.challenge-workspace');
+                
+                if (gameContainer) {
+                    gameContainer.style.overflowY = 'auto';
+                }
+                if (labContainer) {
+                    labContainer.style.height = 'auto';
+                    labContainer.style.minHeight = 'calc(100vh - 60px)';
+                }
+                if (labContent) {
+                    labContent.style.minHeight = '60vh';
+                    labContent.style.overflowY = 'auto';
+                }
+                if (challengeWorkspace) {
+                    challengeWorkspace.style.minHeight = '50vh';
+                    challengeWorkspace.style.overflowY = 'auto';
+                }
             }
             
             console.log('AITRIX enhanced responsive features initialized for:', {
