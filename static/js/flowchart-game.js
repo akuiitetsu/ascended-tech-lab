@@ -2041,7 +2041,6 @@ class FlowByteGame {
                         ${option.label}
                     </option>
                 `).join('')}
-                <option value="custom">✏️ Custom Text (Type your own)</option>
             </select>
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button id="apply-text" style="
@@ -2074,18 +2073,7 @@ class FlowByteGame {
         const applyBtn = modalContent.querySelector('#apply-text');
         const cancelBtn = modalContent.querySelector('#cancel-text');
         
-        // Handle custom text option
-        selectElement.addEventListener('change', () => {
-            if (selectElement.value === 'custom') {
-                const customText = prompt('Enter custom text for this shape:', node.text);
-                if (customText && customText.trim()) {
-                    selectElement.innerHTML += `<option value="${customText.trim()}" selected>Custom: ${customText.trim()}</option>`;
-                    selectElement.value = customText.trim();
-                } else {
-                    selectElement.value = '';
-                }
-            }
-        });
+
         
         applyBtn.addEventListener('click', () => {
             if (selectElement.value) {
