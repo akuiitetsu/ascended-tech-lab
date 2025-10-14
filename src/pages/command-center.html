@@ -25,7 +25,14 @@
                 <h1>AscendEd<span>: Tech Lab Breakout</span></h1>
             </div>
             
-            <div class="header-right">
+            <!-- Hamburger Menu Button (Mobile Only) -->
+            <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            
+            <div class="header-right" id="headerRight">
                 <button class="back-btn" onclick="goToDashboard()">
                     <i class="bi bi-house"></i>
                 </button>
@@ -39,7 +46,7 @@
                 </button>
             </div>
 
-            <div class="module-nav">
+            <div class="module-nav" id="moduleNav">
                 <div class="module-left">
                     <h1><i class="bi bi-command"></i> Command Center: </h1>
                 </div>
@@ -64,6 +71,54 @@
                         <i class="bi bi-code-slash"></i>
                         CODEVANCE
                     </button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Overlay -->
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+                <div class="mobile-menu-content">
+                    <div class="mobile-nav-buttons">
+                        <button class="mobile-nav-btn back-btn" onclick="goToDashboard(); closeMobileMenu();">
+                            <i class="bi bi-house"></i>
+                            <span>Dashboard</span>
+                        </button>
+                        
+                        <button class="mobile-nav-btn cutscene-btn" onclick="playCutscene(); closeMobileMenu();">
+                            <i class="bi bi-play-circle"></i>
+                            <span>Cutscene</span>
+                        </button>
+                        
+                        <button class="mobile-nav-btn help-btn" onclick="toggleHelp(); closeMobileMenu();">
+                            <i class="bi bi-question-circle"></i>
+                            <span>Help</span>
+                        </button>
+                    </div>
+                    
+                    <div class="mobile-module-nav">
+                        <h2><i class="bi bi-command"></i> Game Rooms</h2>
+                        <div class="mobile-module-buttons">
+                            <button class="mobile-module-btn flowchart" onclick="selectRoom('flowchart'); closeMobileMenu();">
+                                <i class="bi bi-diagram-3"></i>
+                                <span>FLOWBYTE</span>
+                            </button>
+                            <button class="mobile-module-btn networking" onclick="selectRoom('networking'); closeMobileMenu();">
+                                <i class="bi bi-hdd-network"></i>
+                                <span>NETXUS</span>
+                            </button>
+                            <button class="mobile-module-btn ai-training" onclick="selectRoom('ai-training'); closeMobileMenu();">
+                                <i class="bi bi-robot"></i>
+                                <span>AITRIX</span>
+                            </button>
+                            <button class="mobile-module-btn database" onclick="selectRoom('database'); closeMobileMenu();">
+                                <i class="bi bi-database"></i>
+                                <span>SCHEMAX</span>
+                            </button>
+                            <button class="mobile-module-btn programming" onclick="selectRoom('programming'); closeMobileMenu();">
+                                <i class="bi bi-code-slash"></i>
+                                <span>CODEVANCE</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -117,6 +172,65 @@
         </main>
         
         <script>
+            // Mobile Menu Functions
+            function toggleMobileMenu() {
+                const overlay = document.getElementById('mobileMenuOverlay');
+                const hamburger = document.getElementById('hamburgerBtn');
+                
+                if (overlay.classList.contains('active')) {
+                    closeMobileMenu();
+                } else {
+                    openMobileMenu();
+                }
+            }
+            
+            function openMobileMenu() {
+                const overlay = document.getElementById('mobileMenuOverlay');
+                const hamburger = document.getElementById('hamburgerBtn');
+                
+                overlay.classList.add('active');
+                hamburger.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+            }
+            
+            function closeMobileMenu() {
+                const overlay = document.getElementById('mobileMenuOverlay');
+                const hamburger = document.getElementById('hamburgerBtn');
+                
+                overlay.classList.remove('active');
+                hamburger.classList.remove('active');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+            
+            // Close menu when clicking outside content
+            document.addEventListener('click', (e) => {
+                const overlay = document.getElementById('mobileMenuOverlay');
+                const hamburger = document.getElementById('hamburgerBtn');
+                const content = document.querySelector('.mobile-menu-content');
+                
+                if (overlay.classList.contains('active') && 
+                    !content.contains(e.target) && 
+                    !hamburger.contains(e.target)) {
+                    closeMobileMenu();
+                }
+            });
+            
+            // Close menu on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeMobileMenu();
+                }
+            });
+            
+            // Room selection function for mobile menu
+            function selectRoom(roomType) {
+                // Find the corresponding module nav button and click it
+                const moduleBtn = document.querySelector(`.module-nav-btn.${roomType}`);
+                if (moduleBtn) {
+                    moduleBtn.click();
+                }
+            }
+            
             // Handle direct room navigation from dashboard
             document.addEventListener('DOMContentLoaded', () => {
                 const targetRoom = sessionStorage.getItem('targetRoom');
@@ -129,6 +243,13 @@
                         }
                     }, 1000);
                 }
+                
+                // Handle window resize to close mobile menu on desktop
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 768) {
+                        closeMobileMenu();
+                    }
+                });
             });
         </script>
     </body>

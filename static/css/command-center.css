@@ -61,6 +61,185 @@ header {
     gap: 15px;
 }
 
+/* ============================================
+   HAMBURGER MENU
+   ============================================ */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+    transition: all 0.3s ease;
+}
+
+.hamburger-line {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background: #00FFFF;
+    margin: 3px 0;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* ============================================
+   MOBILE MENU OVERLAY
+   ============================================ */
+.mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+}
+
+.mobile-menu-overlay.active {
+    transform: translateX(0);
+}
+
+.mobile-menu-content {
+    padding: 80px 20px 20px;
+    max-width: 400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.mobile-nav-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.mobile-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #00FFFF;
+    border-radius: 12px;
+    color: #00FFFF;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.mobile-nav-btn:hover {
+    background: rgba(0, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.mobile-nav-btn i {
+    font-size: 1.5rem;
+    min-width: 24px;
+}
+
+.mobile-module-nav h2 {
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.mobile-module-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mobile-module-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.mobile-module-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-module-btn i {
+    font-size: 1.5rem;
+    min-width: 24px;
+}
+
+.mobile-module-btn.flowchart { 
+    background-color: #005FFB;
+    background: linear-gradient(135deg, #005FFB, #0047CC);
+}
+.mobile-module-btn.networking { 
+    background-color: #00A949;
+    background: linear-gradient(135deg, #00A949, #008A3A);
+}
+.mobile-module-btn.ai-training { 
+    background-color: #E08300;
+    background: linear-gradient(135deg, #E08300, #CC7400);
+}
+.mobile-module-btn.database { 
+    background-color: #FF3600;
+    background: linear-gradient(135deg, #FF3600, #E02D00);
+}
+.mobile-module-btn.programming { 
+    background-color: #FF006D;
+    background: linear-gradient(135deg, #FF006D, #E0005F);
+}
+
+/* Touch feedback for mobile */
+@media (hover: none) and (pointer: coarse) {
+    .mobile-nav-btn:active,
+    .mobile-module-btn:active {
+        transform: scale(0.95);
+        filter: brightness(1.1);
+    }
+    
+    .hamburger-btn:active {
+        transform: scale(0.9);
+    }
+}
+
 .header-left {
     display: flex;
     align-items: center;
@@ -531,7 +710,21 @@ header {
 }
 
 /* Media Queries */
-@media screen and (max-width: 1200px) {
+@media screen and (min-width: 769px) {
+    /* Ensure hamburger menu and mobile overlay are hidden on desktop */
+    .hamburger-btn,
+    .mobile-menu-overlay {
+        display: none !important;
+    }
+    
+    /* Ensure desktop elements are visible */
+    .header-right,
+    .module-nav {
+        display: flex !important;
+    }
+}
+
+@media screen and (max-width: 1200px) and (min-width: 769px) {
     .module-nav-btn {
         padding: 6px 12px;
         font-size: 0.85rem;
@@ -564,81 +757,88 @@ header {
 
 @media screen and (max-width: 768px) {
     header {
-        padding: 10px;
-        flex-direction: column;
-        gap: 10px;
-        min-height: auto;
+        padding: 10px 20px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 60px;
+        flex-wrap: nowrap;
     }
 
     .header-left {
-        width: 100%;
-        justify-content: center;
+        width: auto;
+        justify-content: flex-start;
+        flex: 1;
     }
 
-    .header-right {
-        order: 1;
-        width: 100%;
-        justify-content: center;
-    }
-
-    .module-nav {
-        order: 0;
-        margin: 5px 0;
-    }
-
-    .module-left h1 {
-        font-size: 1rem;
-    }
-
-    .module-right {
-        gap: 8px;
-    }
-
-    .module-nav-btn {
-        padding: 6px 10px;
-        font-size: 0.8rem;
-        height: 32px;
-    }
-
-    .back-btn,
-    .cutscene-btn,
-    .profile-btn,
-    .help-btn {
-        width: 40px;
-        height: 40px;
+    .header-left h1 {
         font-size: 1.2rem;
+    }
+
+    .header-left h1 span {
+        display: none;
+    }
+
+    /* Show hamburger menu on mobile */
+    .hamburger-btn {
+        display: flex;
+    }
+
+    /* Hide desktop header right and module nav on mobile */
+    .header-right,
+    .module-nav {
+        display: none;
+    }
+
+    /* Adjust main content for smaller header */
+    main {
+        padding-top: 80px;
+    }
+
+    #gameDisplay {
+        height: calc(100vh - 80px);
+        margin: 10px;
+        padding: 15px;
     }
 }
 
 @media screen and (max-width: 480px) {
-    .module-nav {
-        flex-direction: column;
-        align-items: center;
-        padding: 8px;
+    header {
+        padding: 10px 15px;
     }
 
-    .module-left {
-        margin-bottom: 8px;
+    .header-left h1 {
+        font-size: 1.1rem;
     }
 
-    .module-right {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .module-nav-btn {
-        padding: 4px 8px;
-        font-size: 0.75rem;
-        height: 30px;
-    }
-
-    .back-btn,
-    .cutscene-btn,
-    .profile-btn,
-    .help-btn {
+    .hamburger-btn {
         width: 35px;
         height: 35px;
+    }
+
+    .hamburger-line {
+        width: 20px;
+        height: 2px;
+    }
+
+    .mobile-menu-content {
+        padding: 70px 15px 15px;
+    }
+
+    .mobile-nav-btn,
+    .mobile-module-btn {
+        padding: 12px 15px;
         font-size: 1rem;
+    }
+
+    .mobile-nav-btn i,
+    .mobile-module-btn i {
+        font-size: 1.3rem;
+    }
+
+    #gameDisplay {
+        margin: 5px;
+        padding: 10px;
     }
 }
 
