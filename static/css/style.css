@@ -279,6 +279,35 @@ body {
     animation: pulse 2s ease-in-out infinite;
 }
 
+/* System Version Styles */
+.system-version {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 8px 16px;
+    background: rgba(16, 161, 250, 0.1);
+    border: 1px solid rgba(16, 161, 250, 0.3);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+}
+
+.version-label {
+    color: #cccccc;
+    font-weight: 500;
+}
+
+.version-number {
+    color: #10a1fa;
+    font-weight: bold;
+    background: rgba(16, 161, 250, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(16, 161, 250, 0.4);
+}
+
 .login-container h2 {
     color: #A069FF;
     margin-bottom: 10px;
@@ -1254,6 +1283,17 @@ body {
         font-size: 3rem;
     }
     
+    .system-version {
+        font-size: 0.75rem;
+        padding: 6px 12px;
+        margin: 10px 0;
+        gap: 6px;
+    }
+    
+    .version-number {
+        padding: 1px 6px;
+    }
+    
     .login-container h2 {
         font-size: 1.5rem;
     }
@@ -1309,6 +1349,20 @@ body {
     .login-icon i {
         font-size: 2.5rem;
         margin-bottom: 15px;
+    }
+    
+    .system-version {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        margin: 8px 0;
+        gap: 4px;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .version-number {
+        padding: 2px 6px;
+        font-size: 0.7rem;
     }
     
     .login-container h2 {
