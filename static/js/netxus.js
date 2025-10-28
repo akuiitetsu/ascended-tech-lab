@@ -78,6 +78,7 @@ class NetxusLab {
         // Current tool/mode
         this.currentTool = 'select';
         this.deleteMode = false;
+        this.instructionsMaximized = false;
         
         this.labCategories = {
             easy: {
@@ -509,6 +510,19 @@ class NetxusLab {
 
         if (connectionBtn) connectionBtn.addEventListener('click', () => this.toggleConnectionMode());
         if (deleteBtn) deleteBtn.addEventListener('click', () => this.toggleDeleteMode());
+
+        // Instructions maximize button
+        const maximizeBtn = this.container.querySelector('#maximize-instructions-btn');
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('click', () => this.toggleInstructionsMaximize());
+        }
+
+        // Window resize handler for maximized instructions
+        window.addEventListener('resize', () => {
+            if (this.instructionsMaximized) {
+                this.adjustMaximizedInstructionsLayout();
+            }
+        });
     }
 
     setupDeviceToolbar() {
@@ -603,6 +617,70 @@ class NetxusLab {
         } else {
             this.showFeedback('Delete mode disabled', 'info');
             this.canvas.style.cursor = 'default';
+        }
+    }
+
+    toggleInstructionsMaximize() {
+        this.instructionsMaximized = !this.instructionsMaximized;
+        const instructionsPanel = this.container.querySelector('#lab-instructions');
+        const maximizeBtn = this.container.querySelector('#maximize-instructions-btn');
+        const btnIcon = maximizeBtn?.querySelector('i');
+        const btnText = maximizeBtn?.querySelector('span');
+        
+        if (this.instructionsMaximized) {
+            // Maximize the instructions panel
+            instructionsPanel.classList.add('instructions-maximized');
+            if (btnIcon) btnIcon.className = 'bi bi-arrows-angle-contract';
+            if (btnText) btnText.textContent = 'Minimize';
+            
+            // Prevent body scrolling when maximized
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+            
+            // Ensure the content fits properly
+            setTimeout(() => {
+                const content = instructionsPanel.querySelector('.instructions-content');
+                if (content) {
+                    // Calculate available space and adjust content if necessary
+                    const header = instructionsPanel.querySelector('.instructions-header');
+                    const headerHeight = header ? header.offsetHeight : 0;
+                    const availableHeight = window.innerHeight - headerHeight - 60; // 60px for padding
+                    content.style.maxHeight = `${availableHeight}px`;
+                }
+            }, 100);
+            
+            this.showFeedback('Instructions panel maximized. Press Escape or click Minimize to return.', 'info');
+        } else {
+            // Minimize the instructions panel
+            instructionsPanel.classList.remove('instructions-maximized');
+            if (btnIcon) btnIcon.className = 'bi bi-arrows-fullscreen';
+            if (btnText) btnText.textContent = 'Maximize';
+            
+            // Restore body scrolling
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            
+            // Reset content max-height
+            const content = instructionsPanel.querySelector('.instructions-content');
+            if (content) {
+                content.style.maxHeight = '';
+            }
+            
+            this.showFeedback('Instructions panel minimized', 'info');
+        }
+    }
+
+    adjustMaximizedInstructionsLayout() {
+        if (!this.instructionsMaximized) return;
+        
+        const instructionsPanel = this.container.querySelector('#lab-instructions');
+        const content = instructionsPanel?.querySelector('.instructions-content');
+        const header = instructionsPanel?.querySelector('.instructions-header');
+        
+        if (content && header) {
+            const headerHeight = header.offsetHeight;
+            const availableHeight = window.innerHeight - headerHeight - 60; // 60px for padding
+            content.style.maxHeight = `${availableHeight}px`;
         }
     }
 
@@ -1068,15 +1146,18 @@ class NetxusLab {
                 }
                 break;
             case 'Escape':
-                // Exit current mode
-                if (this.deleteMode) {
+                // Exit maximized instructions first
+                if (this.instructionsMaximized) {
+                    this.toggleInstructionsMaximize();
+                } else if (this.deleteMode) {
                     this.toggleDeleteMode();
                 } else if (this.connectionMode) {
                     this.toggleConnectionMode();
+                } else {
+                    // Clear selection
+                    this.selectedDevice = null;
+                    this.updateDeviceSelection();
                 }
-                // Clear selection
-                this.selectedDevice = null;
-                this.updateDeviceSelection();
                 e.preventDefault();
                 break;
             case 'd':
@@ -3591,7 +3672,7 @@ Router# show access-lists 100
     }
 
     displayLabInstructions() {
-        const instructionsContainer = this.container.querySelector('#lab-instructions');
+        const instructionsContainer = this.container.querySelector('#instructions-content');
         if (!instructionsContainer) return;
         
         const instructions = this.labInstructions[this.currentDifficulty][this.currentLab];

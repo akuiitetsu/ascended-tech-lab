@@ -418,9 +418,213 @@
             padding: 20px;
             overflow-y: auto;
             background: rgba(0, 184, 216, 0.05);
+            position: relative;
+        }
+
+        .instructions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 184, 216, 0.3);
+        }
+
+        .instructions-header h2 {
+            margin: 0;
+            color: var(--color-cyan);
+            font-size: 1.5rem;
+        }
+
+        .maximize-btn {
+            background: var(--color-cyan);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .maximize-btn:hover {
+            background: #0077b6;
+            transform: translateY(-1px);
+        }
+
+        .instructions-maximized {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999;
+            background: var(--bg-panel);
+            border: 2px solid var(--color-cyan);
+            border-radius: 0;
+            margin: 0;
+            padding: 0;
+            flex: none !important;
+            max-width: none !important;
+            max-height: none !important;
+            overflow: hidden;
+        }
+
+        .instructions-maximized .lab-instructions {
+            height: 100vh;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .instructions-maximized .instructions-header {
+            flex-shrink: 0;
+            background: var(--bg-panel);
+            z-index: 10;
+            padding: 20px 30px;
+            border-bottom: 2px solid var(--color-cyan);
+            margin: 0;
+        }
+
+        .instructions-maximized .instructions-content {
+            flex: 1;
+            overflow: hidden;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .instructions-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Enhanced text styles for maximized instructions */
+        .instructions-maximized .instructions-content {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #ffffff;
+        }
+
+        .instructions-maximized .instructions-content h2 {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: var(--color-cyan);
+        }
+
+        .instructions-maximized .instructions-content h3 {
+            font-size: 1.6rem;
+            margin: 30px 0 15px 0;
+            color: var(--color-green);
+        }
+
+        .instructions-maximized .instructions-content h4 {
+            font-size: 1.3rem;
+            margin: 25px 0 12px 0;
+            color: var(--color-orange);
+        }
+
+        .instructions-maximized .instructions-content p {
+            margin-bottom: 18px;
+            line-height: 1.7;
+            font-size: 1.1rem;
+        }
+
+        .instructions-maximized .instructions-content ul,
+        .instructions-maximized .instructions-content ol {
+            margin: 15px 0 15px 30px;
+            font-size: 1.1rem;
+        }
+
+        .instructions-maximized .instructions-content li {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .instructions-maximized .command-block {
+            font-size: 1rem;
+            padding: 20px;
+            margin: 20px 0;
+            line-height: 1.5;
+        }
+
+        .instructions-maximized .topology-info,
+        .instructions-maximized .expected-output {
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Ensure maximized instructions are properly readable */
+        .instructions-maximized * {
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .instructions-maximized .instructions-content {
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-cyan) transparent;
+        }
+
+        .instructions-maximized .instructions-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .instructions-maximized .instructions-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .instructions-maximized .instructions-content::-webkit-scrollbar-thumb {
+            background: var(--color-cyan);
+            border-radius: 4px;
+        }
+
+        .instructions-maximized .instructions-content::-webkit-scrollbar-thumb:hover {
+            background: #0077b6;
+        }
+
+        /* Mobile responsive styles for maximized instructions */
+        @media (max-width: 768px) {
+            .instructions-maximized .lab-instructions {
+                padding: 0;
+            }
+
+            .instructions-maximized .instructions-header {
+                padding: 15px 20px;
+            }
+
+            .instructions-maximized .instructions-content {
+                padding: 20px;
+                font-size: 1rem;
+            }
+
+            .maximize-btn {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
+
+            .maximize-btn i {
+                font-size: 0.8rem;
+            }
         }
 
         .lab-instructions h2 {
+            color: var(--color-cyan);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        /* Override h2 styles within instructions content */
+        .instructions-content h2 {
             color: var(--color-cyan);
             margin-bottom: 15px;
             font-size: 1.5rem;
@@ -1213,7 +1417,16 @@
                 </div>
 
                 <div class="lab-instructions" id="lab-instructions">
-                    <!-- Lab instructions will be populated by JavaScript -->
+                    <div class="instructions-header">
+                        <h2>Lab Instructions</h2>
+                        <button class="maximize-btn" id="maximize-instructions-btn">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                            <span>Maximize</span>
+                        </button>
+                    </div>
+                    <div class="instructions-content" id="instructions-content">
+                        <!-- Lab instructions will be populated by JavaScript -->
+                    </div>
                 </div>
             </main>
         </div>
