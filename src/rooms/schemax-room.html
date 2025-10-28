@@ -569,8 +569,8 @@
             min-height: 0;
         }
 
-        /* Output panels - More compact and scrollable */
-        .output-panel, .schema-preview, .data-preview, .constraints-info, 
+        /* Output panels - More compact and auto-sizing */
+        .output-panel, .data-preview, .constraints-info, 
         .relationship-diagram, .normalization-analysis, .banking-analysis, 
         .performance-analysis, .relationship-analysis, .security-analysis {
             background: rgba(255, 255, 255, 0.05);
@@ -580,6 +580,18 @@
             overflow-y: auto;
             min-height: 100px;
             max-height: 150px;
+        }
+
+        /* Schema preview - auto-sizing without scrolling */
+        .schema-preview {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            overflow: visible;
+            min-height: auto;
+            max-height: none;
+            height: auto;
         }
 
         .output-panel h5, .schema-preview h5, .data-preview h5, .constraints-info h5,
@@ -620,40 +632,51 @@
             background: rgba(0, 184, 216, 0.05);
             border: 1px solid var(--color-database);
             border-radius: 6px;
-            padding: 12px;
+            padding: 10px;
             margin-top: 8px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .table-structure-display h6 {
             color: var(--color-database);
-            margin: 0 0 10px 0;
-            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
             font-weight: bold;
         }
 
         .structure-details {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .columns-section {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
+        }
+
+        .columns-table {
+            width: 100%;
+            overflow-x: auto;
         }
 
         .columns-table table {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             background: rgba(255, 255, 255, 0.02);
+            width: 100%;
+            min-width: 400px;
         }
 
         .columns-table th {
             background: rgba(0, 184, 216, 0.15) !important;
             color: var(--color-database);
             font-weight: bold;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+            padding: 6px 8px !important;
         }
 
         .columns-table td {
             color: var(--text-light);
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+            padding: 5px 8px !important;
         }
 
         .constraint-badge {
