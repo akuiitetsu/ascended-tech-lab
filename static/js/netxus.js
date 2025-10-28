@@ -449,6 +449,10 @@ class NetxusLab {
         this.initializeSimulation();
         this.displayLabInstructions();
         this.updateLabInterface();
+        
+        // Initialize requirements checklist
+        this.updateTestResults();
+        
         this.showScreen('game-screen');
         console.log('Lab interface initialized successfully');
     }
@@ -494,10 +498,8 @@ class NetxusLab {
         });
 
         // Simulation controls
-        const testBtn = this.container.querySelector('#test-configuration-btn');
         const connectionBtn = this.container.querySelector('#connection-mode-btn');
 
-        if (testBtn) testBtn.addEventListener('click', () => this.testConfiguration());
         if (connectionBtn) connectionBtn.addEventListener('click', () => this.toggleConnectionMode());
     }
 
@@ -602,6 +604,9 @@ class NetxusLab {
         this.devices.push(device);
         this.renderDevice(device);
         this.showFeedback(`${device.name} placed successfully`, 'success');
+        
+        // Auto-update test results when devices are placed
+        this.updateTestResults();
         
         // Reset tool selection
         this.currentTool = 'select';
@@ -862,6 +867,9 @@ class NetxusLab {
         this.updateDeviceInterfaces(sourceDevice, targetDevice, cable);
         
         this.showFeedback(`Connected ${sourceDevice.name} to ${targetDevice.name} with ${cableType} cable`, 'success');
+        
+        // Auto-update test results when connections are made
+        this.updateTestResults();
     }
 
     determineCableType(device1, device2) {
@@ -1273,6 +1281,9 @@ class NetxusLab {
 
         this.showFeedback(`${device.name} configuration applied successfully`, 'success');
         
+        // Auto-update test results when device configuration changes
+        this.updateTestResults();
+        
         // Close modal
         const modal = document.querySelector('.device-config-modal');
         if (modal) modal.remove();
@@ -1297,6 +1308,9 @@ class NetxusLab {
         });
 
         this.showFeedback(`${device.name} interfaces configured successfully`, 'success');
+        
+        // Auto-update test results when router configuration changes
+        this.updateTestResults();
         
         // Close modal
         const modal = document.querySelector('.device-config-modal');
@@ -1328,6 +1342,9 @@ class NetxusLab {
 
         // Clear input
         input.value = '';
+        
+        // Auto-update test results after CLI commands
+        this.updateTestResults();
         
         // Scroll to bottom
         cli.scrollTop = cli.scrollHeight;
@@ -1556,6 +1573,27 @@ Success rate is 0 percent (0/5)`;
     }
 
     testConfiguration() {
+        const tests = this.currentDifficulty === 'hard' ? 
+            this.getAdvancedLabTests(this.currentLab) : 
+            this.getLabTests(this.currentLab);
+        const results = [];
+
+        tests.forEach(test => {
+            const result = this.runTest(test);
+            results.push({
+                name: test.name,
+                status: result.passed ? 'pass' : 'fail',
+                message: result.message
+            });
+        });
+
+        this.displayTestResults(results);
+    }
+
+    // Automatically update test results without requiring manual testing
+    updateTestResults() {
+        if (!this.currentDifficulty || !this.currentLab) return;
+        
         const tests = this.currentDifficulty === 'hard' ? 
             this.getAdvancedLabTests(this.currentLab) : 
             this.getLabTests(this.currentLab);
@@ -2691,7 +2729,7 @@ Router# show access-lists 100
                         ${result.status === 'pass' ? 
                           'background: var(--color-green); color: white;' : 
                           'background: var(--color-red); color: white;'}
-                    ">${result.status.toUpperCase()}</span>
+                    ">${result.status === 'pass' ? '✓ PASS' : '✗ FAIL'}</span>
                 </div>
             `).join('')}
         `;
@@ -2700,8 +2738,11 @@ Router# show access-lists 100
 
         // Show completion if all tests pass
         const allPassed = results.every(r => r.status === 'pass');
+        const passedTests = results.filter(r => r.status === 'pass').length;
+        const totalTests = results.length;
+        
         if (allPassed) {
-            this.showFeedback('All tests passed! Lab completed successfully! 🎉', 'success');
+            this.showFeedback('All requirements completed! Lab ready for submission! 🎉', 'success');
             
             // Auto-advance progress
             const progressElement = this.container.querySelector('#lab-progress');
@@ -2709,9 +2750,8 @@ Router# show access-lists 100
                 const progress = Math.round((this.currentLab / 5) * 100);
                 progressElement.textContent = `${progress}% Complete`;
             }
-        } else {
-            const failedTests = results.filter(r => r.status === 'fail');
-            this.showFeedback(`${failedTests.length} test(s) failed. Check the requirements and try again.`, 'warning');
+        } else if (passedTests > 0) {
+            this.showFeedback(`${passedTests}/${totalTests} requirements completed. Keep building your network!`, 'info');
         }
     }
 
@@ -2727,11 +2767,8 @@ Router# show access-lists 100
             this.canvas.innerHTML = '<svg class="network-cables" id="network-cables" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>';
         }
         
-        // Reset test results
-        const testOutput = this.container.querySelector('#test-output');
-        if (testOutput) {
-            testOutput.innerHTML = 'Click "Test Network" to validate your configuration';
-        }
+        // Initialize with requirements checklist visible
+        this.updateTestResults();
     }
 
     clearCanvas() {
@@ -3433,14 +3470,9 @@ Router# show access-lists 100
                 this.canvas.innerHTML = '<svg class="network-cables" id="network-cables" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>';
             }
             
-            // Reset test results
-            const testOutput = this.container.querySelector('#test-output');
-            if (testOutput) {
-                testOutput.innerHTML = 'Click "Test Network" to validate your configuration';
-            }
-            
-            // Reset lab interface
-            this.showFeedback('Lab reset! Start from the beginning.', 'warning');
+        // Initialize with requirements checklist visible
+        this.updateTestResults();
+        this.showFeedback('Lab reset! Start from the beginning.', 'warning');
             this.displayLabInstructions();
         }
     }
