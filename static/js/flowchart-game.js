@@ -1054,7 +1054,7 @@ class FlowByteGame {
         nodeElement.classList.remove('dragging');
         
         // Reset transform and shadow to base state
-        const baseTransform = nodeType === 'diamond' ? 'rotate(45deg)' : 
+        const baseTransform = nodeType === 'diamond' ? 'none' : 
                              nodeType === 'parallelogram' ? 'skew(-20deg)' : '';
         nodeElement.style.transform = baseTransform;
         nodeElement.style.boxShadow = '';
@@ -1260,10 +1260,14 @@ class FlowByteGame {
                 element.style.backgroundColor = '#457b9d';
                 break;
             case 'diamond':
-                element.style.transform = 'rotate(45deg)';
                 element.style.backgroundColor = '#fca311';
-                element.style.width = '60px';
-                element.style.height = '60px';
+                element.style.width = '90px';
+                element.style.height = '90px';
+                element.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
+                element.style.border = 'none'; // Remove border as clip-path can interfere
+                element.style.transform = 'none'; // Remove rotation, use clip-path instead
+                element.style.fontSize = '11px'; // Slightly smaller font for diamond
+                element.style.padding = '0'; // Remove padding for better centering
                 break;
             case 'parallelogram':
                 element.style.background = 'linear-gradient(to right, transparent 10px, #9d4edd 10px)';
@@ -1275,7 +1279,9 @@ class FlowByteGame {
         // Add hover effects with cursor-specific feedback
         element.addEventListener('mouseenter', () => {
             if (!element.classList.contains('dragging')) {
-                element.style.transform += ' scale(1.05)';
+                const baseTransform = type === 'diamond' ? 'none' : 
+                                   type === 'parallelogram' ? 'skew(-20deg)' : '';
+                element.style.transform = baseTransform + ' scale(1.05)';
                 element.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
                 
                 // Change cursor based on current tool when hovering over nodes
@@ -1293,7 +1299,7 @@ class FlowByteGame {
 
         element.addEventListener('mouseleave', () => {
             if (!element.classList.contains('dragging')) {
-                const baseTransform = type === 'diamond' ? 'rotate(45deg)' : 
+                const baseTransform = type === 'diamond' ? 'none' : 
                                    type === 'parallelogram' ? 'skew(-20deg)' : '';
                 element.style.transform = baseTransform;
                 element.style.boxShadow = '';
@@ -1359,7 +1365,7 @@ class FlowByteGame {
         const defaults = {
             oval: 'START',
             rectangle: 'PROCESS',
-            diamond: 'DECISION?',
+            diamond: 'DECISION',
             parallelogram: 'INPUT/OUTPUT'
         };
         return defaults[type] || 'NODE';
