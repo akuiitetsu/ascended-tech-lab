@@ -467,7 +467,7 @@ class NetxusLab {
         if (this.canvas) {
             this.setupSimulationEventListeners();
             this.setupDeviceToolbar();
-            this.clearCanvas();
+            this._clearCanvasInternal();
         }
         
         // Set global reference for device configuration callbacks
@@ -494,11 +494,9 @@ class NetxusLab {
         });
 
         // Simulation controls
-        const clearBtn = this.container.querySelector('#clear-workspace-btn');
         const testBtn = this.container.querySelector('#test-configuration-btn');
         const connectionBtn = this.container.querySelector('#connection-mode-btn');
 
-        if (clearBtn) clearBtn.addEventListener('click', () => this.clearCanvas());
         if (testBtn) testBtn.addEventListener('click', () => this.testConfiguration());
         if (connectionBtn) connectionBtn.addEventListener('click', () => this.toggleConnectionMode());
     }
@@ -2717,24 +2715,29 @@ Router# show access-lists 100
         }
     }
 
-    clearCanvas() {
-        if (confirm('Clear all devices and connections? This cannot be undone.')) {
-            this.devices = [];
-            this.cables = [];
-            this.selectedDevice = null;
-            this.connectionSource = null;
-            
-            // Clear canvas
+    _clearCanvasInternal() {
+        // Internal method for clearing canvas without confirmation dialog
+        this.devices = [];
+        this.cables = [];
+        this.selectedDevice = null;
+        this.connectionSource = null;
+        
+        // Clear canvas
+        if (this.canvas) {
             this.canvas.innerHTML = '<svg class="network-cables" id="network-cables" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>';
-            
-            // Reset test results
-            const testOutput = this.container.querySelector('#test-output');
-            if (testOutput) {
-                testOutput.innerHTML = 'Click "Test Network" to validate your configuration';
-            }
-            
-            this.showFeedback('Workspace cleared', 'info');
         }
+        
+        // Reset test results
+        const testOutput = this.container.querySelector('#test-output');
+        if (testOutput) {
+            testOutput.innerHTML = 'Click "Test Network" to validate your configuration';
+        }
+    }
+
+    clearCanvas() {
+        // This method is kept for compatibility but functionality moved to resetLab
+        console.warn('clearCanvas() is deprecated. Use resetLab() instead.');
+        this.resetLab();
     }
 
     // Make NetxusLab globally accessible for configuration callbacks
@@ -3418,7 +3421,25 @@ Router# show access-lists 100
     }
 
     resetLab() {
-        if (confirm('Are you sure you want to reset this lab? All progress will be lost.')) {
+        if (confirm('Are you sure you want to reset this lab? All devices, connections, and progress will be lost.')) {
+            // Clear all devices and connections (from clearCanvas functionality)
+            this.devices = [];
+            this.cables = [];
+            this.selectedDevice = null;
+            this.connectionSource = null;
+            
+            // Clear canvas
+            if (this.canvas) {
+                this.canvas.innerHTML = '<svg class="network-cables" id="network-cables" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>';
+            }
+            
+            // Reset test results
+            const testOutput = this.container.querySelector('#test-output');
+            if (testOutput) {
+                testOutput.innerHTML = 'Click "Test Network" to validate your configuration';
+            }
+            
+            // Reset lab interface
             this.showFeedback('Lab reset! Start from the beginning.', 'warning');
             this.displayLabInstructions();
         }
