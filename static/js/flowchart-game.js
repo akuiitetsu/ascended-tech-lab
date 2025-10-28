@@ -200,63 +200,63 @@ class FlowByteGame {
         this.difficulties = {
             easy: {
                 name: 'Easy',
-                description: 'Basic flowchart construction with guided instructions',
+                description: 'Basic programming flowcharts with fundamental control structures',
                 levels: [
                     { 
-                        name: 'Simple Start-End Flow', 
-                        objective: 'Create a basic start-to-end flowchart',
-                        scenario: "You're designing a software deployment pipeline for TechCorp. Create a flowchart that outlines the basic steps from code commit to production deployment, showing a clear start and end to the process."
+                        name: 'Sequential Program Flow', 
+                        objective: 'Create a basic sequential program flowchart',
+                        scenario: "Design a flowchart for a simple 'Hello World' program that: starts execution, declares variables, prints a greeting message, and terminates. Show the linear flow of program execution from start to end."
                     },
                     { 
-                        name: 'Decision Making', 
-                        objective: 'Add decision nodes to your flowchart',
-                        scenario: "The IT security team needs a flowchart for incident response procedures. Design a decision-based flowchart that shows how to classify security threats and determine appropriate response actions based on severity levels."
+                        name: 'Conditional Logic', 
+                        objective: 'Add if-else decision structures',
+                        scenario: "Create a flowchart for an age verification program: read user's age input, check if age >= 18, display 'Adult' message if true or 'Minor' message if false, then end program execution."
                     },
                     { 
-                        name: 'Input-Output Flow', 
-                        objective: 'Create flowchart with input/output operations',
-                        scenario: "Design a database backup and recovery workflow for the data center. Create a flowchart showing input validation, backup processes, and recovery procedures with proper data handling operations."
+                        name: 'Input-Processing-Output', 
+                        objective: 'Show data flow through program',
+                        scenario: "Design a flowchart for a simple calculator program: get two numbers from user input, perform addition operation, store result in variable, display the calculated sum to user, then exit."
                     },
                     { 
-                        name: 'Process Chain', 
-                        objective: 'Build a multi-step process flowchart',
-                        scenario: "The DevOps team needs a comprehensive CI/CD pipeline flowchart. Design a multi-step process that connects development, testing, staging, and production deployment with automated quality checks."
+                        name: 'Function Call Chain', 
+                        objective: 'Represent function calls and returns',
+                        scenario: "Create a flowchart showing a program that calls multiple functions: main() calls getUserInput(), then calls calculateSum(), then calls displayResult(), with each function returning control to the caller."
                     },
                     { 
-                        name: 'Complete Workflow', 
-                        objective: 'Combine all elements into complex flowchart',
-                        scenario: "Create a complete IT asset management workflow that includes device procurement, deployment, monitoring, maintenance, and decommissioning processes for enterprise infrastructure."
+                        name: 'Complete Program Structure', 
+                        objective: 'Design full program with multiple components',
+                        scenario: "Design a flowchart for a student grade calculator: initialize variables, input student scores, validate input data, calculate average, determine letter grade using conditions, display results, and terminate program."
                     }
                 ]
             },
             hard: {
                 name: 'Hard',
-                description: 'Advanced flowchart design with complex IT architecture patterns',
+                description: 'Advanced programming structures and algorithm flowcharts',
                 levels: [
                     { 
-                        name: 'Nested Decisions', 
-                        objective: 'Create flowchart with multiple decision branches',
-                        scenario: "Design a complex network troubleshooting flowchart with nested decision trees for different protocol issues, hardware failures, and security incidents requiring multi-level diagnostic procedures."
+                        name: 'Nested Control Structures', 
+                        objective: 'Design nested if-else and switch statements',
+                        scenario: "Create a flowchart for a multi-level menu system: check user role (admin/user), then check permissions within role, then check specific actions allowed, with nested conditions determining different execution paths."
                     },
                     { 
-                        name: 'Loop Structures', 
-                        objective: 'Design flowcharts with iterative processes',
-                        scenario: "Create a system monitoring flowchart that implements continuous health checks, automated scaling decisions, and performance optimization loops for cloud infrastructure management."
+                        name: 'Loop Algorithms', 
+                        objective: 'Implement for/while loop structures',
+                        scenario: "Design a flowchart for a factorial calculation algorithm: initialize counter and result variables, use while loop to multiply numbers, check loop condition, increment counter, and return final result."
                     },
                     { 
-                        name: 'Error Handling', 
-                        objective: 'Build flowcharts with exception handling',
-                        scenario: "Design a comprehensive disaster recovery flowchart for data center operations that handles various failure scenarios including power outages, hardware failures, network disruptions, and security breaches with proper fallback procedures."
+                        name: 'Exception Handling', 
+                        objective: 'Show try-catch-finally blocks',
+                        scenario: "Create a flowchart for file processing with error handling: attempt to open file, catch FileNotFoundException, catch IOException, handle each exception type differently, execute finally block for cleanup, then continue or exit."
                     },
                     { 
-                        name: 'Parallel Processing', 
-                        objective: 'Design concurrent workflow patterns',
-                        scenario: "Create a microservices architecture flowchart showing parallel processing workflows for a distributed system with multiple services running simultaneously, including load balancing and inter-service communication."
+                        name: 'Recursive Algorithms', 
+                        objective: 'Model recursive function calls',
+                        scenario: "Design a flowchart for binary search algorithm: check if array is empty, compare target with middle element, recursively call function on left or right half based on comparison, show call stack and return values."
                     },
                     { 
-                        name: 'System Architecture', 
-                        objective: 'Create comprehensive system flowchart',
-                        scenario: "Design a complete enterprise IT architecture flowchart that governs data flow, security protocols, user access management, and system integrations across multiple business units and geographic locations."
+                        name: 'Object-Oriented Flow', 
+                        objective: 'Represent class interactions and inheritance',
+                        scenario: "Create a flowchart showing polymorphic method calls: instantiate different subclass objects, call same method name on each object, show dynamic method resolution, constructor chaining, and inheritance hierarchy execution flow."
                     }
                 ]
             }
@@ -1977,68 +1977,68 @@ class FlowByteGame {
 
     getProgressiveHints() {
         const easyHints = {
-            1: [ // Simple Start-End Flow - Level 1
-                "Create a START oval shape first. Click 'Add Oval' then click on the canvas to place it.",
-                "Add a process rectangle for the main action. Use 'Add Rectangle' and place it below START.",
-                "Connect START to your process with an arrow. Select 'Arrow Tool' then click START, then click the process box.",
-                "Finish with an END oval connected to your process. This creates a complete basic flowchart flow."
+            1: [ // Sequential Program Flow - Level 1
+                "Start with a START oval representing program entry point (main function begins).",
+                "Add a rectangle for 'Declare variables' - this represents variable initialization in code.",
+                "Add another rectangle for 'Print Hello World' - the main program logic.",
+                "End with END oval representing program termination (return 0 or exit)."
             ],
-            2: [ // Decision Making - Level 2
-                "Start with START oval, then add a decision diamond shape for your main decision point.",
-                "Decision diamonds need YES/NO paths. Add two process rectangles for different outcomes.",
-                "Connect the diamond to both processes with labeled arrows (Yes branch and No branch).",
-                "Both paths should eventually converge to a single END oval to complete the flow."
+            2: [ // Conditional Logic (if-else) - Level 2
+                "Begin with START, then add parallelogram for 'Input age' (user input operation).",
+                "Add decision diamond 'age >= 18?' - this represents the if condition in code.",
+                "Create two paths: 'Yes' leads to 'Display Adult', 'No' leads to 'Display Minor'.",
+                "Both condition branches should converge back to END oval."
             ],
-            3: [ // Input-Output Flow - Level 3
-                "Begin with START, then add a parallelogram for input data (like 'Read user input').",
-                "Add process rectangles for data processing steps: validation, calculation, formatting.",
-                "Include another parallelogram for output display (like 'Display results').",
-                "Connect all elements in sequence: START → Input → Process → Output → END."
+            3: [ // Input-Processing-Output Pattern - Level 3
+                "START → Input parallelogram 'Get number1' → Input parallelogram 'Get number2'.",
+                "Add process rectangle 'sum = number1 + number2' (the calculation logic).",
+                "Add output parallelogram 'Display sum' (print/output statement).",
+                "Connect all in sequence: Input → Input → Process → Output → END."
             ],
-            4: [ // Process Chain - Level 4
-                "Create a chain of connected processes: START → Process 1 → Process 2 → Process 3 → END.",
-                "Each process should represent a distinct step in your workflow (e.g., 'Validate', 'Transform', 'Save').",
-                "Add decision points where quality checks or validations occur in the chain.",
-                "Include error handling paths that loop back to earlier steps or go to error processes."
+            4: [ // Function Call Chain - Level 4
+                "START represents main() function entry point.",
+                "Add rectangles for function calls: 'Call getUserInput()', 'Call calculateSum()', 'Call displayResult()'.",
+                "Each function call should return control (arrow back to main flow).",
+                "Show the sequential function calling pattern ending at END."
             ],
-            5: [ // Complete Workflow - Level 5
-                "Design a comprehensive workflow with multiple decision points and parallel processes.",
-                "Use all shape types: ovals (start/end), rectangles (processes), diamonds (decisions), parallelograms (I/O).",
-                "Create conditional loops where processes might repeat based on conditions.",
-                "Ensure every path has a clear endpoint and the entire workflow is logically complete."
+            5: [ // Complete Program with Validation - Level 5
+                "Design full program: START → Input grades → Validate input (decision diamond).",
+                "If invalid input, loop back to input. If valid, proceed to calculate average.",
+                "Add decision diamond for grade classification (A/B/C/D/F based on average).",
+                "Multiple branches for different grades, all converging to display result then END."
             ]
         };
 
         const hardHints = {
-            1: [ // Nested Decisions - Level 1
-                "Start with a primary decision diamond, then add secondary decision diamonds for sub-conditions.",
-                "Each decision branch should lead to specific actions or further decisions.",
-                "Use clear labeling for decision paths: 'Hardware Issue?', 'Network Issue?', 'Software Issue?'",
-                "Nested decisions create a tree structure - ensure all branches eventually reach resolution."
+            1: [ // Nested Control Structures - Level 1
+                "Start with decision diamond 'Check user role' (admin vs user).",
+                "Each role branch leads to another decision: 'Check permissions within role'.",
+                "Further nest with 'Check specific action allowed' decisions.",
+                "Create tree structure: Role → Permissions → Actions → Final processes."
             ],
-            2: [ // Loop Structures - Level 2
-                "Create a loop by connecting a process back to a previous decision point or process.",
-                "Add a decision diamond that controls the loop: 'Continue monitoring?', 'Threshold reached?'",
-                "The loop should have an exit condition that leads to the next process or END.",
-                "Show the iteration clearly with arrows that flow back to create the loop structure."
+            2: [ // Loop Algorithms (while/for loops) - Level 2
+                "START → Initialize 'counter = 1, result = 1' → Enter while loop decision 'counter <= n?'.",
+                "If Yes: 'result = result * counter' → 'counter = counter + 1' → loop back to condition.",
+                "If No: exit loop → 'Return result' → END.",
+                "Show the loop iteration path clearly with back-arrow to condition check."
             ],
-            3: [ // Error Handling - Level 3
-                "Design main workflow path, then add parallel error handling paths for failure scenarios.",
-                "Each major process should have an associated error check or exception handler.",
-                "Error paths should include recovery actions: 'Log error', 'Send alert', 'Activate backup'.",
-                "All error paths should either loop back to retry or gracefully exit the workflow."
+            3: [ // Exception Handling (try-catch-finally) - Level 3
+                "START → 'Try: Open file' → Decision diamond 'File exists?'.",
+                "If No: 'Catch FileNotFoundException' → 'Handle file error'.",
+                "Add another decision for 'IOException occurred?' with separate catch block.",
+                "All paths lead to 'Finally: Close resources' before END."
             ],
-            4: [ // Parallel Processing - Level 4
-                "Split workflow into parallel branches after a decision or trigger point.",
-                "Show concurrent processes running simultaneously (multiple processes at same level).",
-                "Add synchronization points where parallel processes need to complete before continuing.",
-                "Use clear visual layout to show which processes run in parallel vs. in sequence."
+            4: [ // Recursive Algorithms - Level 4
+                "START → Decision 'Array empty or element found?' → If Yes: 'Return result'.",
+                "If No: 'Compare with middle element' → Decision 'target < middle?'.",
+                "Two recursive paths: 'Search left half' or 'Search right half'.",
+                "Show recursive calls with arrows pointing back to function start, stack depth implied."
             ],
-            5: [ // System Architecture - Level 5
-                "Create a comprehensive system flowchart with multiple subsystems and integration points.",
-                "Show data flow between different system components and external interfaces.",
-                "Include monitoring, logging, and maintenance processes as part of the system architecture.",
-                "Design for scalability - show how the system handles increased load or additional components."
+            5: [ // Object-Oriented Polymorphism - Level 5
+                "START → 'Create Animal objects (Dog, Cat, Bird)'.",
+                "Add process 'Call makeSound() on each object'.",
+                "Show decision 'Determine actual object type at runtime'.",
+                "Multiple branches for polymorphic method resolution → specific implementations → END."
             ]
         };
 
@@ -2220,239 +2220,234 @@ class FlowByteGame {
     }
 
     getTextOptions(nodeType, difficulty, level) {
-        const itIndustryOptions = {
+        const programmingOptions = {
             easy: {
-                1: { // Software Deployment Pipeline - Simple Start-End Flow
+                1: { // Sequential Program Flow - Hello World
                     oval: [
-                        { value: 'START', label: 'START - Begin deployment process' },
-                        { value: 'END', label: 'END - Deployment complete' },
-                        { value: 'CODE COMMIT', label: 'CODE COMMIT - Developer submits code' },
-                        { value: 'PRODUCTION READY', label: 'PRODUCTION READY - System deployed' }
+                        { value: 'START', label: 'START - Program begins execution' },
+                        { value: 'END', label: 'END - Program terminates' },
+                        { value: 'MAIN()', label: 'MAIN() - Entry point function' }
                     ],
                     rectangle: [
-                        { value: 'CODE REVIEW', label: 'CODE REVIEW - Examine submitted code' },
-                        { value: 'BUILD APPLICATION', label: 'BUILD APPLICATION - Compile source code' },
-                        { value: 'RUN TESTS', label: 'RUN TESTS - Execute test suite' },
-                        { value: 'DEPLOY TO STAGING', label: 'DEPLOY TO STAGING - Test environment' },
-                        { value: 'DEPLOY TO PRODUCTION', label: 'DEPLOY TO PRODUCTION - Live environment' }
+                        { value: 'DECLARE VARIABLES', label: 'DECLARE VARIABLES - Initialize memory' },
+                        { value: 'PRINT "HELLO WORLD"', label: 'PRINT "HELLO WORLD" - Output statement' },
+                        { value: 'SET message = "Hello"', label: 'SET message = "Hello" - Variable assignment' },
+                        { value: 'RETURN 0', label: 'RETURN 0 - Successful termination' }
                     ],
                     diamond: [
-                        { value: 'TESTS PASSED?', label: 'TESTS PASSED? - Verify code quality' },
-                        { value: 'BUILD SUCCESSFUL?', label: 'BUILD SUCCESSFUL? - Check compilation' }
+                        { value: 'VARIABLES INITIALIZED?', label: 'VARIABLES INITIALIZED? - Memory check' }
                     ],
                     parallelogram: [
-                        { value: 'GET CODE CHANGES', label: 'GET CODE CHANGES - Input: Developer commits' },
-                        { value: 'LOG DEPLOYMENT', label: 'LOG DEPLOYMENT - Output: Deployment record' }
+                        { value: 'OUTPUT MESSAGE', label: 'OUTPUT MESSAGE - Console display' },
+                        { value: 'SYSTEM INPUT', label: 'SYSTEM INPUT - Runtime parameters' }
                     ]
                 },
-                2: { // IT Security Incident Response - Decision Making
+                2: { // Conditional Logic - Age Verification
                     oval: [
-                        { value: 'START', label: 'START - Begin incident response' },
-                        { value: 'END', label: 'END - Incident resolved' },
-                        { value: 'INCIDENT DETECTED', label: 'INCIDENT DETECTED - Security alert triggered' }
+                        { value: 'START', label: 'START - Program execution begins' },
+                        { value: 'END', label: 'END - Program terminates' },
+                        { value: 'MAIN()', label: 'MAIN() - Entry point function' }
                     ],
                     rectangle: [
-                        { value: 'ANALYZE THREAT', label: 'ANALYZE THREAT - Examine security event' },
-                        { value: 'CLASSIFY SEVERITY', label: 'CLASSIFY SEVERITY - Determine threat level' },
-                        { value: 'ISOLATE SYSTEMS', label: 'ISOLATE SYSTEMS - Contain threat' },
-                        { value: 'NOTIFY STAKEHOLDERS', label: 'NOTIFY STAKEHOLDERS - Alert management' },
-                        { value: 'APPLY PATCHES', label: 'APPLY PATCHES - Fix vulnerabilities' }
+                        { value: 'DISPLAY "ADULT"', label: 'DISPLAY "ADULT" - True branch output' },
+                        { value: 'DISPLAY "MINOR"', label: 'DISPLAY "MINOR" - False branch output' },
+                        { value: 'DECLARE int age', label: 'DECLARE int age - Variable declaration' },
+                        { value: 'PROCESS VERIFICATION', label: 'PROCESS VERIFICATION - Age validation logic' }
                     ],
                     diamond: [
-                        { value: 'CRITICAL THREAT?', label: 'CRITICAL THREAT? - High severity incident?' },
-                        { value: 'SYSTEMS COMPROMISED?', label: 'SYSTEMS COMPROMISED? - Data breach detected?' },
-                        { value: 'EXTERNAL THREAT?', label: 'EXTERNAL THREAT? - Outside attacker?' },
-                        { value: 'IMMEDIATE ACTION REQUIRED?', label: 'IMMEDIATE ACTION REQUIRED? - Emergency response?' }
+                        { value: 'age >= 18?', label: 'age >= 18? - Condition check' },
+                        { value: 'INPUT VALID?', label: 'INPUT VALID? - Data validation' },
+                        { value: 'age > 0?', label: 'age > 0? - Range validation' }
                     ],
                     parallelogram: [
-                        { value: 'GET THREAT DETAILS', label: 'GET THREAT DETAILS - Input: Security alert data' },
-                        { value: 'GENERATE INCIDENT REPORT', label: 'GENERATE INCIDENT REPORT - Output: Documentation' }
+                        { value: 'INPUT age', label: 'INPUT age - Read user input' },
+                        { value: 'OUTPUT result', label: 'OUTPUT result - Display classification' },
+                        { value: 'PRINT "Enter age: "', label: 'PRINT "Enter age: " - User prompt' }
                     ]
                 },
-                3: { // Database Backup and Recovery - Input-Output Flow
+                3: { // Input-Processing-Output - Simple Calculator
                     oval: [
-                        { value: 'START BACKUP', label: 'START BACKUP - Begin backup process' },
-                        { value: 'BACKUP COMPLETE', label: 'BACKUP COMPLETE - Process finished' }
+                        { value: 'START', label: 'START - Calculator program begins' },
+                        { value: 'END', label: 'END - Program terminates' }
                     ],
                     rectangle: [
-                        { value: 'VALIDATE DATA', label: 'VALIDATE DATA - Check data integrity' },
-                        { value: 'CREATE BACKUP', label: 'CREATE BACKUP - Generate backup file' },
-                        { value: 'COMPRESS DATA', label: 'COMPRESS DATA - Reduce file size' },
-                        { value: 'TRANSFER TO STORAGE', label: 'TRANSFER TO STORAGE - Move to backup location' }
+                        { value: 'sum = num1 + num2', label: 'sum = num1 + num2 - Addition operation' },
+                        { value: 'DECLARE VARIABLES', label: 'DECLARE VARIABLES - Initialize num1, num2, sum' },
+                        { value: 'VALIDATE INPUT', label: 'VALIDATE INPUT - Check numeric data' },
+                        { value: 'CALCULATE RESULT', label: 'CALCULATE RESULT - Perform arithmetic' }
                     ],
                     diamond: [
-                        { value: 'DATA VALID?', label: 'DATA VALID? - Check data integrity' },
-                        { value: 'BACKUP SUCCESSFUL?', label: 'BACKUP SUCCESSFUL? - Verify completion' }
+                        { value: 'INPUT VALID?', label: 'INPUT VALID? - Numeric validation' },
+                        { value: 'CALCULATION OK?', label: 'CALCULATION OK? - Error check' }
                     ],
                     parallelogram: [
-                        { value: 'READ DATABASE', label: 'READ DATABASE - Input: Source data' },
-                        { value: 'WRITE BACKUP FILE', label: 'WRITE BACKUP FILE - Output: Backup archive' },
-                        { value: 'LOG BACKUP STATUS', label: 'LOG BACKUP STATUS - Output: Process log' },
-                        { value: 'GET BACKUP SCHEDULE', label: 'GET BACKUP SCHEDULE - Input: Timing parameters' }
+                        { value: 'INPUT num1', label: 'INPUT num1 - Read first number' },
+                        { value: 'INPUT num2', label: 'INPUT num2 - Read second number' },
+                        { value: 'OUTPUT sum', label: 'OUTPUT sum - Display result' },
+                        { value: 'PRINT "Result: "', label: 'PRINT "Result: " - Output label' }
                     ]
                 },
-                4: { // DevOps CI/CD Pipeline - Process Chain
+                4: { // Function Call Chain - Modular Program
                     oval: [
-                        { value: 'START', label: 'START - Begin CI/CD pipeline' },
-                        { value: 'END', label: 'END - Pipeline complete' }
+                        { value: 'START', label: 'START - Main function begins' },
+                        { value: 'END', label: 'END - Return to OS' }
                     ],
                     rectangle: [
-                        { value: 'SOURCE CONTROL', label: 'SOURCE CONTROL - Retrieve code' },
-                        { value: 'BUILD STAGE', label: 'BUILD STAGE - Compile application' },
-                        { value: 'TEST STAGE', label: 'TEST STAGE - Run automated tests' },
-                        { value: 'STAGING DEPLOYMENT', label: 'STAGING DEPLOYMENT - Deploy to test environment' },
-                        { value: 'PRODUCTION DEPLOYMENT', label: 'PRODUCTION DEPLOYMENT - Deploy to live environment' }
+                        { value: 'CALL getUserInput()', label: 'CALL getUserInput() - Function call' },
+                        { value: 'CALL calculateSum()', label: 'CALL calculateSum() - Function call' },
+                        { value: 'CALL displayResult()', label: 'CALL displayResult() - Function call' },
+                        { value: 'RETURN TO MAIN', label: 'RETURN TO MAIN - Function returns' },
+                        { value: 'INITIALIZE PROGRAM', label: 'INITIALIZE PROGRAM - Setup variables' }
                     ],
                     diamond: [
-                        { value: 'BUILD PASSED?', label: 'BUILD PASSED? - Compilation successful?' },
-                        { value: 'TESTS PASSED?', label: 'TESTS PASSED? - All tests green?' }
+                        { value: 'FUNCTION SUCCESS?', label: 'FUNCTION SUCCESS? - Return value check' },
+                        { value: 'DATA READY?', label: 'DATA READY? - Input validation' }
                     ],
                     parallelogram: [
-                        { value: 'GET BUILD ARTIFACTS', label: 'GET BUILD ARTIFACTS - Input: Compiled code' },
-                        { value: 'SEND NOTIFICATIONS', label: 'SEND NOTIFICATIONS - Output: Status updates' }
+                        { value: 'RETURN value', label: 'RETURN value - Function output' },
+                        { value: 'PASS parameters', label: 'PASS parameters - Function arguments' }
                     ]
                 },
-                5: { // IT Asset Management - Complete Workflow
+                5: { // Complete Program - Student Grade Calculator
                     oval: [
-                        { value: 'START', label: 'START - Begin asset lifecycle' },
-                        { value: 'END', label: 'END - Asset decommissioned' }
+                        { value: 'START', label: 'START - Grade calculator begins' },
+                        { value: 'END', label: 'END - Program terminates' }
                     ],
                     rectangle: [
-                        { value: 'PROCURE DEVICE', label: 'PROCURE DEVICE - Purchase equipment' },
-                        { value: 'DEPLOY DEVICE', label: 'DEPLOY DEVICE - Install and configure' },
-                        { value: 'MONITOR PERFORMANCE', label: 'MONITOR PERFORMANCE - Track device health' },
-                        { value: 'PERFORM MAINTENANCE', label: 'PERFORM MAINTENANCE - Update and repair' },
-                        { value: 'DECOMMISSION DEVICE', label: 'DECOMMISSION DEVICE - Retire equipment' }
+                        { value: 'INITIALIZE ARRAYS', label: 'INITIALIZE ARRAYS - Setup score storage' },
+                        { value: 'CALCULATE AVERAGE', label: 'CALCULATE AVERAGE - Compute mean score' },
+                        { value: 'ASSIGN GRADE A', label: 'ASSIGN GRADE A - Score >= 90' },
+                        { value: 'ASSIGN GRADE B', label: 'ASSIGN GRADE B - Score >= 80' },
+                        { value: 'ASSIGN GRADE C', label: 'ASSIGN GRADE C - Score >= 70' }
                     ],
                     diamond: [
-                        { value: 'DEVICE AVAILABLE?', label: 'DEVICE AVAILABLE? - Ready for deployment?' },
-                        { value: 'MAINTENANCE NEEDED?', label: 'MAINTENANCE NEEDED? - Requires servicing?' },
-                        { value: 'END OF LIFE?', label: 'END OF LIFE? - Time to replace?' }
+                        { value: 'SCORE VALID?', label: 'SCORE VALID? - Range 0-100?' },
+                        { value: 'average >= 90?', label: 'average >= 90? - A grade check' },
+                        { value: 'average >= 80?', label: 'average >= 80? - B grade check' },
+                        { value: 'MORE STUDENTS?', label: 'MORE STUDENTS? - Continue input?' }
                     ],
                     parallelogram: [
-                        { value: 'GET ASSET REQUEST', label: 'GET ASSET REQUEST - Input: Equipment request' },
-                        { value: 'UPDATE ASSET DATABASE', label: 'UPDATE ASSET DATABASE - Output: Inventory record' },
-                        { value: 'GENERATE REPORTS', label: 'GENERATE REPORTS - Output: Asset status' }
+                        { value: 'INPUT student_scores', label: 'INPUT student_scores - Read test scores' },
+                        { value: 'OUTPUT final_grade', label: 'OUTPUT final_grade - Display letter grade' },
+                        { value: 'PRINT grade_report', label: 'PRINT grade_report - Student transcript' }
                     ]
                 }
             },
             hard: {
-                1: { // Network Troubleshooting - Nested Decisions
+                1: { // Nested Control Structures - Multi-level Menu System
                     oval: [
-                        { value: 'START DIAGNOSIS', label: 'START DIAGNOSIS - Begin network troubleshooting' },
-                        { value: 'ISSUE RESOLVED', label: 'ISSUE RESOLVED - Network restored' }
+                        { value: 'START', label: 'START - Program initialization' },
+                        { value: 'END', label: 'END - Program termination' }
                     ],
                     rectangle: [
-                        { value: 'CHECK PHYSICAL LAYER', label: 'CHECK PHYSICAL LAYER - Inspect cables/hardware' },
-                        { value: 'ANALYZE PROTOCOLS', label: 'ANALYZE PROTOCOLS - Examine network traffic' },
-                        { value: 'RESET EQUIPMENT', label: 'RESET EQUIPMENT - Restart network devices' },
-                        { value: 'UPDATE FIRMWARE', label: 'UPDATE FIRMWARE - Patch network devices' }
+                        { value: 'ADMIN FUNCTIONS', label: 'ADMIN FUNCTIONS - Administrative operations' },
+                        { value: 'USER FUNCTIONS', label: 'USER FUNCTIONS - Standard user operations' },
+                        { value: 'GRANT ACCESS', label: 'GRANT ACCESS - Permission approved' },
+                        { value: 'DENY ACCESS', label: 'DENY ACCESS - Permission denied' }
                     ],
                     diamond: [
-                        { value: 'HARDWARE FAILURE?', label: 'HARDWARE FAILURE? - Physical component issue?' },
-                        { value: 'PROTOCOL ERROR?', label: 'PROTOCOL ERROR? - Network protocol problem?' },
-                        { value: 'SECURITY INCIDENT?', label: 'SECURITY INCIDENT? - Malicious activity?' },
-                        { value: 'CONFIGURATION ISSUE?', label: 'CONFIGURATION ISSUE? - Settings problem?' },
-                        { value: 'PERFORMANCE DEGRADED?', label: 'PERFORMANCE DEGRADED? - Slow network?' }
+                        { value: 'user_role == ADMIN?', label: 'user_role == ADMIN? - Role check' },
+                        { value: 'user_role == USER?', label: 'user_role == USER? - Role check' },
+                        { value: 'has_permission?', label: 'has_permission? - Permission validation' },
+                        { value: 'action_allowed?', label: 'action_allowed? - Action authorization' },
+                        { value: 'is_authenticated?', label: 'is_authenticated? - Login status' }
                     ],
                     parallelogram: [
-                        { value: 'GET NETWORK LOGS', label: 'GET NETWORK LOGS - Input: System logs' },
-                        { value: 'DISPLAY DIAGNOSTIC RESULTS', label: 'DISPLAY DIAGNOSTIC RESULTS - Output: Test results' }
+                        { value: 'INPUT user_credentials', label: 'INPUT user_credentials - Login data' },
+                        { value: 'OUTPUT access_result', label: 'OUTPUT access_result - Permission status' }
                     ]
                 },
-                2: { // System Monitoring - Loop Structures
+                2: { // Loop Algorithms - Factorial Calculation
                     oval: [
-                        { value: 'START MONITORING', label: 'START MONITORING - Begin system health check' },
-                        { value: 'MONITORING COMPLETE', label: 'MONITORING COMPLETE - Health check finished' }
+                        { value: 'START', label: 'START - Factorial algorithm begins' },
+                        { value: 'END', label: 'END - Return factorial result' }
                     ],
                     rectangle: [
-                        { value: 'CHECK CPU USAGE', label: 'CHECK CPU USAGE - Monitor processor load' },
-                        { value: 'CHECK MEMORY', label: 'CHECK MEMORY - Monitor RAM usage' },
-                        { value: 'SCALE RESOURCES', label: 'SCALE RESOURCES - Adjust capacity' },
-                        { value: 'OPTIMIZE PERFORMANCE', label: 'OPTIMIZE PERFORMANCE - Tune system' }
+                        { value: 'counter = 1', label: 'counter = 1 - Initialize loop variable' },
+                        { value: 'result = 1', label: 'result = 1 - Initialize accumulator' },
+                        { value: 'result *= counter', label: 'result *= counter - Multiply operation' },
+                        { value: 'counter++', label: 'counter++ - Increment loop variable' }
                     ],
                     diamond: [
-                        { value: 'RESOURCES AVAILABLE?', label: 'RESOURCES AVAILABLE? - Sufficient capacity?' },
-                        { value: 'PERFORMANCE OK?', label: 'PERFORMANCE OK? - System running well?' },
-                        { value: 'SCALING NEEDED?', label: 'SCALING NEEDED? - Require more resources?' }
+                        { value: 'counter <= n?', label: 'counter <= n? - Loop condition' },
+                        { value: 'n >= 0?', label: 'n >= 0? - Input validation' },
+                        { value: 'overflow_check?', label: 'overflow_check? - Range validation' }
                     ],
                     parallelogram: [
-                        { value: 'READ SYSTEM METRICS', label: 'READ SYSTEM METRICS - Input: Performance data' },
-                        { value: 'SEND ALERTS', label: 'SEND ALERTS - Output: Notifications' }
+                        { value: 'INPUT n', label: 'INPUT n - Read factorial number' },
+                        { value: 'OUTPUT result', label: 'OUTPUT result - Display factorial' }
                     ]
                 },
-                3: { // Disaster Recovery - Error Handling
+                3: { // Exception Handling - File Processing with Try-Catch
                     oval: [
-                        { value: 'DISASTER DETECTED', label: 'DISASTER DETECTED - Critical failure identified' },
-                        { value: 'RECOVERY COMPLETE', label: 'RECOVERY COMPLETE - Systems restored' }
+                        { value: 'START', label: 'START - File processing begins' },
+                        { value: 'END', label: 'END - Processing complete or terminated' }
                     ],
                     rectangle: [
-                        { value: 'ASSESS DAMAGE', label: 'ASSESS DAMAGE - Evaluate system status' },
-                        { value: 'ACTIVATE BACKUP SITE', label: 'ACTIVATE BACKUP SITE - Switch to DR location' },
-                        { value: 'RESTORE FROM BACKUP', label: 'RESTORE FROM BACKUP - Recover data' },
-                        { value: 'FAILOVER SYSTEMS', label: 'FAILOVER SYSTEMS - Switch to backup systems' }
+                        { value: 'TRY: OPEN FILE', label: 'TRY: OPEN FILE - Attempt file access' },
+                        { value: 'CATCH FileNotFound', label: 'CATCH FileNotFound - Handle missing file' },
+                        { value: 'CATCH IOException', label: 'CATCH IOException - Handle I/O errors' },
+                        { value: 'FINALLY: CLOSE FILE', label: 'FINALLY: CLOSE FILE - Cleanup resources' }
                     ],
                     diamond: [
-                        { value: 'POWER FAILURE?', label: 'POWER FAILURE? - Electrical outage?' },
-                        { value: 'HARDWARE FAILURE?', label: 'HARDWARE FAILURE? - Equipment broken?' },
-                        { value: 'NETWORK DISRUPTION?', label: 'NETWORK DISRUPTION? - Connectivity lost?' },
-                        { value: 'SECURITY BREACH?', label: 'SECURITY BREACH? - Cyber attack?' }
+                        { value: 'FILE EXISTS?', label: 'FILE EXISTS? - File availability check' },
+                        { value: 'IO_ERROR occurred?', label: 'IO_ERROR occurred? - I/O operation failed?' },
+                        { value: 'PERMISSIONS OK?', label: 'PERMISSIONS OK? - File access rights?' }
                     ],
                     parallelogram: [
-                        { value: 'GET FAILURE REPORTS', label: 'GET FAILURE REPORTS - Input: Error notifications' },
-                        { value: 'LOG RECOVERY ACTIONS', label: 'LOG RECOVERY ACTIONS - Output: Recovery log' }
+                        { value: 'INPUT filename', label: 'INPUT filename - Get file path' },
+                        { value: 'OUTPUT error_message', label: 'OUTPUT error_message - Display exception' }
                     ]
                 },
-                4: { // Microservices Architecture - Parallel Processing
+                4: { // Recursive Algorithms - Binary Search
                     oval: [
-                        { value: 'START SERVICES', label: 'START SERVICES - Begin microservices' },
-                        { value: 'ALL SERVICES READY', label: 'ALL SERVICES READY - System operational' }
+                        { value: 'START', label: 'START - Binary search function' },
+                        { value: 'RETURN result', label: 'RETURN result - Found/Not found' }
                     ],
                     rectangle: [
-                        { value: 'DEPLOY SERVICE A', label: 'DEPLOY SERVICE A - Launch user service' },
-                        { value: 'DEPLOY SERVICE B', label: 'DEPLOY SERVICE B - Launch data service' },
-                        { value: 'CONFIGURE LOAD BALANCER', label: 'CONFIGURE LOAD BALANCER - Distribute traffic' },
-                        { value: 'SYNC SERVICES', label: 'SYNC SERVICES - Coordinate communication' }
+                        { value: 'CALCULATE mid', label: 'CALCULATE mid - Find middle index' },
+                        { value: 'SEARCH LEFT HALF', label: 'SEARCH LEFT HALF - Recursive call' },
+                        { value: 'SEARCH RIGHT HALF', label: 'SEARCH RIGHT HALF - Recursive call' },
+                        { value: 'RETURN index', label: 'RETURN index - Element found' }
                     ],
                     diamond: [
-                        { value: 'SERVICE A READY?', label: 'SERVICE A READY? - User service online?' },
-                        { value: 'SERVICE B READY?', label: 'SERVICE B READY? - Data service online?' },
-                        { value: 'LOAD BALANCED?', label: 'LOAD BALANCED? - Traffic distributed?' },
-                        { value: 'SERVICES SYNCED?', label: 'SERVICES SYNCED? - Communication established?' }
+                        { value: 'ARRAY EMPTY?', label: 'ARRAY EMPTY? - Base case check' },
+                        { value: 'target == arr[mid]?', label: 'target == arr[mid]? - Element found?' },
+                        { value: 'target < arr[mid]?', label: 'target < arr[mid]? - Search left?' },
+                        { value: 'ELEMENT FOUND?', label: 'ELEMENT FOUND? - Recursive result?' }
                     ],
                     parallelogram: [
-                        { value: 'GET SERVICE CONFIG', label: 'GET SERVICE CONFIG - Input: Service parameters' },
-                        { value: 'SEND STATUS UPDATES', label: 'SEND STATUS UPDATES - Output: Service health' }
+                        { value: 'INPUT array, target', label: 'INPUT array, target - Search parameters' },
+                        { value: 'RETURN -1', label: 'RETURN -1 - Element not found' }
                     ]
                 },
-                5: { // Enterprise IT Architecture - System Architecture
+                5: { // Object-Oriented Polymorphism - Animal Sound System
                     oval: [
-                        { value: 'START SYSTEM', label: 'START SYSTEM - Initialize enterprise architecture' },
-                        { value: 'SYSTEM OPERATIONAL', label: 'SYSTEM OPERATIONAL - Full enterprise ready' }
+                        { value: 'START', label: 'START - Polymorphism demonstration' },
+                        { value: 'END', label: 'END - All objects processed' }
                     ],
                     rectangle: [
-                        { value: 'CONFIGURE SECURITY', label: 'CONFIGURE SECURITY - Set up access controls' },
-                        { value: 'SETUP DATA FLOW', label: 'SETUP DATA FLOW - Configure data pipelines' },
-                        { value: 'INTEGRATE SYSTEMS', label: 'INTEGRATE SYSTEMS - Connect business units' },
-                        { value: 'DEPLOY GLOBALLY', label: 'DEPLOY GLOBALLY - Distribute across locations' }
+                        { value: 'CREATE Dog obj', label: 'CREATE Dog obj - Instantiate Dog class' },
+                        { value: 'CREATE Cat obj', label: 'CREATE Cat obj - Instantiate Cat class' },
+                        { value: 'CREATE Bird obj', label: 'CREATE Bird obj - Instantiate Bird class' },
+                        { value: 'CALL makeSound()', label: 'CALL makeSound() - Polymorphic method call' }
                     ],
                     diamond: [
-                        { value: 'SECURITY CONFIGURED?', label: 'SECURITY CONFIGURED? - Access controls ready?' },
-                        { value: 'DATA FLOWING?', label: 'DATA FLOWING? - Information moving correctly?' },
-                        { value: 'SYSTEMS INTEGRATED?', label: 'SYSTEMS INTEGRATED? - All units connected?' },
-                        { value: 'GLOBAL DEPLOYMENT OK?', label: 'GLOBAL DEPLOYMENT OK? - All locations ready?' }
+                        { value: 'obj instanceof Dog?', label: 'obj instanceof Dog? - Runtime type check' },
+                        { value: 'obj instanceof Cat?', label: 'obj instanceof Cat? - Runtime type check' },
+                        { value: 'obj instanceof Bird?', label: 'obj instanceof Bird? - Runtime type check' },
+                        { value: 'MORE OBJECTS?', label: 'MORE OBJECTS? - Continue iteration?' }
                     ],
                     parallelogram: [
-                        { value: 'GET BUSINESS REQUIREMENTS', label: 'GET BUSINESS REQUIREMENTS - Input: Business needs' },
-                        { value: 'GENERATE ARCHITECTURE REPORTS', label: 'GENERATE ARCHITECTURE REPORTS - Output: System status' },
-                        { value: 'UPDATE COMPLIANCE LOGS', label: 'UPDATE COMPLIANCE LOGS - Output: Audit trail' }
+                        { value: 'INPUT animal_type', label: 'INPUT animal_type - User selection' },
+                        { value: 'OUTPUT sound', label: 'OUTPUT sound - Animal-specific sound' }
                     ]
                 }
             }
         };
         
         // Get options for current difficulty and level, fallback to basic options
-        const difficultyOptions = itIndustryOptions[difficulty] || itIndustryOptions.easy;
+        const difficultyOptions = programmingOptions[difficulty] || programmingOptions.easy;
         const levelOptions = difficultyOptions[level] || difficultyOptions[1];
         const nodeOptions = levelOptions[nodeType] || [];
         
