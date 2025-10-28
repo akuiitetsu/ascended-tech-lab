@@ -1074,7 +1074,7 @@ class NetxusLab {
                     
                     <div class="form-group" id="static-config" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; ${config.dhcp ? 'opacity: 0.5;' : ''}">
                         <label style="font-size: 0.9rem; color: #ccc;">IP Address:</label>
-                        <input type="text" id="ip-address" value="${config.ipAddress || ''}" placeholder="192.168.1.10" style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;" ${config.dhcp ? 'disabled' : ''}>
+                        <input type="text" id="ip-address" value="${config.ipAddress || ''}" placeholder="192..." style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;" ${config.dhcp ? 'disabled' : ''}>
                     </div>
                     
                     <div class="form-group" id="subnet-config" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; ${config.dhcp ? 'opacity: 0.5;' : ''}">
@@ -1084,7 +1084,7 @@ class NetxusLab {
                     
                     <div class="form-group" id="gateway-config" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; ${config.dhcp ? 'opacity: 0.5;' : ''}">
                         <label style="font-size: 0.9rem; color: #ccc;">Default Gateway:</label>
-                        <input type="text" id="default-gateway" value="${config.defaultGateway || ''}" placeholder="192.168.1.1" style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;" ${config.dhcp ? 'disabled' : ''}>
+                        <input type="text" id="default-gateway" value="${config.defaultGateway || ''}" placeholder="192..." style="padding: 6px 10px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.9rem;" ${config.dhcp ? 'disabled' : ''}>
                     </div>
                     
                     <div class="form-group" style="display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;">
@@ -1150,7 +1150,7 @@ class NetxusLab {
                             <div style="display: grid; gap: 8px;">
                                 <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px; align-items: center;">
                                     <label style="font-size: 0.8rem;">IP Address:</label>
-                                    <input type="text" id="${iface.name}-ip" placeholder="192.168.1.1" style="padding: 4px 8px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.8rem;">
+                                    <input type="text" id="${iface.name}-ip" placeholder="192..." style="padding: 4px 8px; background: var(--bg-main, #1a202c); border: 1px solid #3d3d3d; border-radius: 4px; color: white; font-size: 0.8rem;">
                                 </div>
                                 <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px; align-items: center;">
                                     <label style="font-size: 0.8rem;">Subnet Mask:</label>
