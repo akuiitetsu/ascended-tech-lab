@@ -948,15 +948,7 @@ class CodevanceLab {
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="# ${scenario.context}
-def fibonacci(n):
-    a, b = 0, 1
-    for _ in range(n):
-        print(a, end=' ')
-        a, b = b, a + b
-
-# Generate ${scenario.numbers} numbers
-fibonacci(${scenario.numbers})"></textarea>
+                    <textarea id="code-editor" placeholder="# Write your Python code here..."></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -967,6 +959,49 @@ fibonacci(${scenario.numbers})"></textarea>
                     <div class="validation-panel" id="validation-panel">
                         <h5>✅ Algorithm Analysis</h5>
                         <div id="validation-output">Run your code to analyze the sequence pattern</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    generatePythonFileInterface() {
+        return `
+            <div class="challenge-interface active">
+                <div class="challenge-header">
+                    <h3>📁 File Reader Challenge</h3>
+                    <p>Read and process file contents using Python file operations.</p>
+                </div>
+                
+                <div class="requirements-panel">
+                    <h4>📋 Requirements</h4>
+                    <ul>
+                        <li>Read the contents of 'sample.txt' file</li>
+                        <li>Display each line of the file</li>
+                        <li>Use proper file handling with context managers (with statement)</li>
+                        <li>Handle potential file not found errors gracefully</li>
+                    </ul>
+                </div>
+                
+                <div class="code-workspace">
+                    <div class="editor-header">
+                        <h4>🐍 Python Editor - File Operations</h4>
+                        <div class="editor-controls">
+                            <button onclick="window.codevanceLab.runCode()" class="run-btn">▶ Run Python</button>
+                            <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="code-editor" placeholder="# Write your Python code here..."></textarea>
+                </div>
+                
+                <div class="results-section">
+                    <div class="output-panel" id="code-output">
+                        <h5>🖥️ Python Output</h5>
+                        <div id="python-output">Your file reading results will appear here</div>
+                    </div>
+                    <div class="validation-panel" id="validation-panel">
+                        <h5>✅ Validation Results</h5>
+                        <div id="validation-output">Write your file reading code and run to see results</div>
                     </div>
                 </div>
             </div>
@@ -1007,10 +1042,7 @@ fibonacci(${scenario.numbers})"></textarea>
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="# ${scenario.context}
-${scenario.subject.toLowerCase().replace(' ', '_')}_data = ${JSON.stringify(scenario.grades)}
-average = sum(${scenario.subject.toLowerCase().replace(' ', '_')}_data) / len(${scenario.subject.toLowerCase().replace(' ', '_')}_data)
-print('Average ${scenario.subject.toLowerCase()}:', average)"></textarea>
+                    <textarea id="code-editor" placeholder="# Write your Python code here..."></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -1062,17 +1094,7 @@ print('Average ${scenario.subject.toLowerCase()}:', average)"></textarea>
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="# ${scenario.context}
-users = ${JSON.stringify(scenario.users)}
-
-# Test credentials (change these to test different scenarios)
-username = '${scenario.testUser}'
-password = '${scenario.testPass}'
-
-if username in users and users[username] == password:
-    print('Login successful!')
-else:
-    print('Invalid login')"></textarea>
+                    <textarea id="code-editor" placeholder="# Write your Python code here..."></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -1116,14 +1138,7 @@ else:
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="text = 'hello world hello python world'
-words = text.split()
-counter = {}
-
-for word in words:
-    counter[word] = counter.get(word, 0) + 1
-
-print(counter)"></textarea>
+                    <textarea id="code-editor" placeholder="# Write your Python code here..."></textarea>
                 </div>
                 
                 <div class="results-section">
