@@ -77,6 +77,7 @@ class NetxusLab {
         
         // Current tool/mode
         this.currentTool = 'select';
+        this.deleteMode = false;
         
         this.labCategories = {
             easy: {
@@ -497,10 +498,17 @@ class NetxusLab {
             this.handleMouseUp(e);
         });
 
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            this.handleKeyDown(e);
+        });
+
         // Simulation controls
         const connectionBtn = this.container.querySelector('#connection-mode-btn');
+        const deleteBtn = this.container.querySelector('#delete-mode-btn');
 
         if (connectionBtn) connectionBtn.addEventListener('click', () => this.toggleConnectionMode());
+        if (deleteBtn) deleteBtn.addEventListener('click', () => this.toggleDeleteMode());
     }
 
     setupDeviceToolbar() {
@@ -538,6 +546,16 @@ class NetxusLab {
         this.connectionMode = !this.connectionMode;
         this.currentTool = this.connectionMode ? 'connect' : 'select';
         
+        // Disable delete mode if connection mode is enabled
+        if (this.connectionMode && this.deleteMode) {
+            this.deleteMode = false;
+            const deleteBtn = this.container.querySelector('#delete-mode-btn');
+            if (deleteBtn) {
+                deleteBtn.classList.remove('active');
+                deleteBtn.textContent = 'Delete Element';
+            }
+        }
+        
         const btn = this.container.querySelector('#connection-mode-btn');
         if (btn) {
             btn.classList.toggle('active', this.connectionMode);
@@ -545,12 +563,46 @@ class NetxusLab {
         }
         
         this.canvas.classList.toggle('connection-mode', this.connectionMode);
+        this.canvas.classList.toggle('delete-mode', false);
         
         if (this.connectionMode) {
             this.showFeedback('Click on two devices to connect them', 'info');
         } else {
             this.connectionSource = null;
             this.showFeedback('Connection mode disabled', 'info');
+        }
+    }
+
+    toggleDeleteMode() {
+        this.deleteMode = !this.deleteMode;
+        this.currentTool = this.deleteMode ? 'delete' : 'select';
+        
+        // Disable connection mode if delete mode is enabled
+        if (this.deleteMode && this.connectionMode) {
+            this.connectionMode = false;
+            this.connectionSource = null;
+            const connectionBtn = this.container.querySelector('#connection-mode-btn');
+            if (connectionBtn) {
+                connectionBtn.classList.remove('active');
+                connectionBtn.textContent = 'Connect Devices';
+            }
+        }
+        
+        const btn = this.container.querySelector('#delete-mode-btn');
+        if (btn) {
+            btn.classList.toggle('active', this.deleteMode);
+            btn.textContent = this.deleteMode ? 'Exit Delete' : 'Delete Element';
+        }
+        
+        this.canvas.classList.toggle('delete-mode', this.deleteMode);
+        this.canvas.classList.toggle('connection-mode', false);
+        
+        if (this.deleteMode) {
+            this.showFeedback('Click on devices or cables to delete them', 'info');
+            this.canvas.style.cursor = 'crosshair';
+        } else {
+            this.showFeedback('Delete mode disabled', 'info');
+            this.canvas.style.cursor = 'default';
         }
     }
 
@@ -561,6 +613,18 @@ class NetxusLab {
 
         // Check if clicking on a device
         const clickedDevice = this.getDeviceAtPosition(x, y);
+        
+        // Check if clicking on a cable
+        const clickedCable = this.getCableAtPosition(x, y);
+
+        if (this.deleteMode) {
+            if (clickedDevice) {
+                this.deleteDevice(clickedDevice);
+            } else if (clickedCable) {
+                this.deleteCable(clickedCable);
+            }
+            return;
+        }
 
         if (clickedDevice) {
             if (this.connectionMode) {
@@ -572,12 +636,14 @@ class NetxusLab {
         }
 
         // Place device if tool selected
-        if (this.currentTool && this.currentTool !== 'select' && this.currentTool !== 'connect') {
+        if (this.currentTool && this.currentTool !== 'select' && this.currentTool !== 'connect' && this.currentTool !== 'delete') {
             this.placeDevice(this.currentTool, x, y);
         } else {
-            // Deselect current selection
-            this.selectedDevice = null;
-            this.updateDeviceSelection();
+            // Deselect current selection (but not in delete mode)
+            if (!this.deleteMode) {
+                this.selectedDevice = null;
+                this.updateDeviceSelection();
+            }
         }
     }
 
@@ -586,6 +652,41 @@ class NetxusLab {
             return x >= device.x && x <= device.x + device.width &&
                    y >= device.y && y <= device.y + device.height;
         });
+    }
+
+    getCableAtPosition(x, y) {
+        // Find cable within click tolerance (10 pixels)
+        const tolerance = 10;
+        
+        return this.cables.find(cable => {
+            const sourceDevice = this.devices.find(d => d.id === cable.source);
+            const targetDevice = this.devices.find(d => d.id === cable.target);
+            
+            if (!sourceDevice || !targetDevice) return false;
+            
+            const x1 = sourceDevice.x + 30;
+            const y1 = sourceDevice.y + 30;
+            const x2 = targetDevice.x + 30;
+            const y2 = targetDevice.y + 30;
+            
+            // Calculate distance from point to line segment
+            const distanceToLine = this.distanceFromPointToLineSegment(x, y, x1, y1, x2, y2);
+            return distanceToLine <= tolerance;
+        });
+    }
+
+    distanceFromPointToLineSegment(px, py, x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        
+        if (length === 0) return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+        
+        const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (length * length)));
+        const projection_x = x1 + t * dx;
+        const projection_y = y1 + t * dy;
+        
+        return Math.sqrt((px - projection_x) ** 2 + (py - projection_y) ** 2);
     }
 
     placeDevice(deviceType, x, y) {
@@ -614,6 +715,38 @@ class NetxusLab {
         this.container.querySelectorAll('.device-btn').forEach(btn => {
             btn.classList.remove('active');
         });
+    }
+
+    deleteDevice(device) {
+        if (confirm(`Delete ${device.name}? This will also remove all its connections.`)) {
+            // Remove all cables connected to this device
+            this.cables = this.cables.filter(cable => {
+                if (cable.source === device.id || cable.target === device.id) {
+                    // Remove the cable element from DOM
+                    const cableElement = document.getElementById(cable.id);
+                    if (cableElement) cableElement.remove();
+                    return false; // Remove this cable
+                }
+                return true; // Keep this cable
+            });
+            
+            // Remove device from devices array
+            this.devices = this.devices.filter(d => d.id !== device.id);
+            
+            // Remove device element from DOM
+            const deviceElement = document.getElementById(device.id);
+            if (deviceElement) deviceElement.remove();
+            
+            // Clear selection if this was the selected device
+            if (this.selectedDevice && this.selectedDevice.id === device.id) {
+                this.selectedDevice = null;
+            }
+            
+            this.showFeedback(`${device.name} deleted successfully`, 'success');
+            
+            // Auto-update test results when devices are deleted
+            this.updateTestResults();
+        }
     }
 
     getDefaultInterfaces(deviceType) {
@@ -730,10 +863,21 @@ class NetxusLab {
             this.openDeviceConfiguration(device);
         });
 
+        // Add right-click context menu
+        deviceElement.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.showDeviceContextMenu(e, device);
+        });
+
         // Add hover effects
         deviceElement.addEventListener('mouseenter', () => {
-            deviceElement.style.borderColor = 'var(--color-green, #38a169)';
-            deviceElement.style.boxShadow = '0 4px 12px rgba(0, 184, 216, 0.3)';
+            if (this.deleteMode) {
+                deviceElement.style.borderColor = 'var(--color-red, #e53e3e)';
+                deviceElement.style.boxShadow = '0 4px 12px rgba(229, 62, 62, 0.5)';
+            } else {
+                deviceElement.style.borderColor = 'var(--color-green, #38a169)';
+                deviceElement.style.boxShadow = '0 4px 12px rgba(0, 184, 216, 0.3)';
+            }
         });
 
         deviceElement.addEventListener('mouseleave', () => {
@@ -744,6 +888,88 @@ class NetxusLab {
         });
 
         this.canvas.appendChild(deviceElement);
+    }
+
+    showDeviceContextMenu(e, device) {
+        // Remove any existing context menu
+        const existingMenu = document.querySelector('.device-context-menu');
+        if (existingMenu) existingMenu.remove();
+
+        const menu = document.createElement('div');
+        menu.className = 'device-context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: ${e.clientY}px;
+            left: ${e.clientX}px;
+            background: var(--bg-panel, #16213e);
+            border: 2px solid var(--color-cyan, #00b8d8);
+            border-radius: 8px;
+            padding: 8px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 150px;
+        `;
+
+        menu.innerHTML = `
+            <div class="context-menu-item" data-action="configure" style="
+                padding: 8px 12px;
+                cursor: pointer;
+                border-radius: 4px;
+                color: white;
+                font-size: 0.9rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="bi bi-gear"></i> Configure
+            </div>
+            <div class="context-menu-item" data-action="delete" style="
+                padding: 8px 12px;
+                cursor: pointer;
+                border-radius: 4px;
+                color: var(--color-red, #e53e3e);
+                font-size: 0.9rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="bi bi-trash"></i> Delete
+            </div>
+        `;
+
+        // Add hover effects
+        menu.querySelectorAll('.context-menu-item').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                item.style.backgroundColor = 'rgba(0, 184, 216, 0.1)';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = 'transparent';
+            });
+            item.addEventListener('click', () => {
+                const action = item.getAttribute('data-action');
+                if (action === 'configure') {
+                    this.openDeviceConfiguration(device);
+                } else if (action === 'delete') {
+                    this.deleteDevice(device);
+                }
+                menu.remove();
+            });
+        });
+
+        document.body.appendChild(menu);
+
+        // Close menu when clicking elsewhere
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        
+        // Add slight delay to prevent immediate closure
+        setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+        }, 100);
     }
 
     getDeviceIcon(deviceType) {
@@ -824,6 +1050,57 @@ class NetxusLab {
         this.dragOffset = { x: 0, y: 0 };
     }
 
+    handleKeyDown(e) {
+        // Only handle keyboard shortcuts when focused on the canvas or no active input
+        if (document.activeElement && 
+            (document.activeElement.tagName === 'INPUT' || 
+             document.activeElement.tagName === 'TEXTAREA' || 
+             document.activeElement.tagName === 'SELECT')) {
+            return;
+        }
+
+        switch (e.key) {
+            case 'Delete':
+            case 'Backspace':
+                if (this.selectedDevice) {
+                    this.deleteDevice(this.selectedDevice);
+                    e.preventDefault();
+                }
+                break;
+            case 'Escape':
+                // Exit current mode
+                if (this.deleteMode) {
+                    this.toggleDeleteMode();
+                } else if (this.connectionMode) {
+                    this.toggleConnectionMode();
+                }
+                // Clear selection
+                this.selectedDevice = null;
+                this.updateDeviceSelection();
+                e.preventDefault();
+                break;
+            case 'd':
+            case 'D':
+                if (e.ctrlKey || e.metaKey) {
+                    // Prevent browser bookmark dialog
+                    e.preventDefault();
+                } else {
+                    // Toggle delete mode with 'D' key
+                    this.toggleDeleteMode();
+                    e.preventDefault();
+                }
+                break;
+            case 'c':
+            case 'C':
+                if (!e.ctrlKey && !e.metaKey) {
+                    // Toggle connection mode with 'C' key
+                    this.toggleConnectionMode();
+                    e.preventDefault();
+                }
+                break;
+        }
+    }
+
     handleDeviceConnection(device) {
         if (!this.connectionSource) {
             this.connectionSource = device;
@@ -870,6 +1147,36 @@ class NetxusLab {
         
         // Auto-update test results when connections are made
         this.updateTestResults();
+    }
+
+    deleteCable(cable) {
+        if (confirm('Remove this connection?')) {
+            // Find the connected devices to update their interfaces
+            const sourceDevice = this.devices.find(d => d.id === cable.source);
+            const targetDevice = this.devices.find(d => d.id === cable.target);
+            
+            // Mark interfaces as disconnected
+            if (sourceDevice && targetDevice) {
+                // Find the interfaces that were connected by this cable
+                const sourceInterface = sourceDevice.interfaces.find(iface => iface.connected);
+                const targetInterface = targetDevice.interfaces.find(iface => iface.connected);
+                
+                if (sourceInterface) sourceInterface.connected = false;
+                if (targetInterface) targetInterface.connected = false;
+            }
+            
+            // Remove cable from cables array
+            this.cables = this.cables.filter(c => c.id !== cable.id);
+            
+            // Remove cable element from DOM
+            const cableElement = document.getElementById(cable.id);
+            if (cableElement) cableElement.remove();
+            
+            this.showFeedback('Connection removed successfully', 'success');
+            
+            // Auto-update test results when connections are removed
+            this.updateTestResults();
+        }
     }
 
     determineCableType(device1, device2) {
@@ -2762,9 +3069,30 @@ Router# show access-lists 100
         this.selectedDevice = null;
         this.connectionSource = null;
         
+        // Reset modes
+        this.connectionMode = false;
+        this.deleteMode = false;
+        this.currentTool = 'select';
+        
         // Clear canvas
         if (this.canvas) {
             this.canvas.innerHTML = '<svg class="network-cables" id="network-cables" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>';
+            this.canvas.classList.remove('connection-mode', 'delete-mode');
+            this.canvas.style.cursor = 'default';
+        }
+        
+        // Reset button states
+        const connectionBtn = this.container?.querySelector('#connection-mode-btn');
+        const deleteBtn = this.container?.querySelector('#delete-mode-btn');
+        
+        if (connectionBtn) {
+            connectionBtn.classList.remove('active');
+            connectionBtn.textContent = 'Connect Devices';
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.classList.remove('active');
+            deleteBtn.textContent = 'Delete Element';
         }
         
         // Initialize with requirements checklist visible

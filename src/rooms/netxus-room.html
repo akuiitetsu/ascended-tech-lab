@@ -741,6 +741,21 @@
             cursor: crosshair;
         }
 
+        .network-canvas.delete-mode {
+            cursor: crosshair;
+            background-color: rgba(229, 62, 62, 0.05);
+        }
+
+        .network-canvas.delete-mode .network-device:hover {
+            border-color: var(--color-red) !important;
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.5) !important;
+        }
+
+        .network-canvas.delete-mode .network-cable:hover {
+            stroke: var(--color-red) !important;
+            stroke-width: 5 !important;
+        }
+
         /* Device Toolbar */
         .device-toolbar {
             display: flex;
@@ -1128,6 +1143,7 @@
 
                 <section class="simulation-controls">
                     <button class="sim-btn" id="connection-mode-btn">Connect Devices</button>
+                    <button class="sim-btn" id="delete-mode-btn">Delete Element</button>
                 </section>
 
                 <div class="test-results" id="test-results">
