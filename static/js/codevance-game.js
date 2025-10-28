@@ -683,14 +683,8 @@ class CodevanceLab {
                     </div>
                     <textarea id="code-editor" placeholder="<!DOCTYPE html>
 <html>
-<head>
-    <title>${scenario.title}</title>
-</head>
-<body>
-    <h1>${scenario.heading}</h1>
-    <p>${scenario.paragraph}</p>
-</body>
-</html>"></textarea>
+…
+"></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -733,8 +727,10 @@ class CodevanceLab {
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="<!-- Create an IMG tag with the specified attributes -->
-<img src=&quot;https://via.placeholder.com/300x200&quot; alt=&quot;Sample Image&quot; width=&quot;300&quot;>"></textarea>
+                    <textarea id="code-editor" placeholder="<!DOCTYPE html>
+<html>
+…
+"></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -784,12 +780,10 @@ class CodevanceLab {
                             <button onclick="window.codevanceLab.clearEditor()" class="clear-btn">Clear</button>
                         </div>
                     </div>
-                    <textarea id="code-editor" placeholder="<h2>${scenario.listTitle}</h2>
-<ul>
-    <li>${scenario.items[0]}</li>
-    <li>${scenario.items[1]}</li>
-    <li>${scenario.items[2]}</li>
-</ul>"></textarea>
+                    <textarea id="code-editor" placeholder="<!DOCTYPE html>
+<html>
+…
+"></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -844,20 +838,8 @@ class CodevanceLab {
                     </div>
                     <textarea id="code-editor" placeholder="<!DOCTYPE html>
 <html>
-<head>
-    <title>${scenario.title}</title>
-    <style>
-        body {
-            background-color: ${scenario.backgroundColor};
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <h1>${scenario.heading}</h1>
-    <p>${scenario.paragraph}</p>
-</body>
-</html>"></textarea>
+…
+"></textarea>
                 </div>
                 
                 <div class="results-section">
@@ -914,25 +896,8 @@ class CodevanceLab {
                     </div>
                     <textarea id="code-editor" placeholder="<!DOCTYPE html>
 <html>
-<head>
-    <title>${scenario.title}</title>
-    <style>
-        .styled-button {
-            background-color: ${scenario.backgroundColor};
-            color: ${scenario.textColor};
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <h1>${scenario.title}</h1>
-    <button class=&quot;styled-button&quot;>${scenario.buttonText}</button>
-</body>
-</html>"></textarea>
+…
+"></textarea>
                 </div>
                 
                 <div class="results-section">
