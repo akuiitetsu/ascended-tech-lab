@@ -472,12 +472,7 @@ class AitrixLab {
                     <h3>🔍 AI Network Detective</h3>
                     <p>I've found devices that can't talk to each other! Let's fix their IP configurations and restore communication.</p>
                 </div>
-                
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Configure IP addresses so these devices can communicate properly on the same network.</p>
-                </div>
-                
+            
                 <div class="interaction-panel">
                     <h4>Device Configuration</h4>
                     <div class="device-config">
@@ -509,10 +504,6 @@ class AitrixLab {
                     <p>I've been analyzing password security in various systems. Help me identify which passwords meet security standards and which need improvement.</p>
                 </div>
                 
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Review each password and determine if it's WEAK or STRONG based on cybersecurity best practices.</p>
-                </div>
                 
                 <div class="interaction-panel">
                     <h4>Password Security Assessment</h4>
@@ -549,11 +540,7 @@ class AitrixLab {
                     <h3>💻 AI System Advisor</h3>
                     <p>Different scenarios require different operating systems. I'll present you with various use cases, and you need to recommend the best OS for each situation.</p>
                 </div>
-                
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Match each scenario with the most appropriate operating system based on the requirements.</p>
-                </div>
+            
                 
                 <div class="interaction-panel">
                     <div class="instructions" style="background: rgba(224, 131, 0, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -621,11 +608,7 @@ class AitrixLab {
                     <h3>🌐 AI Network Guide</h3>
                     <p>Let's build a simple network together! I'll guide you through connecting devices and configuring them for communication.</p>
                 </div>
-                
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Follow my guidance to create a working network with proper IP addressing and connectivity testing.</p>
-                </div>
+
                 
                 <div class="interaction-panel">
                     <h4>Network Building Steps</h4>
@@ -658,11 +641,6 @@ class AitrixLab {
                 <div class="scenario-panel">
                     <h3>🛡️ AI Security Advisor</h3>
                     <p>I'll present you with common IT security situations. Your cybersecurity knowledge will help you make the safest decisions!</p>
-                </div>
-                
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Choose the most secure and appropriate response to each scenario.</p>
                 </div>
                 
                 <div class="interaction-panel">
@@ -699,11 +677,6 @@ class AitrixLab {
                 <div class="scenario-panel">
                     <h3>🏢 AI Network Analysis</h3>
                     <p>I've analyzed a small office network where HR, IT, and Guest devices are all on one LAN. This creates security risks! Let's design proper network segmentation.</p>
-                </div>
-                
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Design secure network segments using subnetting and VLANs to isolate different departments.</p>
                 </div>
                 
                 <div class="interaction-panel">
@@ -763,11 +736,6 @@ class AitrixLab {
                     <p>Welcome to our controlled penetration testing environment! I'm simulating a vulnerable server for ethical hacking practice. Remember, we're the good guys!</p>
                 </div>
                 
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Use ethical hacking tools to find security vulnerabilities and recommend fixes.</p>
-                </div>
-                
                 <div class="interaction-panel">
                     <div class="pentest-terminal">
                         <div class="terminal-header">
@@ -806,11 +774,6 @@ class AitrixLab {
                 <div class="scenario-panel">
                     <h3>🗄️ AI Database Analysis</h3>
                     <p>I've found a poorly designed database with serious normalization issues! There are duplicate entries, missing primary keys, and data integrity problems.</p>
-                </div>
-                
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Fix this database by applying normalization rules from 1NF to 3NF.</p>
                 </div>
                 
                 <div class="interaction-panel">
@@ -892,11 +855,6 @@ class AitrixLab {
                     <p>Time for some hands-on Linux command line work! I'll give you system administration tasks that you need to solve using proper CLI commands.</p>
                 </div>
                 
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Complete system administration tasks using Linux CLI commands. Think like a sysadmin!</p>
-                </div>
-                
                 <div class="interaction-panel">
                     <div class="cli-challenges">
                         <div class="challenge-task" id="cli-task-1">
@@ -940,12 +898,7 @@ class AitrixLab {
                 <div class="scenario-panel">
                     <h3>☁️ AI Cloud Architect</h3>
                     <p>A startup needs a scalable, secure cloud infrastructure! As their cloud architect, you need to design an AWS-based solution that can handle growth.</p>
-                </div>
-                
-                <div class="task-panel">
-                    <h3>🎯 Your Mission</h3>
-                    <p>Design a cloud architecture using AWS services for scalability, security, and high availability.</p>
-                </div>
+                </div>           
                 
                 <div class="interaction-panel">
                     <h4>Cloud Architecture Components</h4>
