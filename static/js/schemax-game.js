@@ -328,6 +328,9 @@ class SchemaxLab {
         const categoryData = this.challengeCategories[this.currentDifficulty];
         this.challengeData = categoryData.challenges[challengeNumber - 1];
         
+        // Reset hints for new challenge
+        this.resetHints();
+        
         this.initChallengeInterface();
         this.showScreen('game-screen');
     }
@@ -1543,21 +1546,128 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
     }
 
     getHint() {
-        const hints = {
-            'table_creation': "💡 Use CREATE TABLE with column_name DATA_TYPE constraints. Don't forget PRIMARY KEY for employee_id!",
-            'data_insertion': "💡 Use INSERT INTO employees (columns) VALUES (values1), (values2), (values3) for multiple IT staff records.",
-            'basic_query': "💡 Use SELECT * FROM employees WHERE department = 'DevOps' to find DevOps team members.",
-            'constraints': "💡 Add UNIQUE constraint after column definition: username VARCHAR(100) UNIQUE",
-            'foreign_keys': "💡 Use ALTER TABLE to ADD COLUMN and ADD FOREIGN KEY constraint with REFERENCES.",
-            'normalization': "💡 Create separate tables for employees, departments, and a junction table for project assignments.",
-            'transactions_schema': "💡 Use DECIMAL for financial amounts and TIMESTAMP for transaction dates. Don't forget foreign keys!",
-            'indexing': "💡 CREATE INDEX index_name ON table_name(column_name) - consider UNIQUE for email addresses.",
-            'many_to_many': "💡 Junction table needs composite primary key: PRIMARY KEY (user_id, role_id)",
-            'security_schema': "💡 Use CHECK constraint for role validation: access_level VARCHAR(10) CHECK (access_level IN ('user', 'admin', 'super'))"
+        // Initialize hint tracking
+        if (!this.hintTracker) {
+            this.hintTracker = {
+                currentLevel: 0,
+                maxLevel: 3,
+                hintsUsed: 0
+            };
+        }
+
+        const progressiveHints = this.getProgressiveHints();
+        const currentHint = progressiveHints[this.hintTracker.currentLevel];
+        
+        if (currentHint) {
+            this.showFeedback(`💡 SQL Hint ${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1}: ${currentHint}`, 'info');
+            
+            // Update hint button
+            const hintBtn = document.getElementById('get-hint-btn');
+            if (hintBtn) {
+                this.hintTracker.currentLevel = Math.min(this.hintTracker.currentLevel + 1, this.hintTracker.maxLevel);
+                this.hintTracker.hintsUsed++;
+                
+                if (this.hintTracker.currentLevel >= this.hintTracker.maxLevel) {
+                    hintBtn.innerHTML = '💡 All Hints Used';
+                    hintBtn.disabled = true;
+                    hintBtn.style.opacity = '0.6';
+                } else {
+                    hintBtn.innerHTML = `💡 Next Hint (${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1})`;
+                }
+            }
+        }
+    }
+
+    getProgressiveHints() {
+        const easyHints = {
+            1: [ // Employee Directory Table - Challenge 1
+                "Start with CREATE TABLE employees. Use proper naming conventions (lowercase, underscores).",
+                "Add employee_id as PRIMARY KEY with AUTO_INCREMENT for automatic numbering.",
+                "Include name VARCHAR(100) NOT NULL, email VARCHAR(150) UNIQUE, department VARCHAR(50).",
+                "Complete syntax: CREATE TABLE employees (employee_id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(150) UNIQUE, department VARCHAR(50));"
+            ],
+            2: [ // Add IT Staff Records - Challenge 2
+                "Use INSERT INTO employees to add new IT staff records to your table.",
+                "Specify column names: INSERT INTO employees (name, email, department, role).",
+                "Add multiple IT staff: VALUES ('Alice Johnson', 'alice@company.com', 'IT', 'DevOps Engineer').",
+                "Insert 3-4 records for different IT roles: DevOps, Network Admin, Database Admin, Security Analyst."
+            ],
+            3: [ // Query IT Personnel - Challenge 3
+                "SELECT statement retrieves data. Use SELECT * FROM employees to get all columns.",
+                "Add WHERE clause to filter IT staff: WHERE department = 'IT' OR department = 'DevOps'.",
+                "Use comparison operators: =, !=, LIKE for pattern matching with wildcards (%).",
+                "Example: SELECT name, role FROM employees WHERE department IN ('IT', 'DevOps', 'Security');"
+            ],
+            4: [ // System Access Constraints - Challenge 4
+                "Create users table with security constraints: username UNIQUE, password NOT NULL.",
+                "Add PRIMARY KEY constraint: user_id INT AUTO_INCREMENT PRIMARY KEY.",
+                "Include CHECK constraints for data validation: access_level IN ('user', 'admin').",
+                "Example: CREATE TABLE users (user_id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50) UNIQUE NOT NULL, access_level ENUM('user', 'admin'));"
+            ],
+            5: [ // Department Relationships - Challenge 5
+                "Create departments table first: CREATE TABLE departments (dept_id INT PRIMARY KEY, dept_name VARCHAR(50)).",
+                "Modify employees table to add foreign key: ALTER TABLE employees ADD COLUMN dept_id INT.",
+                "Add foreign key constraint: ALTER TABLE employees ADD FOREIGN KEY (dept_id) REFERENCES departments(dept_id).",
+                "Use ON DELETE CASCADE or SET NULL to handle referential integrity when departments are deleted."
+            ]
+        };
+
+        const hardHints = {
+            1: [ // Enterprise Data Normalization - Challenge 1
+                "Identify repeating groups in your data and separate them into individual tables (1NF).",
+                "Remove partial dependencies - non-key attributes must depend on the entire primary key (2NF).",
+                "Eliminate transitive dependencies - non-key attributes shouldn't depend on other non-key attributes (3NF).",
+                "Create separate tables: employees, departments, projects, and employee_projects junction table."
+            ],
+            2: [ // Financial System Schema - Challenge 2
+                "Design core tables: users, accounts, transactions with proper relationships.",
+                "Use DECIMAL(15,2) for currency amounts to maintain precision in financial calculations.",
+                "Include audit fields: created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP.",
+                "Add CHECK constraints: CHECK (amount > 0), CHECK (account_balance >= 0) for business rules."
+            ],
+            3: [ // Database Performance Optimization - Challenge 3
+                "Analyze query patterns to identify columns frequently used in WHERE clauses.",
+                "Create single-column indexes: CREATE INDEX idx_email ON employees(email) for unique lookups.",
+                "Use composite indexes for multi-column searches: CREATE INDEX idx_dept_role ON employees(department, role).",
+                "Monitor index usage with EXPLAIN to ensure indexes are actually improving query performance."
+            ],
+            4: [ // System User-Role Relationships - Challenge 4
+                "Design three tables: users, roles, user_roles (junction table for many-to-many relationship).",
+                "Junction table needs composite primary key: PRIMARY KEY (user_id, role_id).",
+                "Add foreign keys: FOREIGN KEY (user_id) REFERENCES users(id), FOREIGN KEY (role_id) REFERENCES roles(id).",
+                "Include metadata in junction table: assigned_date TIMESTAMP, assigned_by INT for audit trail."
+            ],
+            5: [ // Enterprise Security Schema - Challenge 5
+                "Create security tables: users, permissions, user_permissions with advanced constraints.",
+                "Use CHECK constraints for validation: CHECK (password_strength IN ('weak', 'medium', 'strong')).",
+                "Add triggers for audit logging: CREATE TRIGGER log_user_changes AFTER UPDATE ON users.",
+                "Implement row-level security: CREATE POLICY user_policy ON users FOR SELECT USING (user_id = current_user_id())."
+            ]
+        };
+
+        const currentChallenge = this.currentChallenge || 1;
+        const isEasy = this.currentDifficulty === 'easy';
+        
+        return isEasy ? 
+            (easyHints[currentChallenge] || easyHints[1]) :
+            (hardHints[currentChallenge] || hardHints[1]);
+    }
+
+    resetHints() {
+        // Reset hint tracking for new challenge
+        this.hintTracker = {
+            currentLevel: 0,
+            maxLevel: 3,
+            hintsUsed: 0
         };
         
-        const hint = hints[this.challengeData.type] || "💡 Follow the requirements carefully and use proper SQL syntax. Check examples in the challenge description!";
-        this.showFeedback(hint, 'info');
+        // Reset hint button appearance
+        const hintBtn = document.getElementById('get-hint-btn');
+        if (hintBtn) {
+            hintBtn.innerHTML = '💡 Get Hint (1/4)';
+            hintBtn.disabled = false;
+            hintBtn.style.opacity = '1';
+        }
     }
 
     resetChallenge() {

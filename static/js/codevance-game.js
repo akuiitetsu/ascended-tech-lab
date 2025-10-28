@@ -557,6 +557,9 @@ class CodevanceLab {
         const categoryData = this.challengeCategories[this.currentDifficulty];
         this.challengeData = categoryData.challenges[challengeNumber - 1];
         
+        // Reset hints for new challenge
+        this.resetHints();
+        
         // NEW: Select random scenario for this challenge
         this.selectRandomScenario();
         
@@ -1735,6 +1738,131 @@ print(counter)"></textarea>
                 replayBtn.remove();
             }
         }, 10000);
+    }
+
+    getHint() {
+        // Initialize hint tracking
+        if (!this.hintTracker) {
+            this.hintTracker = {
+                currentLevel: 0,
+                maxLevel: 3,
+                hintsUsed: 0
+            };
+        }
+
+        const progressiveHints = this.getProgressiveHints();
+        const currentHint = progressiveHints[this.hintTracker.currentLevel];
+        
+        if (currentHint) {
+            this.showFeedback(`💡 Coding Hint ${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1}: ${currentHint}`, 'info');
+            
+            // Update hint button
+            const hintBtn = document.getElementById('get-hint-btn');
+            if (hintBtn) {
+                this.hintTracker.currentLevel = Math.min(this.hintTracker.currentLevel + 1, this.hintTracker.maxLevel);
+                this.hintTracker.hintsUsed++;
+                
+                if (this.hintTracker.currentLevel >= this.hintTracker.maxLevel) {
+                    hintBtn.innerHTML = '💡 All Hints Used';
+                    hintBtn.disabled = true;
+                    hintBtn.style.opacity = '0.6';
+                } else {
+                    hintBtn.innerHTML = `💡 Next Hint (${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1})`;
+                }
+            }
+        }
+    }
+
+    getProgressiveHints() {
+        const easyHints = {
+            1: [ // Basic Webpage - Challenge 1
+                "Start with HTML document structure: <!DOCTYPE html><html><head><title>Your Title</title></head><body>",
+                "Add an h1 heading inside the body: <h1>Hello, World!</h1> for the main title.",
+                "Include a paragraph: <p>This is my first webpage content.</p> below the heading.",
+                "Close all tags properly and ensure the structure is: html > head > title AND html > body > h1 + p."
+            ],
+            2: [ // Image Display - Challenge 2
+                "Add an img tag with required attributes: <img src='image-url' alt='description'>",
+                "Set the width attribute to exactly 300px: <img src='...' width='300' alt='...'>",
+                "Include meaningful alt text for accessibility: alt='Description of what the image shows'.",
+                "Place the image element inside the body, typically after your heading or paragraph."
+            ],
+            3: [ // Favorite Fruits List - Challenge 3
+                "Create an unordered list with <ul> tag to contain your list items.",
+                "Add exactly 3 list items inside: <li>Apple</li>, <li>Banana</li>, <li>Mango</li>.",
+                "Structure should be: <ul><li>Apple</li><li>Banana</li><li>Mango</li></ul>",
+                "Make sure the ul element is properly nested inside the body of your HTML."
+            ],
+            4: [ // Styled Page - Challenge 4
+                "Add CSS inside <style> tags in the head section of your HTML document.",
+                "Set body background: body { background-color: lightblue; } for the light blue background.",
+                "Center text alignment: body { text-align: center; } to center all text on the page.",
+                "Combine both styles: body { background-color: lightblue; text-align: center; }"
+            ],
+            5: [ // Button with CSS - Challenge 5
+                "Create a button element: <button>Click Me</button> in your HTML body.",
+                "Add CSS styling: button { background-color: green; color: white; }",
+                "Include border radius for rounded corners: border-radius: 5px; in your button style.",
+                "Complete button style: button { background-color: green; color: white; border-radius: 5px; padding: 10px; }"
+            ]
+        };
+
+        const hardHints = {
+            1: [ // Fibonacci Sequence - Challenge 1
+                "Initialize first two Fibonacci numbers: a = 0, b = 1, then use a loop for the next 8 numbers.",
+                "Use a for loop: for i in range(10) and calculate next number as: next = a + b.",
+                "Update variables in each iteration: a = b, b = next to prepare for next calculation.",
+                "Print each number as you calculate: print(a) at the start of each iteration."
+            ],
+            2: [ // File Reader - Challenge 2
+                "Use with open('sample.txt', 'r') as file: to safely open the file for reading.",
+                "Read all lines: lines = file.readlines() or read content: content = file.read().",
+                "Process each line: for line in lines: print(line.strip()) to remove newline characters.",
+                "The with statement automatically closes the file, ensuring proper resource management."
+            ],
+            3: [ // Student Grade Average - Challenge 3
+                "Define grades list: grades = [85, 92, 78, 96, 88] or similar grade values.",
+                "Calculate sum: total = sum(grades) and count: count = len(grades).",
+                "Compute average: average = total / count or use built-in: average = sum(grades) / len(grades).",
+                "Display result: print(f'Average grade: {average:.1f}') for one decimal place formatting."
+            ],
+            4: [ // Login Validation - Challenge 4
+                "Create user dictionary: users = {'admin': 'password123', 'user1': 'mypass', ...}",
+                "Get input: username = input('Username: ') and password = input('Password: ').",
+                "Check validation: if username in users and users[username] == password:",
+                "Print appropriate message: 'Login successful!' or 'Invalid username or password.'"
+            ],
+            5: [ // Word Counter - Challenge 5
+                "Define test string: text = 'hello world hello python world hello' or similar.",
+                "Split into words: words = text.lower().split() to handle case sensitivity.",
+                "Count frequencies: word_count = {} then for word in words: word_count[word] = word_count.get(word, 0) + 1.",
+                "Alternative: use Counter from collections: from collections import Counter; word_count = Counter(words)."
+            ]
+        };
+
+        const currentChallenge = this.currentChallenge || 1;
+        const isEasy = this.currentDifficulty === 'easy';
+        
+        return isEasy ? 
+            (easyHints[currentChallenge] || easyHints[1]) :
+            (hardHints[currentChallenge] || hardHints[1]);
+    }
+
+    resetHints() {
+        // Reset hint tracking for new challenge
+        this.hintTracker = {
+            currentLevel: 0,
+            maxLevel: 3,
+            hintsUsed: 0
+        };
+        
+        // Reset hint button appearance
+        const hintBtn = document.getElementById('get-hint-btn');
+        if (hintBtn) {
+            hintBtn.innerHTML = '💡 Get Hint (1/4)';
+            hintBtn.disabled = false;
+            hintBtn.style.opacity = '1';
+        }
     }
 }
 

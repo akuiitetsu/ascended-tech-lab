@@ -614,6 +614,9 @@ class FlowByteGame {
             this.roomStartTime = Date.now();
         }
         
+        // Reset hints for new level
+        this.resetHints();
+        
         this.initGame();
     }
 
@@ -1933,21 +1936,141 @@ class FlowByteGame {
     }
 
     getHint() {
-        // Show tutorial again when hint is requested
-        if (this.currentStep <= 3) {
-            this.showLevelTutorial();
-            return;
+        // Initialize hint tracking if not exists
+        if (!this.hintTracker) {
+            this.hintTracker = {
+                currentLevel: 0,
+                maxLevel: 3,
+                hintsUsed: 0
+            };
         }
+
+        // Progressive hints based on current level and difficulty
+        const progressiveHints = this.getProgressiveHints();
+        const currentHint = progressiveHints[this.hintTracker.currentLevel];
         
-        const stepHints = {
-            4: "Use the arrow tool (bottom right) to connect your shapes. Click on a source shape, then click on the target shape.",
-            5: "Double-click on any shape to edit its text. Use clear, action-oriented descriptions like 'Open Shop', 'Check Inventory'.",
-            6: "Make sure your flowchart flows logically from START to END. All shapes should be connected in the right order.",
-            7: "Review checklist: ✓ START oval ✓ Process rectangles ✓ Decisions (if needed) ✓ END oval ✓ All connected with arrows"
+        if (currentHint) {
+            this.showFeedback(`💡 Hint ${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1}: ${currentHint}`, 'info');
+            
+            // Update hint panel display
+            const hintDisplay = document.getElementById('current-hint-display');
+            if (hintDisplay) {
+                hintDisplay.textContent = currentHint;
+            }
+            
+            // Update hint button text to show progression
+            const hintBtn = document.getElementById('get-hint-btn');
+            if (hintBtn) {
+                this.hintTracker.currentLevel = Math.min(this.hintTracker.currentLevel + 1, this.hintTracker.maxLevel);
+                this.hintTracker.hintsUsed++;
+                
+                if (this.hintTracker.currentLevel >= this.hintTracker.maxLevel) {
+                    hintBtn.innerHTML = '💡 All Hints Used';
+                    hintBtn.disabled = true;
+                    hintBtn.style.opacity = '0.6';
+                } else {
+                    hintBtn.innerHTML = `💡 Next Hint (${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1})`;
+                }
+            }
+        }
+    }
+
+    getProgressiveHints() {
+        const easyHints = {
+            1: [ // Simple Start-End Flow - Level 1
+                "Create a START oval shape first. Click 'Add Oval' then click on the canvas to place it.",
+                "Add a process rectangle for the main action. Use 'Add Rectangle' and place it below START.",
+                "Connect START to your process with an arrow. Select 'Arrow Tool' then click START, then click the process box.",
+                "Finish with an END oval connected to your process. This creates a complete basic flowchart flow."
+            ],
+            2: [ // Decision Making - Level 2
+                "Start with START oval, then add a decision diamond shape for your main decision point.",
+                "Decision diamonds need YES/NO paths. Add two process rectangles for different outcomes.",
+                "Connect the diamond to both processes with labeled arrows (Yes branch and No branch).",
+                "Both paths should eventually converge to a single END oval to complete the flow."
+            ],
+            3: [ // Input-Output Flow - Level 3
+                "Begin with START, then add a parallelogram for input data (like 'Read user input').",
+                "Add process rectangles for data processing steps: validation, calculation, formatting.",
+                "Include another parallelogram for output display (like 'Display results').",
+                "Connect all elements in sequence: START → Input → Process → Output → END."
+            ],
+            4: [ // Process Chain - Level 4
+                "Create a chain of connected processes: START → Process 1 → Process 2 → Process 3 → END.",
+                "Each process should represent a distinct step in your workflow (e.g., 'Validate', 'Transform', 'Save').",
+                "Add decision points where quality checks or validations occur in the chain.",
+                "Include error handling paths that loop back to earlier steps or go to error processes."
+            ],
+            5: [ // Complete Workflow - Level 5
+                "Design a comprehensive workflow with multiple decision points and parallel processes.",
+                "Use all shape types: ovals (start/end), rectangles (processes), diamonds (decisions), parallelograms (I/O).",
+                "Create conditional loops where processes might repeat based on conditions.",
+                "Ensure every path has a clear endpoint and the entire workflow is logically complete."
+            ]
+        };
+
+        const hardHints = {
+            1: [ // Nested Decisions - Level 1
+                "Start with a primary decision diamond, then add secondary decision diamonds for sub-conditions.",
+                "Each decision branch should lead to specific actions or further decisions.",
+                "Use clear labeling for decision paths: 'Hardware Issue?', 'Network Issue?', 'Software Issue?'",
+                "Nested decisions create a tree structure - ensure all branches eventually reach resolution."
+            ],
+            2: [ // Loop Structures - Level 2
+                "Create a loop by connecting a process back to a previous decision point or process.",
+                "Add a decision diamond that controls the loop: 'Continue monitoring?', 'Threshold reached?'",
+                "The loop should have an exit condition that leads to the next process or END.",
+                "Show the iteration clearly with arrows that flow back to create the loop structure."
+            ],
+            3: [ // Error Handling - Level 3
+                "Design main workflow path, then add parallel error handling paths for failure scenarios.",
+                "Each major process should have an associated error check or exception handler.",
+                "Error paths should include recovery actions: 'Log error', 'Send alert', 'Activate backup'.",
+                "All error paths should either loop back to retry or gracefully exit the workflow."
+            ],
+            4: [ // Parallel Processing - Level 4
+                "Split workflow into parallel branches after a decision or trigger point.",
+                "Show concurrent processes running simultaneously (multiple processes at same level).",
+                "Add synchronization points where parallel processes need to complete before continuing.",
+                "Use clear visual layout to show which processes run in parallel vs. in sequence."
+            ],
+            5: [ // System Architecture - Level 5
+                "Create a comprehensive system flowchart with multiple subsystems and integration points.",
+                "Show data flow between different system components and external interfaces.",
+                "Include monitoring, logging, and maintenance processes as part of the system architecture.",
+                "Design for scalability - show how the system handles increased load or additional components."
+            ]
+        };
+
+        const currentLevel = this.currentLevel || 1;
+        const isEasy = this.currentDifficulty === 'easy';
+        
+        return isEasy ? 
+            (easyHints[currentLevel] || easyHints[1]) :
+            (hardHints[currentLevel] || hardHints[1]);
+    }
+
+    resetHints() {
+        // Reset hint tracking for new level/challenge
+        this.hintTracker = {
+            currentLevel: 0,
+            maxLevel: 3,
+            hintsUsed: 0
         };
         
-        const hint = stepHints[this.currentStep] || "Your flowchart looks good! Make sure it follows the tutorial steps and represents the complete process.";
-        this.showFeedback(`💡 Hint: ${hint}`, 'info');
+        // Reset hint button appearance
+        const hintBtn = document.getElementById('get-hint-btn');
+        if (hintBtn) {
+            hintBtn.innerHTML = '💡 Get Hint (1/4)';
+            hintBtn.disabled = false;
+            hintBtn.style.opacity = '1';
+        }
+        
+        // Reset hint display panel
+        const hintDisplay = document.getElementById('current-hint-display');
+        if (hintDisplay) {
+            hintDisplay.textContent = 'Click "Get Hint" for step-by-step guidance tailored to your current level!';
+        }
     }
 
     editNodeText(node) {

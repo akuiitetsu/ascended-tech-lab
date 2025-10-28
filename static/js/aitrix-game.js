@@ -374,6 +374,9 @@ class AitrixLab {
         const categoryData = this.challengeCategories[this.currentDifficulty];
         this.challengeData = categoryData.challenges[challengeNumber - 1];
         
+        // Reset hints for new challenge
+        this.resetHints();
+        
         this.initChallengeInterface();
         this.showScreen('game-screen');
     }
@@ -1704,19 +1707,128 @@ DOWNLOADED: 4612 - FOUND: 4`;
     }
 
     getHint() {
-        // Provide context-specific hints
-        const hintMessages = {
-            'network_config': 'Remember: devices need to be on the same subnet to communicate directly. Try using IP addresses like 192.168.1.10 and 192.168.1.20.',
-            'security_quiz': 'Think about password complexity: length, mixed case, numbers, and special characters make passwords stronger.',
-            'matching': 'Consider what each operating system is typically used for: gaming, servers, or creative work.',
-            'network_builder': 'Follow the steps in order: physical connections first, then IP configuration, finally connectivity testing.',
-            'scenario_quiz': 'When in doubt about security, always choose the safest option that verifies through official channels.'
+        // Initialize hint tracking
+        if (!this.hintTracker) {
+            this.hintTracker = {
+                currentLevel: 0,
+                maxLevel: 3,
+                hintsUsed: 0
+            };
+        }
+
+        const progressiveHints = this.getProgressiveHints();
+        const currentHint = progressiveHints[this.hintTracker.currentLevel];
+        
+        if (currentHint) {
+            this.updateAIMessage(`🤖 AI Mentor Hint ${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1}: ${currentHint}`);
+            
+            // Update hint button
+            const hintBtn = document.getElementById('get-hint-btn');
+            if (hintBtn) {
+                this.hintTracker.currentLevel = Math.min(this.hintTracker.currentLevel + 1, this.hintTracker.maxLevel);
+                this.hintTracker.hintsUsed++;
+                
+                if (this.hintTracker.currentLevel >= this.hintTracker.maxLevel) {
+                    hintBtn.innerHTML = '💡 All Hints Used';
+                    hintBtn.disabled = true;
+                    hintBtn.style.opacity = '0.6';
+                } else {
+                    hintBtn.innerHTML = `💡 Next Hint (${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1})`;
+                }
+            }
+        }
+    }
+
+    getProgressiveHints() {
+        const easyHints = {
+            1: [ // IP Address Detective - Challenge 1
+                "Look at the network diagram. Devices need to be on the same subnet to communicate directly.",
+                "Check the subnet mask (like 255.255.255.0) to understand the network range.",
+                "IP addresses in the same network share the first three octets (e.g., 192.168.1.x).",
+                "Set device IPs within the same range: 192.168.1.10, 192.168.1.20, etc."
+            ],
+            2: [ // Secure Your Passwords - Challenge 2
+                "Count characters first - strong passwords need at least 12 characters.",
+                "Check for character variety: uppercase, lowercase, numbers, and special symbols.",
+                "Avoid dictionary words, names, dates, or sequential patterns like '123456'.",
+                "Consider passphrases with symbols: 'Coffee@Morning!2024' is stronger than 'P@ssw0rd1'."
+            ],
+            3: [ // OS Matchmaker - Challenge 3
+                "Think about primary use cases: Windows for business/gaming, Linux for servers, macOS for creative work.",
+                "Consider cost and licensing: Linux is free, Windows requires licenses, macOS requires Apple hardware.",
+                "Match technical requirements: servers need stability (Linux), creative work needs specific software (macOS).",
+                "Look for industry standards: web servers often use Linux, graphic design studios use macOS, offices use Windows."
+            ],
+            4: [ // Build a Simple Network - Challenge 4
+                "Start with the physical layer: connect PCs to the switch using straight-through cables.",
+                "Configure IP addresses on the same subnet: PC1 gets 192.168.1.10, PC2 gets 192.168.1.20.",
+                "Set subnet mask to 255.255.255.0 on both PCs for proper communication.",
+                "Test connectivity with ping command: ping from PC1 to PC2's IP address."
+            ],
+            5: [ // Cyber Hygiene Quiz - Challenge 5
+                "Always verify sender identity through a separate communication channel.",
+                "Be suspicious of urgent requests that bypass normal security procedures.",
+                "Don't click links or download attachments from suspicious emails.",
+                "When in doubt, choose the safest option that involves verification or asking for help."
+            ]
+        };
+
+        const hardHints = {
+            1: [ // Network Segmentation - Challenge 1
+                "Design separate subnets for different departments: 192.168.10.0/24 for HR, 192.168.20.0/24 for Finance.",
+                "Configure VLAN trunk ports between switches to carry multiple VLAN traffic.",
+                "Set up inter-VLAN routing on Layer 3 switch or router for controlled communication between subnets.",
+                "Implement access control lists (ACLs) to restrict traffic between sensitive network segments."
+            ],
+            2: [ // Ethical Hacker Simulation - Challenge 2
+                "Start with reconnaissance: gather information about target systems without alerting security.",
+                "Use vulnerability scanners to identify potential security weaknesses in the network.",
+                "Attempt controlled exploitation of discovered vulnerabilities to prove impact.",
+                "Document all findings with remediation recommendations and risk severity ratings."
+            ],
+            3: [ // Database Doctor - Challenge 3
+                "Identify repeating groups and move them to separate tables (First Normal Form).",
+                "Eliminate partial dependencies by ensuring non-key attributes depend on entire primary key (2NF).",
+                "Remove transitive dependencies where non-key attributes depend on other non-key attributes (3NF).",
+                "Create proper foreign key relationships to maintain referential integrity between normalized tables."
+            ],
+            4: [ // OS Command Duel - Challenge 4
+                "Use 'ls -la' to list files with permissions, 'chmod' to change permissions, 'chown' to change ownership.",
+                "Process management: 'ps aux' to list processes, 'kill' to terminate, 'nohup' for background tasks.",
+                "File operations: 'find' to locate files, 'grep' to search content, 'tar' for archiving.",
+                "System monitoring: 'top' for real-time stats, 'df' for disk usage, 'free' for memory usage."
+            ],
+            5: [ // Cloud Architect Challenge - Challenge 5
+                "Design multi-tier architecture: web servers in public subnets, databases in private subnets.",
+                "Implement auto-scaling groups for web servers and load balancers for traffic distribution.",
+                "Set up RDS with multi-AZ deployment for database high availability and backup.",
+                "Configure CloudWatch monitoring, SNS notifications, and IAM roles for secure access management."
+            ]
+        };
+
+        const currentChallenge = this.currentChallenge || 1;
+        const isEasy = this.currentDifficulty === 'easy';
+        
+        return isEasy ? 
+            (easyHints[currentChallenge] || easyHints[1]) :
+            (hardHints[currentChallenge] || hardHints[1]);
+    }
+
+    resetHints() {
+        // Reset hint tracking for new challenge
+        this.hintTracker = {
+            currentLevel: 0,
+            maxLevel: 3,
+            hintsUsed: 0
         };
         
-        const challengeType = this.challengeData?.type;
-        const hint = hintMessages[challengeType] || 'Review the challenge requirements and think about the best approach.';
-        
-        this.updateAIMessage(`💡 Hint: ${hint}`);
+        // Reset hint button appearance
+        const hintBtn = document.getElementById('get-hint-btn');
+        if (hintBtn) {
+            hintBtn.innerHTML = '💡 Get Hint (1/4)';
+            hintBtn.disabled = false;
+            hintBtn.style.opacity = '1';
+        }
     }
 
     resetChallenge() {

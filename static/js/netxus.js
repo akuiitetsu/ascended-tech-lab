@@ -443,6 +443,9 @@ class NetxusLab {
             this.roomStartTime = Date.now();
         }
         
+        // Reset hints for new lab
+        this.resetHints();
+        
         this.initializeSimulation();
         this.displayLabInstructions();
         this.updateLabInterface();
@@ -3290,16 +3293,128 @@ Router# show access-lists 100
     }
 
     showHint() {
-        const hints = {
-            1: "💡 Remember to use straight-through cables between PC and switch. Check your IP configurations!",
-            2: "💡 Router interfaces are shut down by default. Don't forget to use 'no shutdown' command!",
-            3: "💡 Make sure all devices are on the same subnet for communication within the LAN.",
-            4: "💡 Each network needs its own subnet. Set the router as the default gateway for both networks.",
-            5: "💡 Configure the DHCP pool with network address, default gateway, and DNS server settings."
+        // Initialize hint tracking
+        if (!this.hintTracker) {
+            this.hintTracker = {
+                currentLevel: 0,
+                maxLevel: 3,
+                hintsUsed: 0
+            };
+        }
+
+        const progressiveHints = this.getProgressiveHints();
+        const currentHint = progressiveHints[this.hintTracker.currentLevel];
+        
+        if (currentHint) {
+            this.showFeedback(`💡 Network Hint ${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1}: ${currentHint}`, 'info');
+            
+            // Update hint button
+            const hintBtn = document.getElementById('get-hint-btn');
+            if (hintBtn) {
+                this.hintTracker.currentLevel = Math.min(this.hintTracker.currentLevel + 1, this.hintTracker.maxLevel);
+                this.hintTracker.hintsUsed++;
+                
+                if (this.hintTracker.currentLevel >= this.hintTracker.maxLevel) {
+                    hintBtn.innerHTML = '💡 All Hints Used';
+                    hintBtn.disabled = true;
+                    hintBtn.style.opacity = '0.6';
+                } else {
+                    hintBtn.innerHTML = `💡 Next Hint (${this.hintTracker.currentLevel + 1}/${this.hintTracker.maxLevel + 1})`;
+                }
+            }
+        }
+    }
+
+    getProgressiveHints() {
+        const easyHints = {
+            1: [ // Lab 1: Basic PC-to-PC Connection
+                "Start with the physical layer: drag two PCs and one switch from the device panel.",
+                "Use straight-through cables (copper) to connect PCs to switch ports.",
+                "Configure IP addresses on same network: PC1: 192.168.1.10, PC2: 192.168.1.20, Subnet: 255.255.255.0",
+                "Test connectivity with ping command from PC1 to PC2 (ping 192.168.1.20)."
+            ],
+            2: [ // Basic Router Configuration
+                "Add a router between two switches. Router interfaces are DOWN by default.",
+                "Configure router interfaces: 'interface fa0/0', 'ip address 192.168.1.1 255.255.255.0', 'no shutdown'",
+                "Set router IP as default gateway on PCs: 192.168.1.1 for network 192.168.1.0",
+                "Verify routing table with 'show ip route' - look for connected networks."
+            ],
+            3: [ // LAN Switching Concepts
+                "Switches learn MAC addresses automatically - check with 'show mac-address-table'",
+                "All devices on same VLAN can communicate directly through switch.",
+                "Use 'ping' and 'arp -a' commands to verify Layer 2 and Layer 3 connectivity.",
+                "Trunk ports carry multiple VLANs - configure with 'switchport mode trunk'."
+            ],
+            4: [ // Inter-VLAN Routing
+                "Create VLANs: 'vlan 10', 'name Sales' then assign ports 'switchport access vlan 10'",
+                "Configure router subinterfaces: 'interface fa0/0.10', 'encapsulation dot1q 10'",
+                "Set IP addresses for each VLAN: Sales (10.1.10.1), Engineering (10.1.20.1)",
+                "Verify inter-VLAN routing: ping from Sales VLAN to Engineering VLAN."
+            ],
+            5: [ // DHCP Configuration
+                "Enable DHCP on router: 'service dhcp', then create pool 'ip dhcp pool LAN'",
+                "Configure pool: 'network 192.168.1.0 255.255.255.0', 'default-router 192.168.1.1'",
+                "Add DNS server: 'dns-server 8.8.8.8' and exclude router IP: 'ip dhcp excluded-address'",
+                "Set PCs to DHCP mode and verify they receive automatic IP addresses."
+            ]
+        };
+
+        const hardHints = {
+            1: [ // Advanced Switching
+                "Configure port security: 'switchport port-security maximum 2', 'switchport port-security'",
+                "Implement spanning tree: verify root bridge with 'show spanning-tree' command",
+                "Set up EtherChannel: 'channel-group 1 mode active' for LACP bundling",
+                "Configure VTP: 'vtp mode server/client', 'vtp domain COMPANY' for VLAN propagation."
+            ],
+            2: [ // Complex Routing Scenarios
+                "Implement OSPF: 'router ospf 1', 'network 192.168.1.0 0.0.0.255 area 0'",
+                "Configure static routes for specific networks: 'ip route destination mask next-hop'",
+                "Set up route redistribution between OSPF and static routes",
+                "Verify routing tables and OSPF neighbors with 'show ip ospf neighbor'."
+            ],
+            3: [ // Network Security Implementation
+                "Configure access control lists: 'access-list 100 deny tcp any any eq 80'",
+                "Apply ACLs to interfaces: 'ip access-group 100 in' for inbound filtering",
+                "Set up port security with violation actions: 'switchport port-security violation shutdown'",
+                "Implement 802.1X authentication for network access control."
+            ],
+            4: [ // WAN Connectivity & Services
+                "Configure PPP encapsulation: 'encapsulation ppp' on serial interfaces",
+                "Set up NAT: 'ip nat inside/outside' and 'ip nat inside source list 1 overload'",
+                "Implement QoS: 'class-map' and 'policy-map' for traffic prioritization",
+                "Configure Frame Relay: 'encapsulation frame-relay' and map statements."
+            ],
+            5: [ // Enterprise Network Design
+                "Design hierarchical network: Core, Distribution, Access layers",
+                "Implement HSRP for gateway redundancy: 'standby 1 ip 192.168.1.1'",
+                "Configure VLAN trunking protocol and spanning tree optimization",
+                "Set up network monitoring with SNMP and syslog for management."
+            ]
+        };
+
+        const currentLab = this.currentLab || 1;
+        const isEasy = this.currentDifficulty === 'easy';
+        
+        return isEasy ? 
+            (easyHints[currentLab] || easyHints[1]) :
+            (hardHints[currentLab] || hardHints[1]);
+    }
+
+    resetHints() {
+        // Reset hint tracking for new lab
+        this.hintTracker = {
+            currentLevel: 0,
+            maxLevel: 3,
+            hintsUsed: 0
         };
         
-        const hint = hints[this.currentLab] || "💡 Follow the step-by-step instructions carefully and verify each configuration.";
-        this.showFeedback(hint, 'info');
+        // Reset hint button appearance
+        const hintBtn = document.getElementById('get-hint-btn');
+        if (hintBtn) {
+            hintBtn.innerHTML = '💡 Get Hint (1/4)';
+            hintBtn.disabled = false;
+            hintBtn.style.opacity = '1';
+        }
     }
 
     resetLab() {
