@@ -615,6 +615,128 @@
             background: rgba(255, 170, 0, 0.1);
         }
 
+        /* Table structure preview styling */
+        .table-structure-display {
+            background: rgba(0, 184, 216, 0.05);
+            border: 1px solid var(--color-database);
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+
+        .table-structure-display h6 {
+            color: var(--color-database);
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .structure-details {
+            margin-bottom: 10px;
+        }
+
+        .columns-section {
+            margin-bottom: 12px;
+        }
+
+        .columns-table table {
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .columns-table th {
+            background: rgba(0, 184, 216, 0.15) !important;
+            color: var(--color-database);
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .columns-table td {
+            color: var(--text-light);
+            font-size: 0.75rem;
+        }
+
+        .constraint-badge {
+            display: inline-block;
+            font-size: 0.65rem !important;
+            font-weight: bold;
+            border-radius: 3px;
+            padding: 2px 5px;
+            margin-right: 3px;
+        }
+
+        .constraint-badge.pk {
+            background: var(--color-success) !important;
+        }
+
+        .constraint-badge.fk {
+            background: var(--color-warning) !important;
+        }
+
+        .constraint-badge.unique {
+            background: var(--color-purple) !important;
+        }
+
+        .constraint-badge.nn {
+            background: var(--color-database) !important;
+        }
+
+        .constraints-section {
+            margin: 8px 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .structure-status {
+            margin-top: 10px;
+            padding: 6px 10px;
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid var(--color-success);
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+
+        /* Enhanced preview sections styling */
+        .query-analysis, .performance-benefits, .normalization-success,
+        .security-analysis, .banking-security, .relationship-success {
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .query-analysis ul, .performance-benefits ul, .normalization-success ul,
+        .security-analysis ul, .banking-security ul, .relationship-success ul {
+            margin: 6px 0 6px 16px;
+            padding: 0;
+        }
+
+        .query-analysis li, .performance-benefits li, .normalization-success li,
+        .security-analysis li, .banking-security li, .relationship-success li {
+            margin-bottom: 3px;
+            color: var(--text-light);
+        }
+
+        .query-stats, .index-info, .performance-impact, .normal-form-check,
+        .benefits, .security-features, .security-best-practices,
+        .financial-controls, .compliance-features, .relationship-details {
+            margin-bottom: 10px;
+        }
+
+        .data-success, .constraint-success, .query-success, .performance-success,
+        .schema-success {
+            padding: 8px 12px;
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid var(--color-success);
+            border-radius: 3px;
+            font-size: 0.8rem;
+            color: var(--color-success);
+        }
+
+        .data-info {
+            margin-top: 5px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
         /* Data tables - More compact */
         .data-table table, .denormalized-table table {
             width: 100%;

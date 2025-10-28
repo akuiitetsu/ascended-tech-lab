@@ -1020,7 +1020,7 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
             timestamp: new Date()
         });
 
-        this.showExecutionResult(result.message, result.type);
+        this.showExecutionResult(result.message, result.type, result);
         this.updateChallengeProgress(result);
     }
 
@@ -1086,35 +1086,70 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
             columns: [],
             primaryKeys: [],
             foreignKeys: [],
-            unique: []
+            unique: [],
+            columnDetails: []
         };
 
-        // Simple parsing for column definitions
+        // Enhanced parsing for column definitions
         const lines = columnsText.split(',').map(line => line.trim());
         
         lines.forEach(line => {
-            if (line.toUpperCase().includes('PRIMARY KEY')) {
-                const columnMatch = line.match(/(\w+)/);
-                if (columnMatch) {
-                    constraints.primaryKeys.push(columnMatch[1]);
-                    constraints.columns.push(columnMatch[1]);
+            const lineUpper = line.toUpperCase();
+            
+            // Skip constraint-only lines
+            if (lineUpper.startsWith('PRIMARY KEY') || 
+                lineUpper.startsWith('FOREIGN KEY') || 
+                lineUpper.startsWith('UNIQUE') ||
+                lineUpper.startsWith('CONSTRAINT')) {
+                
+                if (lineUpper.includes('FOREIGN KEY')) {
+                    const fkMatch = line.match(/FOREIGN KEY\s*\((\w+)\)/i);
+                    if (fkMatch && !constraints.foreignKeys.includes(fkMatch[1])) {
+                        constraints.foreignKeys.push(fkMatch[1]);
+                    }
                 }
-            } else if (line.toUpperCase().includes('FOREIGN KEY')) {
-                const fkMatch = line.match(/FOREIGN KEY\s*\((\w+)\)/i);
-                if (fkMatch) {
-                    constraints.foreignKeys.push(fkMatch[1]);
+                return;
+            }
+            
+            // Parse column definitions
+            const columnMatch = line.match(/^(\w+)\s+(\w+(?:\(\d+(?:,\d+)?\))?)/i);
+            if (columnMatch) {
+                const columnName = columnMatch[1];
+                const dataType = columnMatch[2];
+                
+                // Add to columns array if not already present
+                if (!constraints.columns.includes(columnName)) {
+                    constraints.columns.push(columnName);
+                    constraints.columnDetails.push({
+                        name: columnName,
+                        type: dataType,
+                        isPrimaryKey: lineUpper.includes('PRIMARY KEY'),
+                        isUnique: lineUpper.includes('UNIQUE'),
+                        isNotNull: lineUpper.includes('NOT NULL'),
+                        isForeignKey: false // Will be updated below
+                    });
                 }
-            } else if (line.toUpperCase().includes('UNIQUE')) {
-                const columnMatch = line.match(/(\w+)/);
-                if (columnMatch) {
-                    constraints.unique.push(columnMatch[1]);
-                    constraints.columns.push(columnMatch[1]);
+                
+                // Check for inline constraints
+                if (lineUpper.includes('PRIMARY KEY')) {
+                    if (!constraints.primaryKeys.includes(columnName)) {
+                        constraints.primaryKeys.push(columnName);
+                    }
                 }
-            } else if (line.match(/^\w+/)) {
-                const columnMatch = line.match(/(\w+)/);
-                if (columnMatch) {
-                    constraints.columns.push(columnMatch[1]);
+                
+                if (lineUpper.includes('UNIQUE') && !lineUpper.includes('PRIMARY KEY')) {
+                    if (!constraints.unique.includes(columnName)) {
+                        constraints.unique.push(columnName);
+                    }
                 }
+            }
+        });
+        
+        // Mark foreign key columns
+        constraints.foreignKeys.forEach(fkColumn => {
+            const columnDetail = constraints.columnDetails.find(col => col.name === fkColumn);
+            if (columnDetail) {
+                columnDetail.isForeignKey = true;
             }
         });
 
@@ -1233,7 +1268,7 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
         };
     }
 
-    showExecutionResult(message, type) {
+    showExecutionResult(message, type, executionResult = null) {
         const outputDiv = this.container.querySelector('#execution-output');
         if (!outputDiv) return;
 
@@ -1241,26 +1276,339 @@ CREATE INDEX idx_users_email ON users(email);"></textarea>
         outputDiv.innerHTML = `<pre>${message}</pre>`;
 
         // Also update any challenge-specific preview areas
-        this.updateChallengeSpecificPreviews(type, message);
+        this.updateChallengeSpecificPreviews(type, message, executionResult);
     }
 
-    updateChallengeSpecificPreviews(type, message) {
+    updateChallengeSpecificPreviews(type, message, executionResult = null) {
         // Update schema preview for table creation
         const schemaPreview = this.container.querySelector('#table-structure');
         if (schemaPreview && type === 'success' && message.includes('created successfully')) {
-            schemaPreview.innerHTML = '<div class="schema-success">✅ Table structure created and validated</div>';
+            if (executionResult && executionResult.details) {
+                const details = executionResult.details;
+                const tableName = details.tableName;
+                const constraints = details.constraints;
+                
+                let structureHTML = `
+                    <div class="table-structure-display">
+                        <h6>📋 Table: ${tableName}</h6>
+                        <div class="structure-details">
+                `;
+                
+                if (constraints.columnDetails && constraints.columnDetails.length > 0) {
+                    structureHTML += `
+                        <div class="columns-section">
+                            <strong>Columns (${constraints.columnDetails.length}):</strong>
+                            <div class="columns-table">
+                                <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background-color: rgba(0, 184, 216, 0.1);">
+                                            <th style="padding: 8px; text-align: left; border: 1px solid #444;">Column</th>
+                                            <th style="padding: 8px; text-align: left; border: 1px solid #444;">Type</th>
+                                            <th style="padding: 8px; text-align: left; border: 1px solid #444;">Constraints</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+                    
+                    constraints.columnDetails.forEach(column => {
+                        let constraintBadges = '';
+                        if (column.isPrimaryKey) {
+                            constraintBadges += ' <span class="constraint-badge pk" style="background: #38a169; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-right: 4px;">PK</span>';
+                        }
+                        if (column.isUnique && !column.isPrimaryKey) {
+                            constraintBadges += ' <span class="constraint-badge unique" style="background: #805ad5; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-right: 4px;">UNIQUE</span>';
+                        }
+                        if (column.isForeignKey) {
+                            constraintBadges += ' <span class="constraint-badge fk" style="background: #dd6b20; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-right: 4px;">FK</span>';
+                        }
+                        if (column.isNotNull) {
+                            constraintBadges += ' <span class="constraint-badge nn" style="background: #3182ce; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-right: 4px;">NOT NULL</span>';
+                        }
+                        
+                        structureHTML += `
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #444; font-weight: bold;">${column.name}</td>
+                                <td style="padding: 8px; border: 1px solid #444; font-family: monospace;">${column.type}</td>
+                                <td style="padding: 8px; border: 1px solid #444;">${constraintBadges || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    structureHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                } else if (constraints.columns.length > 0) {
+                    // Fallback for basic column list
+                    structureHTML += `
+                        <div class="columns-section">
+                            <strong>Columns (${constraints.columns.length}):</strong>
+                            <ul class="columns-list">
+                    `;
+                    constraints.columns.forEach(column => {
+                        let columnInfo = `<li>${column}`;
+                        if (constraints.primaryKeys.includes(column)) {
+                            columnInfo += ' <span class="constraint-badge pk">PK</span>';
+                        }
+                        if (constraints.unique.includes(column)) {
+                            columnInfo += ' <span class="constraint-badge unique">UNIQUE</span>';
+                        }
+                        if (constraints.foreignKeys.includes(column)) {
+                            columnInfo += ' <span class="constraint-badge fk">FK</span>';
+                        }
+                        columnInfo += '</li>';
+                        structureHTML += columnInfo;
+                    });
+                    structureHTML += '</ul></div>';
+                }
+                
+                if (constraints.primaryKeys.length > 0) {
+                    structureHTML += `
+                        <div class="constraints-section">
+                            <strong>Primary Keys:</strong> ${constraints.primaryKeys.join(', ')}
+                        </div>
+                    `;
+                }
+                
+                if (constraints.foreignKeys.length > 0) {
+                    structureHTML += `
+                        <div class="constraints-section">
+                            <strong>Foreign Keys:</strong> ${constraints.foreignKeys.join(', ')}
+                        </div>
+                    `;
+                }
+                
+                if (constraints.unique.length > 0) {
+                    structureHTML += `
+                        <div class="constraints-section">
+                            <strong>Unique Constraints:</strong> ${constraints.unique.join(', ')}
+                        </div>
+                    `;
+                }
+                
+                structureHTML += `
+                        </div>
+                        <div class="structure-status">✅ Table structure created and validated</div>
+                    </div>
+                `;
+                
+                schemaPreview.innerHTML = structureHTML;
+            } else {
+                schemaPreview.innerHTML = '<div class="schema-success">✅ Table structure created and validated</div>';
+            }
         }
 
         // Update data preview for insertions
         const dataPreview = this.container.querySelector('#table-data');
         if (dataPreview && type === 'success' && message.includes('inserted')) {
-            dataPreview.innerHTML = '<div class="data-success">✅ Sample data successfully inserted</div>';
+            if (executionResult && executionResult.details) {
+                const recordCount = executionResult.details.recordCount || 1;
+                const tableName = executionResult.details.tableName || 'table';
+                dataPreview.innerHTML = `
+                    <div class="data-success">
+                        ✅ ${recordCount} record(s) inserted into ${tableName}
+                        <div class="data-info">Sample data successfully added and ready for querying</div>
+                    </div>
+                `;
+            } else {
+                dataPreview.innerHTML = '<div class="data-success">✅ Sample data successfully inserted</div>';
+            }
         }
 
         // Update constraint analysis
         const constraintDetails = this.container.querySelector('#constraint-details');
         if (constraintDetails && type === 'success') {
-            constraintDetails.innerHTML = '<div class="constraint-success">✅ Constraints properly defined and enforced</div>';
+            if (executionResult && executionResult.details && executionResult.details.constraints) {
+                const constraints = executionResult.details.constraints;
+                let constraintHTML = `
+                    <div class="constraint-analysis">
+                        <div class="constraint-summary">
+                            <strong>Constraint Summary:</strong>
+                        </div>
+                        <ul class="constraint-list">
+                `;
+                
+                if (constraints.primaryKeys.length > 0) {
+                    constraintHTML += `<li>🔑 Primary Key constraints: ${constraints.primaryKeys.length}</li>`;
+                }
+                if (constraints.unique.length > 0) {
+                    constraintHTML += `<li>🔒 Unique constraints: ${constraints.unique.length}</li>`;
+                }
+                if (constraints.foreignKeys.length > 0) {
+                    constraintHTML += `<li>🔗 Foreign Key constraints: ${constraints.foreignKeys.length}</li>`;
+                }
+                
+                constraintHTML += `
+                        </ul>
+                        <div class="constraint-status">✅ Constraints properly defined and enforced</div>
+                    </div>
+                `;
+                
+                constraintDetails.innerHTML = constraintHTML;
+            } else {
+                constraintDetails.innerHTML = '<div class="constraint-success">✅ Constraints properly defined and enforced</div>';
+            }
+        }
+
+        // Update relationship analysis for foreign keys
+        const relationshipInfo = this.container.querySelector('#relationship-info');
+        if (relationshipInfo && type === 'success' && message.includes('altered')) {
+            relationshipInfo.innerHTML = `
+                <div class="relationship-success">
+                    <div class="relationship-diagram">
+                        📊 <strong>Table Relationships</strong>
+                        <div class="relationship-details">
+                            ✅ Foreign key relationship established<br>
+                            🔗 Referential integrity enforced<br>
+                            📋 Data consistency maintained
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update query analysis for SELECT statements
+        const queryAnalysis = this.container.querySelector('#query-stats');
+        if (queryAnalysis && type === 'success' && message.includes('query')) {
+            if (executionResult && executionResult.details) {
+                const tableName = executionResult.details.tableName || 'table';
+                const resultRows = executionResult.details.resultRows || [];
+                queryAnalysis.innerHTML = `
+                    <div class="query-analysis">
+                        <div class="query-stats">
+                            📊 <strong>Query Analysis</strong>
+                            <ul>
+                                <li>Table accessed: ${tableName}</li>
+                                <li>Rows returned: ${resultRows.length}</li>
+                                <li>Query type: SELECT</li>
+                                <li>Execution: Successful</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                queryAnalysis.innerHTML = '<div class="query-success">✅ Query executed successfully</div>';
+            }
+        }
+
+        // Update performance analysis for index creation
+        const performanceAnalysis = this.container.querySelector('#index-benefits');
+        if (performanceAnalysis && type === 'success' && message.includes('Index')) {
+            if (executionResult && executionResult.details) {
+                const indexName = executionResult.details.indexName || 'index';
+                const tableName = executionResult.details.tableName || 'table';
+                const columns = executionResult.details.columns || 'column';
+                const isUnique = executionResult.details.unique || false;
+                
+                performanceAnalysis.innerHTML = `
+                    <div class="performance-benefits">
+                        <div class="index-info">
+                            🚀 <strong>Performance Optimization</strong>
+                            <ul>
+                                <li>Index name: ${indexName}</li>
+                                <li>Table: ${tableName}</li>
+                                <li>Columns: ${columns}</li>
+                                <li>Type: ${isUnique ? 'Unique Index' : 'Standard Index'}</li>
+                            </ul>
+                        </div>
+                        <div class="performance-impact">
+                            📈 <strong>Expected Benefits:</strong>
+                            <ul>
+                                <li>✅ Faster SELECT queries on indexed columns</li>
+                                <li>✅ Improved WHERE clause performance</li>
+                                <li>✅ Optimized sorting and joining operations</li>
+                                ${isUnique ? '<li>✅ Enforced uniqueness constraint</li>' : ''}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                performanceAnalysis.innerHTML = '<div class="performance-success">✅ Index created successfully</div>';
+            }
+        }
+
+        // Update normalization analysis
+        const normalizationAnalysis = this.container.querySelector('#normal-forms');
+        if (normalizationAnalysis && type === 'success' && message.includes('normalized')) {
+            normalizationAnalysis.innerHTML = `
+                <div class="normalization-success">
+                    <div class="normal-form-check">
+                        📊 <strong>Normalization Compliance</strong>
+                        <ul>
+                            <li>✅ <strong>1NF:</strong> Atomic values, no repeating groups</li>
+                            <li>✅ <strong>2NF:</strong> No partial dependencies on composite keys</li>
+                            <li>✅ <strong>3NF:</strong> No transitive dependencies</li>
+                        </ul>
+                    </div>
+                    <div class="benefits">
+                        🎯 <strong>Benefits Achieved:</strong>
+                        <ul>
+                            <li>Eliminated data redundancy</li>
+                            <li>Improved data integrity</li>
+                            <li>Reduced storage requirements</li>
+                            <li>Simplified data maintenance</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update security analysis for security schema
+        const securityFeatures = this.container.querySelector('#security-features');
+        if (securityFeatures && type === 'success' && message.includes('security')) {
+            securityFeatures.innerHTML = `
+                <div class="security-analysis">
+                    <div class="security-features">
+                        🔒 <strong>Security Features Implemented</strong>
+                        <ul>
+                            <li>✅ Primary key constraints for unique identification</li>
+                            <li>✅ Unique constraints prevent duplicate usernames</li>
+                            <li>✅ NOT NULL constraints ensure required data</li>
+                            <li>✅ CHECK constraints validate data integrity</li>
+                            <li>✅ Indexes for optimized authentication queries</li>
+                        </ul>
+                    </div>
+                    <div class="security-best-practices">
+                        🛡️ <strong>Security Best Practices Applied:</strong>
+                        <ul>
+                            <li>Password hashing (never store plain text)</li>
+                            <li>Role-based access control</li>
+                            <li>Database-level validation</li>
+                            <li>Account status management</li>
+                            <li>Audit trail capabilities</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update banking analysis for financial schemas
+        const bankingAnalysis = this.container.querySelector('#security-features');
+        if (bankingAnalysis && type === 'success' && message.includes('banking')) {
+            bankingAnalysis.innerHTML = `
+                <div class="banking-security">
+                    <div class="financial-controls">
+                        🏦 <strong>Financial Data Controls</strong>
+                        <ul>
+                            <li>✅ DECIMAL precision for monetary values</li>
+                            <li>✅ Foreign key constraints for data integrity</li>
+                            <li>✅ Transaction audit trails</li>
+                            <li>✅ Account balance validation</li>
+                        </ul>
+                    </div>
+                    <div class="compliance-features">
+                        📋 <strong>Compliance Features:</strong>
+                        <ul>
+                            <li>Immutable transaction records</li>
+                            <li>Referential integrity enforcement</li>
+                            <li>Automatic timestamp tracking</li>
+                            <li>Balance consistency checks</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
         }
     }
 
