@@ -955,8 +955,10 @@ const userManagement = {
                         <label>Role:</label>
                         <select name="role">
                             <option value="user" ${!user || user.role === 'user' ? 'selected' : ''}>User</option>
+                            <option value="teacher" ${user?.role === 'teacher' ? 'selected' : ''}>Teacher</option>
                             <option value="admin" ${user?.role === 'admin' ? 'selected' : ''}>Admin</option>
                         </select>
+                        ${user?.role !== 'teacher' ? `<small style="color:#94a3b8;font-size:0.72rem;margin-top:4px;display:block;">Assigning <b>Teacher</b> grants access to the Educator Dashboard.</small>` : `<small style="color:#16c79a;font-size:0.72rem;margin-top:4px;display:block;">&#x1F393; This user has Educator access.</small>`}
                     </div>
                     <div class="form-actions">
                         <button type="button" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
@@ -2482,6 +2484,11 @@ additionalStyles.textContent = `
     .role-badge.user {
         background: rgba(76, 175, 80, 0.2);
         color: #4CAF50;
+    }
+    
+    .role-badge.teacher {
+        background: rgba(22, 199, 154, 0.2);
+        color: #16c79a;
     }
     
     .progress-mini {

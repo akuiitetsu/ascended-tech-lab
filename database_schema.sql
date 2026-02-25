@@ -29,7 +29,7 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT,
     full_name TEXT,
-    role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin', 'moderator')),
+    role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin', 'moderator', 'teacher')),
     is_active BOOLEAN DEFAULT TRUE,
     email_verified BOOLEAN DEFAULT FALSE,
     profile_image TEXT,

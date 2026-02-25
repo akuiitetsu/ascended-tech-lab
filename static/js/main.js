@@ -298,11 +298,22 @@ async function handleLogin(event) {
         // Login with proper credentials
         const user = await auth.login(username, password);
         updateProfileInfo(user.username, user.email);
-        
+
         // Clear the form
         document.getElementById('username').value = '';
         document.getElementById('password').value = '';
-        
+
+        // Redirect based on role — skip cutscene for teacher/admin accounts
+        const role = user.role || localStorage.getItem('userRole') || 'user';
+        if (role === 'teacher' || (user.username && user.username.toLowerCase() === 'teacher')) {
+            window.location.replace('/src/pages/dashboard/teacher-dashboard.html');
+            return;
+        }
+        if (role === 'admin' || (user.username && user.username.toLowerCase() === 'admin')) {
+            window.location.replace('/src/pages/dashboard/admin-dashboard.html');
+            return;
+        }
+
         showWelcomeScreen();
     } catch (error) {
         console.error('Login error:', error);
@@ -745,7 +756,19 @@ function skipCutscene() {
 function endCutscene() {
     // Hide cutscene screen
     document.getElementById('cutsceneScreen').style.display = 'none';
-    
+
+    // Redirect based on stored role
+    const role = localStorage.getItem('userRole') || 'user';
+    const username = localStorage.getItem('currentUser') || '';
+    if (role === 'teacher' || username.toLowerCase() === 'teacher') {
+        window.location.href = '/src/pages/dashboard/teacher-dashboard.html';
+        return;
+    }
+    if (role === 'admin' || username.toLowerCase() === 'admin') {
+        window.location.href = '/src/pages/dashboard/admin-dashboard.html';
+        return;
+    }
+
     // Redirect to user dashboard
     window.location.href = 'src/pages/dashboard/user-dashboard.html';
     

@@ -1043,6 +1043,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // CRITICAL FIX: Check for teacher role BEFORE admin and redirect
+    if (userRole === 'teacher' || (username && username.toLowerCase() === 'teacher')) {
+        console.log('🏫 TEACHER USER DETECTED on user dashboard — redirecting...');
+        localStorage.setItem('userRole', 'teacher');
+        window.location.replace('/src/pages/dashboard/teacher-dashboard.html');
+        return; // STOP ALL EXECUTION
+    }
+
     // CRITICAL FIX: Check for admin role IMMEDIATELY and redirect
     if (userRole === 'admin' || username === 'admin') {
         console.log('🔐 ADMIN USER DETECTED!');

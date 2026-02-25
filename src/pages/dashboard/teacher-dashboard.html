@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AscendEd - Teacher Dashboard</title>
+    <link rel="stylesheet" href="/static/css/teacher.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="teacher-header">
+        <div class="header-left">
+            <i class="bi bi-mortarboard-fill"></i>
+            <h1>AscendEd <span class="header-sub">Teacher Portal</span></h1>
+            <div class="system-status" id="systemStatus">
+                <span class="status-dot"></span>
+                <span class="status-label">Connected</span>
+            </div>
+        </div>
+        <div class="teacher-info">
+            <div class="teacher-details">
+                <span class="teacher-name" id="teacherName">Loading...</span>
+                <span class="teacher-role-badge">Educator</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="teacherLogout()" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="teacher-layout">
+
+        <!-- Sidebar Navigation -->
+        <nav class="teacher-sidebar">
+            <div class="nav-section">
+                <h3>📋 Overview</h3>
+                <ul>
+                    <li class="nav-item active" data-section="dashboard">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="nav-item" data-section="students">
+                        <i class="bi bi-people"></i>
+                        <span>My Students</span>
+                        <span class="nav-badge" id="studentsBadge">0</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-section">
+                <h3>🎓 Teaching Tools</h3>
+                <ul>
+                    <li class="nav-item" data-section="tasks">
+                        <i class="bi bi-journal-plus"></i>
+                        <span>Task Designer</span>
+                    </li>
+                    <li class="nav-item" data-section="progress">
+                        <i class="bi bi-graph-up-arrow"></i>
+                        <span>Progress Tracking</span>
+                    </li>
+                    <li class="nav-item" data-section="analytics">
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>Analytics &amp; Charts</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-section">
+                <h3>📄 Management</h3>
+                <ul>
+                    <li class="nav-item" data-section="reports">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                        <span>Reports</span>
+                    </li>
+                    <li class="nav-item logout-item" onclick="teacherLogout()">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="teacher-content">
+
+            <!-- ============================================
+                 DASHBOARD SECTION
+            ============================================ -->
+            <div class="content-section active" id="dashboard">
+                <div class="section-header">
+                    <h2><i class="bi bi-speedometer2"></i> Teacher Dashboard</h2>
+                    <div class="header-controls">
+                        <button class="action-btn" onclick="refreshDashboard()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card students-card">
+                        <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                        <div class="stat-info">
+                            <h3>Total Students</h3>
+                            <span class="stat-value" id="totalStudents">0</span>
+                            <span class="stat-sub">Registered learners</span>
+                        </div>
+                    </div>
+                    <div class="stat-card active-card">
+                        <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+                        <div class="stat-info">
+                            <h3>Active Students</h3>
+                            <span class="stat-value" id="activeStudents">0</span>
+                            <span class="stat-sub">Last 7 days</span>
+                        </div>
+                    </div>
+                    <div class="stat-card progress-card">
+                        <div class="stat-icon"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="stat-info">
+                            <h3>Avg. Class Progress</h3>
+                            <span class="stat-value" id="avgClassProgress">0%</span>
+                            <span class="stat-sub">All modules combined</span>
+                        </div>
+                    </div>
+                    <div class="stat-card tasks-card">
+                        <div class="stat-icon"><i class="bi bi-journal-check"></i></div>
+                        <div class="stat-info">
+                            <h3>Tasks Created</h3>
+                            <span class="stat-value" id="totalTasks">0</span>
+                            <span class="stat-sub">Simulation tasks</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3><i class="bi bi-pie-chart-fill"></i> Module Completion Overview</h3>
+                        <canvas id="moduleCompletionChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3><i class="bi bi-trophy-fill"></i> Top Performing Students</h3>
+                        <div class="top-students-list" id="topStudentsList">
+                            <div class="loading-msg">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Needing Help -->
+                <div class="alert-section">
+                    <div class="alert-card">
+                        <div class="alert-header">
+                            <h3><i class="bi bi-exclamation-triangle-fill"></i> Students Needing Attention</h3>
+                            <button class="btn-small" onclick="showSection('students')">View All</button>
+                        </div>
+                        <div class="alert-list" id="needsHelpList">
+                            <div class="loading-msg">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="alert-card">
+                        <div class="alert-header">
+                            <h3><i class="bi bi-clock-history"></i> Recent Student Activity</h3>
+                        </div>
+                        <div class="activity-list" id="recentActivityList">
+                            <div class="loading-msg">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 MY STUDENTS SECTION
+            ============================================ -->
+            <div class="content-section" id="students">
+                <div class="section-header">
+                    <h2><i class="bi bi-people-fill"></i> My Students</h2>
+                    <div class="header-controls">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="studentSearch" placeholder="Search students..." oninput="filterStudents()">
+                        </div>
+                        <select id="progressFilter" onchange="filterStudents()">
+                            <option value="all">All Students</option>
+                            <option value="high">High Progress (&gt;60%)</option>
+                            <option value="medium">Medium Progress (30-60%)</option>
+                            <option value="low">Needs Help (&lt;30%)</option>
+                        </select>
+                        <button class="action-btn" onclick="exportStudentData()">
+                            <i class="bi bi-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="students-summary-bar">
+                    <div class="summary-item">
+                        <span class="summary-label">Total:</span>
+                        <span class="summary-value" id="filteredCount">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">High Progress:</span>
+                        <span class="summary-value high" id="highProgressCount">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Needs Help:</span>
+                        <span class="summary-value low" id="lowProgressCount">0</span>
+                    </div>
+                </div>
+
+                <div class="students-table-container">
+                    <table class="students-table" id="studentsTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Email</th>
+                                <th>Overall Progress</th>
+                                <th>Score</th>
+                                <th>Rooms Completed</th>
+                                <th>Last Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr><td colspan="7" class="loading-row">Loading students...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 TASK DESIGNER SECTION
+            ============================================ -->
+            <div class="content-section" id="tasks">
+                <div class="section-header">
+                    <h2><i class="bi bi-journal-plus"></i> Task Designer</h2>
+                    <div class="header-controls">
+                        <button class="action-btn primary" onclick="openTaskModal()">
+                            <i class="bi bi-plus-circle"></i> Create New Task
+                        </button>
+                    </div>
+                </div>
+
+                <div class="task-designer-layout">
+                    <!-- Info Panel -->
+                    <div class="info-panel">
+                        <div class="info-card">
+                            <h4><i class="bi bi-lightbulb-fill"></i> About Task Designer</h4>
+                            <p>Design simulation-based tasks that foster:</p>
+                            <ul class="feature-list">
+                                <li><i class="bi bi-check-circle-fill"></i> Self-directed learning</li>
+                                <li><i class="bi bi-check-circle-fill"></i> Critical thinking skills</li>
+                                <li><i class="bi bi-check-circle-fill"></i> Student cooperation</li>
+                                <li><i class="bi bi-check-circle-fill"></i> Hands-on practice</li>
+                            </ul>
+                        </div>
+                        <div class="task-stats-mini">
+                            <div class="mini-stat">
+                                <span class="mini-value" id="totalTasksCount">0</span>
+                                <span class="mini-label">Total Tasks</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-value" id="activeTasksCount">0</span>
+                                <span class="mini-label">Active</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-value" id="coopTasksCount">0</span>
+                                <span class="mini-label">Cooperative</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Task List -->
+                    <div class="task-list-panel">
+                        <div class="task-filters">
+                            <input type="text" id="taskSearch" placeholder="Search tasks..." oninput="filterTasks()">
+                            <select id="taskRoomFilter" onchange="filterTasks()">
+                                <option value="all">All Modules</option>
+                                <option value="flowchart">FLOWBYTE</option>
+                                <option value="networking">NETXUS</option>
+                                <option value="ai-training">AITRIX</option>
+                                <option value="database">SCHEMAX</option>
+                                <option value="programming">CODEVANCE</option>
+                            </select>
+                            <select id="taskDifficultyFilter" onchange="filterTasks()">
+                                <option value="all">All Difficulties</option>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                        <div class="task-cards-grid" id="taskCardsGrid">
+                            <div class="loading-msg">Loading tasks...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PROGRESS TRACKING SECTION
+            ============================================ -->
+            <div class="content-section" id="progress">
+                <div class="section-header">
+                    <h2><i class="bi bi-graph-up-arrow"></i> Progress Tracking</h2>
+                    <div class="header-controls">
+                        <select id="progressTimeframe" onchange="loadProgressTracking()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <button class="action-btn" onclick="loadProgressTracking()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                        <button class="action-btn primary" onclick="exportProgressReport()">
+                            <i class="bi bi-download"></i> Export Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Overall Stats -->
+                <div class="progress-stats-grid">
+                    <div class="progress-stat-card">
+                        <div class="pstat-icon"><i class="bi bi-people-fill"></i></div>
+                        <div class="pstat-info">
+                            <div class="pstat-value" id="ptotalStudents">0</div>
+                            <div class="pstat-label">Total Students</div>
+                        </div>
+                    </div>
+                    <div class="progress-stat-card">
+                        <div class="pstat-icon"><i class="bi bi-check2-circle"></i></div>
+                        <div class="pstat-info">
+                            <div class="pstat-value" id="ptotalCompletions">0</div>
+                            <div class="pstat-label">Room Completions</div>
+                        </div>
+                    </div>
+                    <div class="progress-stat-card">
+                        <div class="pstat-icon"><i class="bi bi-percent"></i></div>
+                        <div class="pstat-info">
+                            <div class="pstat-value" id="pavgProgress">0%</div>
+                            <div class="pstat-label">Avg. Progress</div>
+                        </div>
+                    </div>
+                    <div class="progress-stat-card">
+                        <div class="pstat-icon"><i class="bi bi-clock-fill"></i></div>
+                        <div class="pstat-info">
+                            <div class="pstat-value" id="ptotalTimeSpent">0h</div>
+                            <div class="pstat-label">Total Time Logged</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Per-Module Breakdown -->
+                <div class="module-breakdown">
+                    <h3><i class="bi bi-grid-3x3-gap-fill"></i> Module-by-Module Breakdown</h3>
+                    <div class="module-breakdown-grid" id="moduleBreakdownGrid">
+                        <div class="loading-msg">Loading module data...</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="progress-charts-row">
+                    <div class="chart-card">
+                        <h3><i class="bi bi-bar-chart"></i> Room Performance Chart</h3>
+                        <canvas id="roomPerformanceProgressChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3><i class="bi bi-graph-up"></i> Completion Trends</h3>
+                        <canvas id="completionTrendsProgressChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Individual Student Progress Table -->
+                <div class="student-progress-table-container">
+                    <div class="table-header">
+                        <h3><i class="bi bi-table"></i> Individual Student Progress</h3>
+                        <input type="text" id="progressStudentSearch" placeholder="Filter by student name..." oninput="filterProgressTable()">
+                    </div>
+                    <table class="progress-table" id="progressTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>FLOWBYTE</th>
+                                <th>NETXUS</th>
+                                <th>AITRIX</th>
+                                <th>SCHEMAX</th>
+                                <th>CODEVANCE</th>
+                                <th>Overall</th>
+                                <th>Total Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="progressTableBody">
+                            <tr><td colspan="8" class="loading-row">Loading progress data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ANALYTICS SECTION
+            ============================================ -->
+            <div class="content-section" id="analytics">
+                <div class="section-header">
+                    <h2><i class="bi bi-bar-chart-line-fill"></i> Analytics &amp; Charts</h2>
+                    <div class="header-controls">
+                        <select id="analyticsTimeframe" onchange="loadAnalytics()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="365">Last Year</option>
+                        </select>
+                        <button class="action-btn" onclick="loadAnalytics()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metrics Summary -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="mAvgProgress">0%</div>
+                        <div class="metric-label">Avg Student Progress</div>
+                        <div class="metric-bar"><div class="metric-fill" id="mAvgProgressBar" style="width:0%"></div></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="mActiveUsers">0</div>
+                        <div class="metric-label">Active in Period</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="mTotalBadges">0</div>
+                        <div class="metric-label">Badges Earned</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="mCompletionRate">0%</div>
+                        <div class="metric-label">Avg Completion Rate</div>
+                    </div>
+                </div>
+
+                <!-- Analytics Charts 2x2 Grid -->
+                <div class="analytics-charts-grid">
+                    <div class="chart-card">
+                        <h3><i class="bi bi-bar-chart"></i> Module Popularity</h3>
+                        <canvas id="modulePopularityChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3><i class="bi bi-pie-chart"></i> Difficulty Distribution</h3>
+                        <canvas id="difficultyDistChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3><i class="bi bi-graph-up"></i> Score Distribution</h3>
+                        <canvas id="scoreDistChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3><i class="bi bi-trophy"></i> Room Completion Rates</h3>
+                        <canvas id="completionRatesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Skill Level Assessment -->
+                <div class="skill-assessment">
+                    <h3><i class="bi bi-award-fill"></i> Class Skill Assessment by Module</h3>
+                    <div class="skill-bars" id="skillBarsContainer">
+                        <div class="loading-msg">Loading skill assessment...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 REPORTS SECTION
+            ============================================ -->
+            <div class="content-section" id="reports">
+                <div class="section-header">
+                    <h2><i class="bi bi-file-earmark-bar-graph-fill"></i> Reports</h2>
+                </div>
+
+                <div class="reports-layout">
+                    <!-- Report Builder -->
+                    <div class="report-builder-card">
+                        <h3><i class="bi bi-tools"></i> Generate Report</h3>
+                        <div class="report-form">
+                            <div class="form-group">
+                                <label>Report Type</label>
+                                <select id="reportType">
+                                    <option value="class_summary">Class Summary</option>
+                                    <option value="student_performance">Individual Student Performance</option>
+                                    <option value="module_analysis">Module Analysis</option>
+                                    <option value="progress_report">Progress Report</option>
+                                    <option value="achievement_report">Achievement Report</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Date Range</label>
+                                <select id="reportDateRange">
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30" selected>Last 30 Days</option>
+                                    <option value="90">Last 3 Months</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Format</label>
+                                <select id="reportFormat">
+                                    <option value="json">JSON</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </div>
+                            <button class="action-btn primary full-width" onclick="generateReport()">
+                                <i class="bi bi-play-circle"></i> Generate Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Reports -->
+                    <div class="quick-reports-card">
+                        <h3><i class="bi bi-lightning-charge-fill"></i> Quick Reports</h3>
+                        <div class="quick-report-list">
+                            <button class="quick-report-btn" onclick="quickReport('class_overview')">
+                                <i class="bi bi-clipboard-data"></i>
+                                <span>Class Overview</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <button class="quick-report-btn" onclick="quickReport('top_performers')">
+                                <i class="bi bi-star-fill"></i>
+                                <span>Top Performers</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <button class="quick-report-btn" onclick="quickReport('at_risk')">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span>At-Risk Students</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <button class="quick-report-btn" onclick="quickReport('module_stats')">
+                                <i class="bi bi-grid"></i>
+                                <span>Module Statistics</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <button class="quick-report-btn" onclick="quickReport('badge_report')">
+                                <i class="bi bi-award-fill"></i>
+                                <span>Badge/Achievement Report</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Report Output -->
+                    <div class="report-output-card">
+                        <div class="output-header">
+                            <h3><i class="bi bi-file-earmark-text"></i> Report Output</h3>
+                            <button class="btn-small" id="downloadReportBtn" onclick="downloadReport()" style="display:none;">
+                                <i class="bi bi-download"></i> Download
+                            </button>
+                        </div>
+                        <div class="report-output" id="reportOutput">
+                            <div class="empty-state">
+                                <i class="bi bi-file-earmark-bar-graph"></i>
+                                <p>Generate a report to see the results here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /.teacher-content -->
+    </main><!-- /.teacher-layout -->
+
+    <!-- ============================================
+         TASK MODAL
+    ============================================ -->
+    <div class="modal-overlay" id="taskModal" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="taskModalTitle"><i class="bi bi-journal-plus"></i> Create New Task</h3>
+                <button class="modal-close" onclick="closeTaskModal()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editTaskId">
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label>Task Title <span class="req">*</span></label>
+                        <input type="text" id="taskTitle" placeholder="E.g., Design a Library Database Schema" maxlength="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Module / Room <span class="req">*</span></label>
+                        <select id="taskRoom">
+                            <option value="flowchart">FLOWBYTE - Flowchart Logic</option>
+                            <option value="networking">NETXUS - Network Engineering</option>
+                            <option value="ai-training">AITRIX - AI &amp; Machine Learning</option>
+                            <option value="database">SCHEMAX - Database Management</option>
+                            <option value="programming">CODEVANCE - Programming</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Difficulty Level</label>
+                        <select id="taskDifficulty">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label>Learning Objectives <span class="req">*</span></label>
+                        <textarea id="taskObjectives" placeholder="What will students learn from this task? List key learning outcomes..." rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label>Task Instructions</label>
+                        <textarea id="taskInstructions" placeholder="Provide step-by-step instructions for the students..." rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="form-row checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="taskCooperative">
+                        <span class="checkbox-text"><i class="bi bi-people-fill"></i> Cooperative Task (requires student teamwork)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="taskCriticalThinking" checked>
+                        <span class="checkbox-text"><i class="bi bi-lightbulb-fill"></i> Critical Thinking Focus</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="taskSelfDirected" checked>
+                        <span class="checkbox-text"><i class="bi bi-person-arms-up"></i> Self-Directed Learning</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="taskIsActive" checked>
+                        <span class="checkbox-text"><i class="bi bi-toggle-on"></i> Active (visible to students)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn" onclick="closeTaskModal()">Cancel</button>
+                <button class="action-btn primary" onclick="saveTask()">
+                    <i class="bi bi-check-circle"></i> Save Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         STUDENT DETAIL MODAL
+    ============================================ -->
+    <div class="modal-overlay" id="studentDetailModal" style="display:none;">
+        <div class="modal-box wide">
+            <div class="modal-header">
+                <h3 id="studentDetailTitle"><i class="bi bi-person-circle"></i> Student Details</h3>
+                <button class="modal-close" onclick="closeStudentDetailModal()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="studentDetailBody">
+                <div class="loading-msg">Loading student details...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast" style="display:none;"></div>
+
+    <script src="/static/js/teacher.js"></script>
+</body>
+</html>

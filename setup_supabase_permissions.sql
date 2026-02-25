@@ -30,3 +30,24 @@ SELECT
 FROM pg_tables 
 WHERE schemaname = 'public'
 ORDER BY tablename;
+
+-- ============================================================
+-- MIGRATION: Add 'teacher' to users role CHECK constraint
+-- Run this block if the users table already exists and you need
+-- to support the new teacher role.
+-- ============================================================
+DO $$ BEGIN
+    -- Drop the old constraint if it exists
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'users_role_check'
+          AND table_name = 'users'
+    ) THEN
+        ALTER TABLE users DROP CONSTRAINT users_role_check;
+    END IF;
+
+    -- Add updated constraint that includes 'teacher'
+    ALTER TABLE users
+        ADD CONSTRAINT users_role_check
+        CHECK (role IN ('user', 'admin', 'moderator', 'teacher'));
+END $$;

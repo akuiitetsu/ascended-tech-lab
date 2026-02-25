@@ -4,6 +4,7 @@ import re
 import traceback
 import hashlib
 import secrets
+import json
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 
@@ -183,6 +184,54 @@ def create_admin_user():
     except Exception as e:
         print(f"❌ Error creating admin user: {str(e)}")
 
+def create_teacher_user():
+    """Create default teacher account if none exists"""
+    try:
+        teacher_users = sb_select('users', filters={'name': 'teacher'})
+        if not teacher_users:
+            print("Creating default teacher user in Supabase...")
+            teacher_data = {
+                'name': 'teacher',
+                'email': 'teacher@ascended.tech',
+                'password_hash': hash_password('teacher123'),
+                'role': 'teacher',
+                'is_active': True,
+                'total_score': 0,
+                'current_streak': 0,
+                'email_verified': True,
+                'created_at': datetime.now().isoformat()
+            }
+            sb_insert('users', teacher_data)
+            print("✅ Default teacher user created:")
+            print("   Username: teacher")
+            print("   Password: teacher123")
+            print("   Role: teacher")
+        else:
+            existing = teacher_users[0]
+            if existing.get('role') != 'teacher':
+                sb_update('users', {'role': 'teacher'}, match_column='id', match_value=existing['id'])
+                print("✅ Teacher user role updated to 'teacher'")
+            else:
+                print("✅ Teacher user already exists")
+    except Exception as e:
+        err = str(e)
+        print(f"❌ Error creating teacher user: {err}")
+        if '23514' in err or 'users_role_check' in err:
+            print("")
+            print("⚠️  The database CHECK constraint does not include 'teacher' yet.")
+            print("   Run the following SQL in your Supabase SQL Editor to fix this:")
+            print("")
+            print("   DO $$ BEGIN")
+            print("     IF EXISTS (SELECT 1 FROM information_schema.table_constraints")
+            print("                WHERE constraint_name = 'users_role_check'")
+            print("                  AND table_name = 'users') THEN")
+            print("       ALTER TABLE users DROP CONSTRAINT users_role_check;")
+            print("     END IF;")
+            print("     ALTER TABLE users ADD CONSTRAINT users_role_check")
+            print("       CHECK (role IN ('user', 'admin', 'moderator', 'teacher'));")
+            print("   END $$;")
+            print("")
+
 # Initialize Supabase connection and admin user
 def init_supabase():
     """Initialize Supabase connection and create admin user if needed"""
@@ -193,6 +242,7 @@ def init_supabase():
         
         # Create admin user if needed
         create_admin_user()
+        create_teacher_user()
         
         return True
     except Exception as e:
@@ -377,6 +427,11 @@ def login_user():
         if user_row.get('name', '').lower() == 'admin' and user_role != 'admin':
             sb_update('users', {'role': 'admin'}, match_column='id', match_value=user_row['id'])
             user_role = 'admin'
+
+        # Ensure teacher role preserved for teacher account
+        if user_row.get('name', '').lower() == 'teacher' and user_role != 'teacher':
+            sb_update('users', {'role': 'teacher'}, match_column='id', match_value=user_row['id'])
+            user_role = 'teacher'
 
         if not user_row.get('password_hash'):
             return jsonify({'error': 'Invalid credentials'}), 401
@@ -1972,6 +2027,122 @@ def get_badges_summary():
     except Exception as e:
         print(f"Badges summary error: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# ============================================================
+# TEACHER API ROUTES
+# ============================================================
+
+def require_teacher():
+    """Check that the requesting user has the teacher role.
+    Returns (user_id, None) on success or (None, error_response) on failure."""
+    teacher_id = request.headers.get('X-User-ID') or request.args.get('teacher_id')
+    if not teacher_id:
+        return None, (jsonify({'error': 'Teacher ID required'}), 401)
+    try:
+        teacher_id = int(teacher_id)
+    except (TypeError, ValueError):
+        return None, (jsonify({'error': 'Invalid teacher ID'}), 400)
+    users = sb_select('users', filters={'id': teacher_id})
+    if not users or users[0].get('role') not in ('teacher', 'admin'):
+        return None, (jsonify({'error': 'Unauthorized'}), 403)
+    return teacher_id, None
+
+@app.route('/api/teacher/tasks', methods=['GET'])
+def get_teacher_tasks():
+    try:
+        teacher_id, err = require_teacher()
+        if err:
+            return err
+        tasks = sb_select('items', filters={'user_id': teacher_id}, order='-created_at')
+        # Only return tasks created by this teacher
+        teacher_tasks = [t for t in (tasks or []) if _is_teacher_task(t)]
+        return jsonify(teacher_tasks), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/teacher/tasks', methods=['POST'])
+def create_teacher_task():
+    try:
+        teacher_id, err = require_teacher()
+        if err:
+            return err
+        data = request.get_json() or {}
+        title = (data.get('title') or '').strip()
+        if not title:
+            return jsonify({'error': 'Title is required'}), 400
+        task_data = {
+            'title': title,
+            'description': data.get('description', '{}'),
+            'user_id': teacher_id,
+            'created_at': datetime.now().isoformat()
+        }
+        result = sb_insert('items', task_data)
+        return jsonify(result or task_data), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/teacher/tasks/<int:task_id>', methods=['PUT'])
+def update_teacher_task(task_id):
+    try:
+        teacher_id, err = require_teacher()
+        if err:
+            return err
+        tasks = sb_select('items', filters={'id': task_id})
+        if not tasks:
+            return jsonify({'error': 'Task not found'}), 404
+        if tasks[0].get('user_id') != teacher_id:
+            return jsonify({'error': 'Forbidden'}), 403
+        data = request.get_json() or {}
+        update_payload = {}
+        if 'title' in data and data['title'].strip():
+            update_payload['title'] = data['title'].strip()
+        if 'description' in data:
+            update_payload['description'] = data['description']
+        if not update_payload:
+            return jsonify({'error': 'No update data provided'}), 400
+        sb_update('items', update_payload, match_column='id', match_value=task_id)
+        return jsonify({'message': 'Task updated', 'id': task_id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/teacher/tasks/<int:task_id>', methods=['DELETE'])
+def delete_teacher_task(task_id):
+    try:
+        teacher_id, err = require_teacher()
+        if err:
+            return err
+        tasks = sb_select('items', filters={'id': task_id})
+        if not tasks:
+            return jsonify({'error': 'Task not found'}), 404
+        if tasks[0].get('user_id') != teacher_id:
+            return jsonify({'error': 'Forbidden'}), 403
+        sb_delete('items', match_column='id', match_value=task_id)
+        return jsonify({'message': 'Task deleted'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/teacher/students', methods=['GET'])
+def get_teacher_students():
+    try:
+        teacher_id, err = require_teacher()
+        if err:
+            return err
+        students = sb_select('users', order='-created_at')
+        student_list = [
+            s for s in (students or [])
+            if s.get('role', 'user') == 'user'
+            and s.get('name', '').lower() not in ('admin', 'teacher')
+        ]
+        return jsonify(student_list), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def _is_teacher_task(item):
+    try:
+        meta = json.loads(item.get('description') or '{}')
+        return meta.get('teacher_task') is True
+    except Exception:
+        return False
 
 # Complete the admin system
 print("🔧 Enhanced Admin system ready with Supabase!")

@@ -353,8 +353,17 @@ function handleSuccessfulLogin(userData) {
     const isAdminUser = userData.role === 'admin' || 
                        userData.username === 'admin' || 
                        userData.username.toLowerCase() === 'admin';
+
+    // Teacher account check
+    const isTeacherUser = userData.role === 'teacher' ||
+                          (userData.username && userData.username.toLowerCase() === 'teacher');
     
-    if (isAdminUser) {
+    if (isTeacherUser) {
+        console.log('🏫 TEACHER USER LOGIN DETECTED!');
+        localStorage.setItem('userRole', 'teacher');
+        console.log('🚀 Redirecting teacher to teacher dashboard...');
+        window.location.replace('/src/pages/dashboard/teacher-dashboard.html');
+    } else if (isAdminUser) {
         console.log('🔐 ADMIN USER LOGIN DETECTED!');
         console.log('   • Setting admin flags...');
         
